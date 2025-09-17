@@ -22,14 +22,17 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen grid place-items-center bg-gray-50">
-      <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-semibold text-gray-900 mb-2">Bienvenido a GMIEF</h1>
-        
+    <main
+      className="min-h-screen grid place-items-center bg-cover bg-center"
+      style={{ backgroundImage: "url('/background.jpg')" }}
+    >
+      <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white/90 backdrop-blur-sm p-6 shadow-sm">
+        <h1 className="text-xl font-semibold text-gray-900 mb-2">
+          Bienvenido a GMIEF
+        </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            
             <input
               id="usuario"
               type="text"
@@ -42,7 +45,6 @@ export default function Home() {
           </div>
 
           <div>
-            
             <input
               id="contrasena"
               type="password"
@@ -67,9 +69,7 @@ export default function Home() {
             Entrar
           </button>
         </form>
-
-    
       </div>
-    </main> 
+    </main>
   );
 }
