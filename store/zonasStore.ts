@@ -1,33 +1,55 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import type { Zona } from "@/types/zonas";
+import type { Subzona, Iglesia } from "@/types/subzonas";
 
-type State = {
+interface State {
   zonas: Zona[];
   zonaSelected: Zona | null;
-};
+  subzonas: Subzona[];
+  subzonaSelected: Subzona | null;
+  iglesias: Iglesia[];
+  iglesiaSelected: Iglesia | null;
+}
 
-type Actions = {
+interface Actions {
   setZonas: (zs: Zona[]) => void;
-  setSelectedById: (id: number) => void;
-  setSelected: (zona: Zona | null) => void;
-  clear: () => void;
-};
+  setZonaSelected: (zona: Zona | null) => void;
+  setSubzonas: (szs: Subzona[]) => void;
+  setSubzonaSelected: (subzona: Subzona | null) => void;
+  setIglesias: (igs: Iglesia[]) => void;
+  setIglesiaSelected: (iglesia: Iglesia | null) => void;
+  fetchSubzonas: (zonaId: number) => Promise<void>;
+  fetchIglesias: (zonaId: number, subzonaId?: number | null) => Promise<void>;
+}
 
 export const useZonasStore = create<State & Actions>()(
   devtools((set, get) => ({
     zonas: [],
     zonaSelected: null,
+    subzonas: [],
+    subzonaSelected: null,
+    iglesias: [],
+    iglesiaSelected: null,
 
     setZonas: (zs) => set({ zonas: zs }, false, "setZonas"),
+    setZonaSelected: (zona) => set({ zonaSelected: zona, subzonaSelected: null }, false, "setZonaSelected"),
+    setSubzonas: (szs) => set({ subzonas: szs }, false, "setSubzonas"),
+    setSubzonaSelected: (subzona) => set({ subzonaSelected: subzona }, false, "setSubzonaSelected"),
+    setIglesias: (igs) => set({ iglesias: igs }, false, "setIglesias"),
+    setIglesiaSelected: (iglesia) => set({ iglesiaSelected: iglesia }, false, "setIglesiaSelected"),
 
-    setSelectedById: (id) => {
-      const zona = get().zonas.find((z) => z.id === id) || null;
-      set({ zonaSelected: zona }, false, "setSelectedById");
+    fetchSubzonas: async (zonaId) => {
+      const res = await fetch(`/api/subzonas?zonaId=${zonaId}`);
+      const data = await res.json();
+      set({ subzonas: data }, false, "fetchSubzonas");
     },
-
-    setSelected: (zona) => set({ zonaSelected: zona }, false, "setSelected"),
-
-    clear: () => set({ zonas: [], zonaSelected: null }, false, "clear"),
+    fetchIglesias: async (zonaId, subzonaId) => {
+      let url = `/api/iglesias?zonaId=${zonaId}`;
+      if (subzonaId) url += `&subzonaId=${subzonaId}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      set({ iglesias: data }, false, "fetchIglesias");
+    },
   }))
 );

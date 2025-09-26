@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GMIEF Dashboard 🚀
 
-## Getting Started
+¡Bienvenido a **GMIEF Dashboard**! Una plataforma moderna y responsiva para la gestión de zonas, subzonas e iglesias, desarrollada con Next.js, Tailwind CSS y ❤️ por Kodaly para KDK.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## ✨ Características principales
+
+- ⚡ **UI moderna y responsiva**: Menús flotantes, tarjetas estilizadas y experiencia mobile-first.
+- 🗺️ **Gestión visual**: Selecciona zonas y subzonas, visualiza iglesias y navega fácilmente.
+- 🔒 **Seguro para producción**: Variables sensibles protegidas con `.env` y despliegue listo para Vercel.
+- 🎨 **Colores corporativos**: Blanco, negro y azul marino, con fuente global Poppins.
+- 🌍 **Mapa interactivo**: Visualización de zonas en el mapa de España.
+
+---
+
+## 🚀 Despliegue rápido en Vercel
+
+1. **Haz fork o clona este repo**
+2. **Configura las variables de entorno** en Vercel (`.env`):
+   - Puedes copiar el contenido de `.env.example` y pegarlo en la sección de Environment Variables de Vercel.
+3. **Haz commit y push**
+4. ¡Listo! Vercel desplegará automáticamente tu app.
+
+---
+
+## ⚙️ Variables de entorno
+
+Copia `.env.example` como `.env` y completa los valores:
+
+```env
+DB_HOST=localhost
+DB_USER=usuario
+DB_PASSWORD=contraseña
+DB_NAME=nombre_db
+DB_PORT=3306
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> **Nota:** Nunca subas tu archivo `.env` al repositorio. `.env` ya está en `.gitignore`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🛠️ Instalación local
 
-## Learn More
+```bash
+npm install
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Abre [http://localhost:3000](http://localhost:3000) para ver la app en acción.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📁 Estructura principal
 
-## Deploy on Vercel
+- `app/` — Páginas y componentes principales
+- `store/` — Estado global (Zustand)
+- `lib/` — Conexión a base de datos
+- `public/` — Imágenes y assets
+- `types/` — Tipos TypeScript
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 👨‍💻 Tecnologías usadas
+
+- [Next.js](https://nextjs.org/) 15+
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Zustand](https://zustand-demo.pmnd.rs/)
+- [Poppins Font](https://fonts.google.com/specimen/Poppins)
+
+---
+
+## 🛡️ Seguridad y buenas prácticas
+
+- Todas las credenciales y datos sensibles van en `.env`.
+- `.env.example` te muestra la estructura, pero sin datos reales.
+- El archivo `.env` está protegido por `.gitignore`.
+
+---
+
+## 📦 Despliegue seguro en Vercel
+
+1. Ve a tu dashboard de Vercel y selecciona tu proyecto.
+2. Entra en **Settings > Environment Variables** y añade las variables de `.env.example`.
+3. Haz commit y push a tu rama principal.
+4. ¡Tu app se desplegará automáticamente y de forma segura!
+
+---
+
+## 🙌 Créditos
+
+Desarrollado por Kodaly para KDK. Si tienes dudas o sugerencias, ¡abre un issue o contacta al equipo!
+
+---
+
+> Made with ❤️ by Kodaly
