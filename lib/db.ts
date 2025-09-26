@@ -13,17 +13,12 @@ const config = {
 } as const;
 
 // Pool global para evitar crear conexiones por request en dev/hmr
-let pool: mysql.Pool;
 declare global {
-  // eslint-disable-next-line no-var
   var __dbPool: mysql.Pool | undefined;
 }
-if (!global.__dbPool) {
-  global.__dbPool = mysql.createPool(config);
-}
-pool = global.__dbPool;
+const pool: mysql.Pool = global.__dbPool || (global.__dbPool = mysql.createPool(config));
 
-export async function query<T = any>(sql: string, params: any[] = []) {
+export async function query<T = unknown>(sql: string, params: unknown[] = []) {
   const [rows] = await pool.execute(sql, params);
   return rows as T;
 }

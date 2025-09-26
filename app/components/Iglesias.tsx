@@ -3,10 +3,10 @@ import type { Iglesia } from "@/types/subzonas";
 import { useZonasStore } from "@/store/zonasStore";
 
 export default function Iglesias() {
-  const zonaSelected = useZonasStore((s: any) => s.zonaSelected);
-  const subzonaSelected = useZonasStore((s: any) => s.subzonaSelected);
-  const iglesias = useZonasStore((s: any) => s.iglesias);
-  const fetchIglesias = useZonasStore((s: any) => s.fetchIglesias);
+  const zonaSelected = useZonasStore((s) => s.zonaSelected);
+  const subzonaSelected = useZonasStore((s) => s.subzonaSelected);
+  const iglesias = useZonasStore((s) => s.iglesias);
+  const fetchIglesias = useZonasStore((s) => s.fetchIglesias);
 
   useEffect(() => {
     if (zonaSelected) {

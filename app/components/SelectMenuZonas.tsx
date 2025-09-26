@@ -24,8 +24,8 @@ export default function SelectMenuZonas() {
         const json: { ok: boolean; data: Zona[] } = await res.json();
         if (!json.ok) throw new Error("Respuesta no OK");
         if (!ignore) setZonas(json.data); // 👈 no seleccionamos nada
-      } catch (e: any) {
-        if (!ignore && e.name !== "AbortError") setError("No se pudieron cargar las zonas");
+      } catch (e: unknown) {
+        if (!ignore && !(e instanceof DOMException && e.name === "AbortError")) setError("No se pudieron cargar las zonas");
       } finally {
         if (!ignore) setLoading(false);
       }

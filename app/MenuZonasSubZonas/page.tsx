@@ -10,7 +10,7 @@ import { useZonasStore } from "@/store/zonasStore";
 
 export default function MenuZonasSubZonas() {
   const router = useRouter();
-  const setZonaSelected = useZonasStore((s: any) => s.setZonaSelected);
+  const setZonaSelected = useZonasStore((s) => s.setZonaSelected);
   return (
     <main
       className="min-h-screen max-h-screen flex flex-col font-sans bg-cover bg-center"

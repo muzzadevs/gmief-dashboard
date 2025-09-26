@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
-import type { LatLngTuple } from "leaflet";
-import L from "leaflet";
+import type { LatLngTuple, Layer } from "leaflet";
+import type { FeatureCollection, Feature } from "geojson";
 import "leaflet/dist/leaflet.css";
 
 // GeoJSON pegado (coordenadas [lng, lat])
-const CUSTOM_GEOJSON: GeoJSON.FeatureCollection = {
+const CUSTOM_GEOJSON: FeatureCollection = {
   type: "FeatureCollection",
   features: [
     {
@@ -88,14 +88,14 @@ export default function SpainMap() {
 
         {/* GeoJSON con evento click */}
         <GeoJSON
-          data={CUSTOM_GEOJSON as any}
+          data={CUSTOM_GEOJSON}
           style={() => ({
             color: "#ef4444",
             weight: 1,
             fillColor: "#ef4444",
             fillOpacity: 0.18
           })}
-          onEachFeature={(_feature, layer) => {
+          onEachFeature={(_feature: Feature, layer: Layer) => {
             layer.on({
               click: () => alert("ZONA CANTABRIA")
             });

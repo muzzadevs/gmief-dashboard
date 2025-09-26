@@ -3,11 +3,11 @@ import type { Subzona } from "@/types/subzonas";
 import { useZonasStore } from "@/store/zonasStore";
 
 export default function SelectMenuSubzonas() {
-  const zonaSelected = useZonasStore((s: any) => s.zonaSelected);
-  const subzonas = useZonasStore((s: any) => s.subzonas);
-  const subzonaSelected = useZonasStore((s: any) => s.subzonaSelected);
-  const setSubzonaSelected = useZonasStore((s: any) => s.setSubzonaSelected);
-  const fetchSubzonas = useZonasStore((s: any) => s.fetchSubzonas);
+  const zonaSelected = useZonasStore((s) => s.zonaSelected);
+  const subzonas = useZonasStore((s) => s.subzonas);
+  const subzonaSelected = useZonasStore((s) => s.subzonaSelected);
+  const setSubzonaSelected = useZonasStore((s) => s.setSubzonaSelected);
+  const fetchSubzonas = useZonasStore((s) => s.fetchSubzonas);
 
   useEffect(() => {
     if (zonaSelected) {
