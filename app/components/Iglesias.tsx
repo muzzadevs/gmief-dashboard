@@ -1,4 +1,6 @@
 import { useEffect } from "react";
+import { FaUsers } from "react-icons/fa";
+import { useRouter } from "next/navigation";
 import type { Iglesia } from "@/types/subzonas";
 import { useZonasStore } from "@/store/zonasStore";
 
@@ -7,6 +9,8 @@ export default function Iglesias() {
   const subzonaSelected = useZonasStore((s) => s.subzonaSelected);
   const iglesias = useZonasStore((s) => s.iglesias);
   const fetchIglesias = useZonasStore((s) => s.fetchIglesias);
+  const setIglesiaSelected = useZonasStore((s) => s.setIglesiaSelected);
+  const router = useRouter();
 
   useEffect(() => {
     if (zonaSelected) {
@@ -30,23 +34,42 @@ export default function Iglesias() {
             key={iglesia.id}
             className="bg-white/90 border border-gray-200 rounded-2xl shadow-sm px-5 py-4 flex flex-col"
           >
-            <div className="font-semibold text-base mb-1 text-gray-900 truncate">{iglesia.nombre || "sin información"}</div>
-            {haySinInfo ? (
-              <div className="text-gray-700 text-sm leading-snug">Sin información</div>
-            ) : (
-              <a
-                href={`https://www.google.com/maps/search/?api=1&query=${direccionMaps}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-700 no-underline text-sm leading-snug transition flex items-center gap-2 cursor-pointer hover:underline"
+            <div className="flex flex-row items-center gap-4 w-full">
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-base text-gray-900 truncate">{iglesia.nombre || "sin información"}</div>
+                {haySinInfo ? (
+                  <div className="text-gray-700 text-sm leading-snug">Sin información</div>
+                ) : (
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${direccionMaps}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-700 no-underline text-sm leading-snug transition flex items-center gap-2 cursor-pointer hover:underline truncate"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-blue-700">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 2.25c-4.556 0-8.25 3.364-8.25 7.5 0 5.25 7.5 12 8.25 12s8.25-6.75 8.25-12c0-4.136-3.694-7.5-8.25-7.5z" />
+                      <circle cx="12" cy="9.75" r="2.25" fill="currentColor" />
+                    </svg>
+                    {direccion}
+                  </a>
+                )}
+              </div>
+              <button
+                type="button"
+                className="px-4 py-2 rounded-xl cursor-pointer"
+                style={{ background: '#022c55', color: 'white', border: 'none' }}
+                onClick={() => {
+                  setIglesiaSelected(iglesia);
+                  router.push("/MenuMinisterios");
+                }}
+                aria-label="Gestionar ministerios"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-blue-700">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 2.25c-4.556 0-8.25 3.364-8.25 7.5 0 5.25 7.5 12 8.25 12s8.25-6.75 8.25-12c0-4.136-3.694-7.5-8.25-7.5z" />
-                  <circle cx="12" cy="9.75" r="2.25" fill="currentColor" />
-                </svg>
-                {direccion}
-              </a>
-            )}
+                <span className="flex items-center gap-2">
+                  <FaUsers className="w-5 h-5" />
+                  Ministerios
+                </span>
+              </button>
+            </div>
           </div>
         );
       })}
