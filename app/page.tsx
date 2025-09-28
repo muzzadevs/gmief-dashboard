@@ -70,6 +70,168 @@ export default function Home() {
           </button>
         </form>
       </div>
+      {/* Firma elegante abajo a la derecha */}
+      <span className="signature absolute right-6 bottom-4 z-50 select-none pointer-events-none flex items-end gap-2">
+        <span>Hecho por Kale Dor Kayiko</span>
+        <a
+          href="https://www.kaledorkayiko.org/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flag-link inline-block align-bottom"
+          style={{ width: "23px", height: "16px" }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600">
+            <rect width="900" height="300" y="0" fill="#0072CE" />
+            <rect width="900" height="300" y="300" fill="#009A00" />
+            <g
+              fill="none"
+              stroke="#D40000"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="450" cy="300" r="180" strokeWidth="30" />
+              <g strokeWidth="18">
+                <line
+                  x1="450"
+                  y1="300"
+                  x2="450"
+                  y2="120"
+                  transform="rotate(0 450 300)"
+                />
+                <line
+                  x1="450"
+                  y1="300"
+                  x2="450"
+                  y2="120"
+                  transform="rotate(22.5 450 300)"
+                />
+                <line
+                  x1="450"
+                  y1="300"
+                  x2="450"
+                  y2="120"
+                  transform="rotate(45 450 300)"
+                />
+                <line
+                  x1="450"
+                  y1="300"
+                  x2="450"
+                  y2="120"
+                  transform="rotate(67.5 450 300)"
+                />
+                <line
+                  x1="450"
+                  y1="300"
+                  x2="450"
+                  y2="120"
+                  transform="rotate(90 450 300)"
+                />
+                <line
+                  x1="450"
+                  y1="300"
+                  x2="450"
+                  y2="120"
+                  transform="rotate(112.5 450 300)"
+                />
+                <line
+                  x1="450"
+                  y1="300"
+                  x2="450"
+                  y2="120"
+                  transform="rotate(135 450 300)"
+                />
+                <line
+                  x1="450"
+                  y1="300"
+                  x2="450"
+                  y2="120"
+                  transform="rotate(157.5 450 300)"
+                />
+                <line
+                  x1="450"
+                  y1="300"
+                  x2="450"
+                  y2="120"
+                  transform="rotate(180 450 300)"
+                />
+                <line
+                  x1="450"
+                  y1="300"
+                  x2="450"
+                  y2="120"
+                  transform="rotate(202.5 450 300)"
+                />
+                <line
+                  x1="450"
+                  y1="300"
+                  x2="450"
+                  y2="120"
+                  transform="rotate(225 450 300)"
+                />
+                <line
+                  x1="450"
+                  y1="300"
+                  x2="450"
+                  y2="120"
+                  transform="rotate(247.5 450 300)"
+                />
+                <line
+                  x1="450"
+                  y1="300"
+                  x2="450"
+                  y2="120"
+                  transform="rotate(270 450 300)"
+                />
+                <line
+                  x1="450"
+                  y1="300"
+                  x2="450"
+                  y2="120"
+                  transform="rotate(292.5 450 300)"
+                />
+                <line
+                  x1="450"
+                  y1="300"
+                  x2="450"
+                  y2="120"
+                  transform="rotate(315 450 300)"
+                />
+                <line
+                  x1="450"
+                  y1="300"
+                  x2="450"
+                  y2="120"
+                  transform="rotate(337.5 450 300)"
+                />
+              </g>
+              <circle
+                cx="450"
+                cy="300"
+                r="42"
+                fill="#D40000"
+                stroke="#D40000"
+              />
+            </g>
+          </svg>
+        </a>
+      </span>
+      <style jsx global>{`
+        .signature {
+          font-size: 12px;
+          color: #fff;
+          letter-spacing: 1px;
+          opacity: 0.92;
+          user-select: none;
+        }
+        .flag-link {
+          pointer-events: auto;
+          cursor: pointer;
+          transition: transform 0.13s;
+        }
+        .flag-link:hover {
+          transform: scale(1.13) rotate(-2deg);
+        }
+      `}</style>
     </main>
   );
 }

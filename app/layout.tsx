@@ -1,11 +1,7 @@
-
-
-
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Poppins } from "@next/font/google";
 import "./globals.css";
-
 
 const poppins = Poppins({
   weight: ["400", "500", "600", "700"],
@@ -13,7 +9,6 @@ const poppins = Poppins({
   variable: "--font-poppins",
   display: "swap",
 });
-
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -32,6 +27,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
+      <head>
+        {/*
+        Desarrollado por David Muza Vizarraga para la gloria de Dios, un proyecto ocn mucho amor para una obra que amo con todo mi corazón como es Filadelfia
+        */}
+      </head>
       <body
         className={`${poppins.variable} ${geistMono.variable} antialiased min-h-screen min-w-full`}
         style={{
