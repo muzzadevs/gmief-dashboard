@@ -44,8 +44,18 @@ export default function MenuAgregarMinisterio() {
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: value }));
+    const { name, value, type } = e.target;
+    if (name === "codigo") {
+      setForm((f) => ({ ...f, codigo: value.toUpperCase() }));
+    } else if (name === "telefono") {
+      // Only allow numbers
+      const numeric = value.replace(/[^0-9]/g, "");
+      setForm((f) => ({ ...f, telefono: numeric }));
+    } else if (name === "email") {
+      setForm((f) => ({ ...f, email: value }));
+    } else {
+      setForm((f) => ({ ...f, [name]: value }));
+    }
   };
 
   const handleCargoChange = (id: number) => {
@@ -60,6 +70,14 @@ export default function MenuAgregarMinisterio() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    // Email validation if not empty
+    if (form.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(form.email)) {
+        alert("El email no es válido");
+        return;
+      }
+    }
     setLoading(true);
     try {
       if (!iglesiaSelected) throw new Error("No hay iglesia seleccionada");
@@ -69,6 +87,7 @@ export default function MenuAgregarMinisterio() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          codigo: form.codigo.toUpperCase(),
           iglesia_id: iglesiaSelected.id,
         }),
       });
@@ -80,12 +99,12 @@ export default function MenuAgregarMinisterio() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ministerio_id, cargos: form.cargos }),
       });
+      setLoading(false); // Habilitar antes de redirigir
       router.push("/MenuMinisterios");
     } catch (err) {
+      setLoading(false); // Habilitar antes de redirigir
       alert("No se pudo crear el ministerio");
       router.push("/MenuMinisterios");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -103,16 +122,17 @@ export default function MenuAgregarMinisterio() {
         backgroundSize: "cover",
       }}
     >
-      <div className="w-[95vw] max-w-3xl bg-white/95 rounded-3xl border border-gray-300 shadow-2xl p-4 sm:p-8 mt-8 mx-auto animate-fadein">
+      <div className="w-[95vw] max-w-3xl lg:max-w-6xl bg-white/95 rounded-3xl border border-gray-300 shadow-2xl p-4 sm:p-8 mt-8 mb-8 mx-auto animate-fadein">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
           <h2 className="text-2xl font-bold text-black tracking-tight font-sans text-center sm:text-left flex-1">
             Agregar Ministerio
           </h2>
           <button
             type="button"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black text-white font-semibold text-base shadow hover:bg-gray-900 transition border border-black cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black text-white font-semibold text-base shadow hover:bg-gray-900 transition border border-black cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             onClick={() => router.push("/MenuMinisterios")}
             aria-label="Volver"
+            disabled={loading}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -135,8 +155,9 @@ export default function MenuAgregarMinisterio() {
           className="flex flex-col gap-4 font-sans text-base text-black"
           onSubmit={handleSubmit}
         >
-          <div className="flex flex-col gap-4 sm:flex-row sm:gap-4">
-            <div className="flex-1 flex flex-col gap-1">
+          {/* Primera fila: Nombre, Apellidos, Alias */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="flex flex-col gap-1">
               <label htmlFor="nombre" className="font-medium text-black">
                 Nombre
               </label>
@@ -150,7 +171,7 @@ export default function MenuAgregarMinisterio() {
                 autoComplete="off"
               />
             </div>
-            <div className="flex-1 flex flex-col gap-1">
+            <div className="flex flex-col gap-1">
               <label htmlFor="apellidos" className="font-medium text-black">
                 Apellidos
               </label>
@@ -164,9 +185,7 @@ export default function MenuAgregarMinisterio() {
                 autoComplete="off"
               />
             </div>
-          </div>
-          <div className="flex flex-col gap-4 sm:flex-row sm:gap-4">
-            <div className="flex-1 flex flex-col gap-1">
+            <div className="flex flex-col gap-1">
               <label htmlFor="alias" className="font-medium text-black">
                 Alias
               </label>
@@ -179,7 +198,10 @@ export default function MenuAgregarMinisterio() {
                 autoComplete="off"
               />
             </div>
-            <div className="flex-1 flex flex-col gap-1">
+          </div>
+          {/* Segunda fila: Código, Estado, Año de aprobación */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="flex flex-col gap-1">
               <label htmlFor="codigo" className="font-medium text-black">
                 Código
               </label>
@@ -194,9 +216,7 @@ export default function MenuAgregarMinisterio() {
                 autoComplete="off"
               />
             </div>
-          </div>
-          <div className="flex flex-col gap-4 sm:flex-row sm:gap-4">
-            <div className="flex-1 flex flex-col gap-1">
+            <div className="flex flex-col gap-1">
               <label htmlFor="estado_id" className="font-medium text-black">
                 Estado
               </label>
@@ -216,16 +236,15 @@ export default function MenuAgregarMinisterio() {
                 ))}
               </select>
             </div>
-            <div className="flex-1 flex flex-col gap-1">
+            <div className="flex flex-col gap-1">
               <label htmlFor="aprob" className="font-medium text-black">
-                Año de aprobación
+                Año de aprobación (opcional)
               </label>
               <select
                 id="aprob"
                 name="aprob"
                 value={form.aprob}
                 onChange={handleChange}
-                required
                 className="px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-green-400 focus:border-green-400 outline-none shadow-sm text-base"
               >
                 <option value="">Año de aprobación</option>
@@ -237,8 +256,9 @@ export default function MenuAgregarMinisterio() {
               </select>
             </div>
           </div>
-          <div className="flex flex-col gap-4 sm:flex-row sm:gap-4">
-            <div className="flex-1 flex flex-col gap-1">
+          {/* Tercera fila: Teléfono, Email */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="flex flex-col gap-1">
               <label htmlFor="telefono" className="font-medium text-black">
                 Teléfono (opcional)
               </label>
@@ -247,11 +267,13 @@ export default function MenuAgregarMinisterio() {
                 name="telefono"
                 value={form.telefono}
                 onChange={handleChange}
+                inputMode="numeric"
+                pattern="[0-9]*"
                 className="px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-green-400 focus:border-green-400 outline-none shadow-sm placeholder:text-gray-700 text-base"
                 autoComplete="off"
               />
             </div>
-            <div className="flex-1 flex flex-col gap-1">
+            <div className="flex flex-col gap-1">
               <label htmlFor="email" className="font-medium text-black">
                 Email (opcional)
               </label>
@@ -260,11 +282,13 @@ export default function MenuAgregarMinisterio() {
                 name="email"
                 value={form.email}
                 onChange={handleChange}
+                type="email"
                 className="px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-green-400 focus:border-green-400 outline-none shadow-sm placeholder:text-gray-700 text-base"
                 autoComplete="off"
               />
             </div>
           </div>
+          {/* Cargos y botón */}
           <div>
             <label className="block font-semibold mb-2 text-black text-base">
               Cargos

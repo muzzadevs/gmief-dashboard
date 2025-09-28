@@ -1,28 +1,61 @@
-import { useEffect } from "react";
+import React, { useEffect } from "react";
+import LoaderPersonalizado from "./LoaderPersonalizado";
 import { FaUsers } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import type { Iglesia } from "@/types/subzonas";
 import { useZonasStore } from "@/store/zonasStore";
 
-export default function Iglesias() {
+// Recibe prop busqueda para filtrar
+interface Props {
+  busqueda?: string;
+}
+
+export default function Iglesias({ busqueda = "" }: Props) {
   const zonaSelected = useZonasStore((s) => s.zonaSelected);
   const subzonaSelected = useZonasStore((s) => s.subzonaSelected);
   const iglesias = useZonasStore((s) => s.iglesias);
   const fetchIglesias = useZonasStore((s) => s.fetchIglesias);
   const setIglesiaSelected = useZonasStore((s) => s.setIglesiaSelected);
   const router = useRouter();
+  const [loading, setLoading] = React.useState(true);
 
   useEffect(() => {
+    let isMounted = true;
     if (zonaSelected) {
-      fetchIglesias(zonaSelected.id, subzonaSelected?.id || null);
+      setLoading(true);
+      Promise.resolve(
+        fetchIglesias(zonaSelected.id, subzonaSelected?.id || null)
+      ).finally(() => {
+        if (isMounted) setLoading(false);
+      });
     }
+    return () => {
+      isMounted = false;
+    };
   }, [zonaSelected, subzonaSelected, fetchIglesias]);
 
   if (!zonaSelected) return null;
 
+  // Filtrar por nombre de iglesia si hay búsqueda
+  const iglesiasFiltradas = (
+    busqueda.trim().length > 0
+      ? iglesias.filter((ig: Iglesia) =>
+          ig.nombre.toLowerCase().startsWith(busqueda.trim().toLowerCase())
+        )
+      : iglesias
+  )
+    .slice()
+    .sort((a, b) =>
+      a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
+    );
+
+  if (loading) {
+    return <LoaderPersonalizado>Cargando iglesias...</LoaderPersonalizado>;
+  }
+
   return (
     <div className="flex flex-col gap-4 w-full max-w-7xl mx-auto">
-      {iglesias.map((iglesia: Iglesia) => {
+      {iglesiasFiltradas.map((iglesia: Iglesia) => {
         const partes = [
           iglesia.direccion,
           iglesia.municipio,
@@ -101,7 +134,7 @@ export default function Iglesias() {
           </div>
         );
       })}
-      {iglesias.length === 0 && (
+      {iglesiasFiltradas.length === 0 && (
         <div className="text-center text-gray-400">
           No hay iglesias para mostrar
         </div>

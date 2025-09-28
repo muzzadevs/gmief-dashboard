@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import LoaderPersonalizado from "../components/LoaderPersonalizado";
 import { useRouter } from "next/navigation";
 import { useZonasStore } from "@/store/zonasStore";
-
 import type { Ministerio, Cargo, Estado } from "@/types/ministerios";
 
 export default function MenuMinisterios() {
@@ -12,19 +12,20 @@ export default function MenuMinisterios() {
   const [ministerios, setMinisterios] = useState<Ministerio[]>([]);
   const [estados, setEstados] = useState<Estado[]>([]);
   const [cargos, setCargos] = useState<Cargo[]>([]);
-  // Estado para modal de avatar
   const [avatarModal, setAvatarModal] = useState<{
     open: boolean;
     letra: string | null;
   }>({ open: false, letra: null });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
     if (!iglesiaSelected) {
       router.push("/MenuZonasSubZonas");
       return;
     }
-    // Fetch ministerios, estados y cargos
     const fetchData = async () => {
+      setLoading(true);
       const [minRes, estRes, carRes] = await Promise.all([
         fetch(`/api/ministerios?iglesiaId=${iglesiaSelected.id}`),
         fetch(`/api/estados`),
@@ -35,11 +36,17 @@ export default function MenuMinisterios() {
         estRes.json(),
         carRes.json(),
       ]);
-      setMinisterios(minData);
-      setEstados(estData);
-      setCargos(carData);
+      if (isMounted) {
+        setMinisterios(minData);
+        setEstados(estData);
+        setCargos(carData);
+        setLoading(false);
+      }
     };
     fetchData();
+    return () => {
+      isMounted = false;
+    };
   }, [iglesiaSelected, router]);
 
   if (!iglesiaSelected) return null;
@@ -109,102 +116,147 @@ export default function MenuMinisterios() {
       </div>
       {/* Cards de ministerios */}
       <div className="flex flex-col gap-4 w-full max-w-4xl mx-auto px-2 sm:px-0">
-        {ministerios.length === 0 ? (
+        {loading ? (
+          <LoaderPersonalizado>Cargando ministerios...</LoaderPersonalizado>
+        ) : ministerios.length === 0 ? (
           <div className="text-center text-gray-400">
             No hay ministerios en esta iglesia
           </div>
         ) : (
-          ministerios.map((min) => {
-            // Alias o nombre
-            const titulo = min.alias
-              ? min.alias
-              : `${min.nombre} ${min.apellidos}`;
-            // Si alias, debajo nombre+apellidos
-            const subtitulo = min.alias
-              ? `${min.nombre} ${min.apellidos}`
-              : null;
-            // Estado
-            const estado = min.estado_nombre;
-            // Año aprobación
-            const aprob = min.aprob;
-            // Teléfono y email
-            const telefono = min.telefono;
-            const email = min.email;
-            // Cargos (ids separados por coma)
-            const cargoIds = min.cargos
-              ? min.cargos.split(",").map(Number)
-              : [];
-            const cargoTags = cargos.filter((c) => cargoIds.includes(c.id));
-            return (
-              <div
-                key={min.id}
-                className="bg-white/90 border border-gray-200 rounded-2xl shadow-sm px-5 py-4 flex flex-col gap-2"
-              >
-                <div className="flex items-center gap-4">
-                  {/* Avatar genérico clickable */}
-                  <button
-                    type="button"
-                    className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-bold text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    title="Ver avatar"
-                    onClick={() =>
-                      setAvatarModal({ open: true, letra: titulo[0] })
-                    }
-                    style={{ cursor: "zoom-in" }}
-                  >
-                    {titulo[0]}
-                  </button>
-                  <div className="flex flex-col flex-1">
-                    <span className="font-semibold text-lg text-gray-900">
-                      {titulo}
+          [...ministerios]
+            .sort((a, b) => {
+              // Ordenar siempre por el campo que se muestra en negrita (alias si existe, si no nombre + apellidos)
+              const titularA = (
+                a.alias ? a.alias : `${a.nombre} ${a.apellidos || ""}`
+              ).toLowerCase();
+              const titularB = (
+                b.alias ? b.alias : `${b.nombre} ${b.apellidos || ""}`
+              ).toLowerCase();
+              if (titularA < titularB) return -1;
+              if (titularA > titularB) return 1;
+              return 0;
+            })
+            .map((min) => {
+              // Alias o nombre
+              const titulo = min.alias
+                ? min.alias
+                : `${min.nombre} ${min.apellidos}`;
+              // Si alias, debajo nombre+apellidos
+              const subtitulo = min.alias
+                ? `${min.nombre} ${min.apellidos}`
+                : null;
+              // Estado
+              const estado = min.estado_nombre;
+              // Año aprobación
+              const aprob = min.aprob;
+              // Teléfono y email
+              const telefono = min.telefono;
+              const email = min.email;
+              // Cargos (ids separados por coma)
+              const cargoIds = min.cargos
+                ? min.cargos.split(",").map(Number)
+                : [];
+              const cargoTags = cargos.filter((c) => cargoIds.includes(c.id));
+              return (
+                <div
+                  key={min.id}
+                  className="bg-white/90 border border-gray-200 rounded-2xl shadow-sm px-5 py-4 flex flex-col gap-2"
+                >
+                  <div className="flex items-center gap-4">
+                    {/* Avatar genérico clickable */}
+                    <button
+                      type="button"
+                      className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-bold text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      title="Ver avatar"
+                      onClick={() =>
+                        setAvatarModal({ open: true, letra: titulo[0] })
+                      }
+                      style={{ cursor: "zoom-in" }}
+                    >
+                      {titulo[0]}
+                    </button>
+                    <div className="flex flex-col flex-1">
+                      <span className="font-semibold text-lg text-gray-900">
+                        {titulo}
+                      </span>
+                      {subtitulo && (
+                        <span className="text-gray-500 text-sm">
+                          {subtitulo}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-xs text-gray-500">Código</span>
+                      <span className="font-mono text-base text-gray-800">
+                        {min.codigo}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 items-center mt-2">
+                    <span className="px-2 py-1 rounded bg-gray-100 text-xs font-medium text-gray-700 border border-gray-200">
+                      {estado}
                     </span>
-                    {subtitulo && (
-                      <span className="text-gray-500 text-sm">{subtitulo}</span>
+                    <span className="px-2 py-1 rounded bg-gray-100 text-xs font-medium text-gray-700 border border-gray-200">
+                      Desde: {aprob}
+                    </span>
+                    {telefono && (
+                      <a
+                        href={`tel:${telefono}`}
+                        className="px-2 py-1 rounded bg-green-100 text-xs font-medium text-green-700 border border-green-200 transition flex items-center gap-1"
+                        title="Llamar"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={1.5}
+                          stroke="currentColor"
+                          className="w-4 h-4 inline-block mr-1"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M2.25 6.75c0 8.284 6.716 15 15 15l2.25-2.25a1.5 1.5 0 0 0 0-2.121l-3.75-3.75a1.5 1.5 0 0 0-2.121 0l-1.125 1.125a12.042 12.042 0 0 1-5.25-5.25l1.125-1.125a1.5 1.5 0 0 0 0-2.121l-3.75-3.75a1.5 1.5 0 0 0-2.121 0L2.25 6.75z"
+                          />
+                        </svg>
+                        {telefono}
+                      </a>
                     )}
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-xs text-gray-500">Código</span>
-                    <span className="font-mono text-base text-gray-800">
-                      {min.codigo}
-                    </span>
+                    {email && (
+                      <a
+                        href={`mailto:${email}`}
+                        className="px-2 py-1 rounded bg-orange-100 text-xs font-medium text-orange-700 border border-orange-200 transition flex items-center gap-1"
+                        title="Enviar email"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={1.5}
+                          stroke="currentColor"
+                          className="w-4 h-4 inline-block mr-1"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25H4.5a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5H4.5a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-.659 1.591l-7.091 7.091a2.25 2.25 0 0 1-3.182 0L2.909 8.584A2.25 2.25 0 0 1 2.25 6.993V6.75"
+                          />
+                        </svg>
+                        {email}
+                      </a>
+                    )}
+                    {cargoTags.map((cargo) => (
+                      <span
+                        key={cargo.id}
+                        className="px-2 py-1 rounded bg-gray-300 text-xs font-medium text-gray-700 border border-gray-300"
+                      >
+                        {cargo.cargo}
+                      </span>
+                    ))}
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2 items-center mt-2">
-                  <span className="px-2 py-1 rounded bg-gray-100 text-xs font-medium text-gray-700 border border-gray-200">
-                    {estado}
-                  </span>
-                  <span className="px-2 py-1 rounded bg-gray-100 text-xs font-medium text-gray-700 border border-gray-200">
-                    Desde: {aprob}
-                  </span>
-                  {telefono && (
-                    <a
-                      href={`tel:${telefono}`}
-                      className="px-2 py-1 rounded bg-blue-100 text-xs font-medium text-blue-700 border border-blue-200 hover:bg-blue-200 transition"
-                      title="Llamar"
-                    >
-                      {telefono}
-                    </a>
-                  )}
-                  {email && (
-                    <a
-                      href={`mailto:${email}`}
-                      className="px-2 py-1 rounded bg-green-100 text-xs font-medium text-green-700 border border-green-200 hover:bg-green-200 transition"
-                      title="Enviar email"
-                    >
-                      {email}
-                    </a>
-                  )}
-                  {cargoTags.map((cargo) => (
-                    <span
-                      key={cargo.id}
-                      className="px-2 py-1 rounded bg-purple-100 text-xs font-medium text-purple-700 border border-purple-200"
-                    >
-                      {cargo.cargo}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            );
-          })
+              );
+            })
         )}
       </div>
       {/* Modal de avatar */}
