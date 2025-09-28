@@ -86,7 +86,7 @@ export default function MenuMinisterios() {
         </div>
       </div>
       {/* Cards de ministerios */}
-      <div className="flex flex-col gap-4 w-full max-w-4xl mx-auto">
+      <div className="flex flex-col gap-4 w-full max-w-4xl mx-auto px-2 sm:px-0">
         {ministerios.length === 0 ? (
           <div className="text-center text-gray-400">
             No hay ministerios en esta iglesia
