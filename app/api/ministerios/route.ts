@@ -32,7 +32,7 @@ export async function POST(req: Request) {
       email,
     ]
   );
-  // @ts-ignore
+  // @ts-expect-error: result may not have insertId type, but it is present after insert
   const id = result.insertId;
   return NextResponse.json({ id });
 }
