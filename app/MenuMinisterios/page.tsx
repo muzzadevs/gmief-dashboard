@@ -82,6 +82,28 @@ export default function MenuMinisterios() {
             <span className="font-semibold text-lg text-gray-900">
               Iglesia {iglesiaSelected.nombre}
             </span>
+            <button
+              type="button"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-600 text-white font-semibold text-sm shadow hover:bg-green-700 transition ml-2 cursor-pointer"
+              onClick={() => router.push("/MenuAgregarMinisterio")}
+              aria-label="Agregar ministerio"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 4.5v15m7.5-7.5h-15"
+                />
+              </svg>
+              Agregar ministerio
+            </button>
           </div>
         </div>
       </div>

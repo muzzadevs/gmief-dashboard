@@ -1,3 +1,41 @@
+export async function POST(req: Request) {
+  const data = await req.json();
+  const {
+    nombre,
+    apellidos,
+    alias,
+    iglesia_id,
+    codigo,
+    estado_id,
+    aprob,
+    telefono,
+    email,
+  } = data;
+  if (!nombre || !apellidos || !iglesia_id || !codigo || !estado_id || !aprob) {
+    return NextResponse.json(
+      { error: "Faltan campos obligatorios" },
+      { status: 400 }
+    );
+  }
+  const result = await query(
+    `INSERT INTO ministerios (nombre, apellidos, alias, iglesia_id, codigo, estado_id, aprob, telefono, email)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      nombre,
+      apellidos,
+      alias,
+      iglesia_id,
+      codigo,
+      estado_id,
+      aprob,
+      telefono,
+      email,
+    ]
+  );
+  // @ts-ignore
+  const id = result.insertId;
+  return NextResponse.json({ id });
+}
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 
