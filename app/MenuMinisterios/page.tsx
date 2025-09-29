@@ -17,7 +17,12 @@ export default function MenuMinisterios() {
     open: boolean;
     letra: string | null;
   }>({ open: false, letra: null });
+  const [deleteModal, setDeleteModal] = useState<{
+    open: boolean;
+    ministerio: Ministerio | null;
+  }>({ open: false, ministerio: null });
   const [loading, setLoading] = useState(true);
+  const [deleteExplode, setDeleteExplode] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -189,32 +194,58 @@ export default function MenuMinisterios() {
                         {min.codigo}
                       </span>
                     </div>
-                    {/* Botón editar */}
-                    <button
-                      type="button"
-                      className="ml-2 flex items-center gap-1 px-3 py-2 rounded-xl bg-orange-400 text-white font-semibold text-sm shadow transition cursor-pointer"
-                      title="Editar ministerio"
-                      onClick={() => {
-                        setMinisterioEditId(min.id);
-                        router.push("/MenuEditarMinisterio");
-                      }}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={2}
-                        stroke="currentColor"
-                        className="w-5 h-5"
+                    {/* Botón editar y eliminar */}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 px-3 py-2 rounded-xl bg-orange-400 text-white font-semibold text-sm shadow transition cursor-pointer"
+                        title="Editar ministerio"
+                        onClick={() => {
+                          setMinisterioEditId(min.id);
+                          router.push("/MenuEditarMinisterio");
+                        }}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M16.862 4.487a2.1 2.1 0 1 1 2.97 2.97L7.5 19.79l-4 1 1-4 12.362-12.303z"
-                        />
-                      </svg>
-                      Editar
-                    </button>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={2}
+                          stroke="currentColor"
+                          className="w-5 h-5"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M16.862 4.487a2.1 2.1 0 1 1 2.97 2.97L7.5 19.79l-4 1 1-4 12.362-12.303z"
+                          />
+                        </svg>
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 px-3 py-2 rounded-xl bg-red-600 text-white font-semibold text-sm shadow transition cursor-pointer"
+                        title="Eliminar ministerio"
+                        onClick={() =>
+                          setDeleteModal({ open: true, ministerio: min })
+                        }
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={2}
+                          stroke="currentColor"
+                          className="w-5 h-5"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                        Eliminar
+                      </button>
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2 items-center mt-2">
                     <span className="px-2 py-1 rounded bg-gray-100 text-xs font-medium text-gray-700 border border-gray-200">
@@ -295,6 +326,70 @@ export default function MenuMinisterios() {
           >
             <div className="w-40 h-40 rounded-full bg-gray-200 flex items-center justify-center text-7xl font-bold text-gray-700 shadow-2xl border-4 border-white">
               {avatarModal.letra}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de eliminar ministerio */}
+      {deleteModal.open && deleteModal.ministerio && (
+        <div
+          className="fixed inset-0 z-[2100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fadein"
+          onClick={() => setDeleteModal({ open: false, ministerio: null })}
+        >
+          <div
+            className={`bg-white rounded-2xl p-8 max-w-sm w-full flex flex-col gap-6 transition-all duration-500 relative ${
+              deleteExplode
+                ? "border-4 border-red-600 shadow-explode-red"
+                : "shadow-xl"
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-lg font-semibold text-gray-900 text-center">
+              ¿Está seguro que desea eliminar a{" "}
+              <span className="font-bold">
+                {deleteModal.ministerio.nombre}{" "}
+                {deleteModal.ministerio.apellidos}
+              </span>
+              ?
+            </div>
+            <div className="text-sm text-gray-600 text-center">
+              Si lo hace se eliminará permanentemente.
+            </div>
+            <div className="flex gap-4 justify-center mt-2">
+              <button
+                className="px-4 py-2 rounded-xl bg-black text-white font-semibold text-sm shadow hover:bg-gray-900 transition border border-black"
+                onClick={() => {
+                  setDeleteModal({ open: false, ministerio: null });
+                  setDeleteExplode(false);
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="px-4 py-2 rounded-xl bg-red-600 text-white font-semibold text-sm shadow hover:bg-red-700 transition border border-red-600 cursor-pointer"
+                onClick={async () => {
+                  setDeleteExplode(true);
+                  setTimeout(async () => {
+                    if (!deleteModal.ministerio) return;
+                    try {
+                      await fetch(
+                        `/api/ministerios/${deleteModal.ministerio.id}`,
+                        { method: "DELETE" }
+                      );
+                      setMinisterios((prev) =>
+                        prev.filter((m) => m.id !== deleteModal.ministerio!.id)
+                      );
+                    } catch (e) {
+                      alert("Error eliminando ministerio");
+                    }
+                    setDeleteModal({ open: false, ministerio: null });
+                    setDeleteExplode(false);
+                  }, 500);
+                }}
+              >
+                Eliminar
+              </button>
             </div>
           </div>
         </div>

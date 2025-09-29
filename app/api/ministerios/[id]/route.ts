@@ -1,3 +1,20 @@
+// Eliminar ministerio por id
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  if (!id) {
+    return NextResponse.json({ error: "ID requerido" }, { status: 400 });
+  }
+  // Eliminar ministerio
+  await query("DELETE FROM ministerios WHERE id = ?", [id]);
+  // Eliminar relaciones en ministerio_cargo
+  await query("DELETE FROM ministerio_cargo WHERE ministerio_id = ?", [id]);
+  // Eliminar observaciones
+  await query("DELETE FROM observaciones WHERE ministerio_id = ?", [id]);
+  return NextResponse.json({ success: true });
+}
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 

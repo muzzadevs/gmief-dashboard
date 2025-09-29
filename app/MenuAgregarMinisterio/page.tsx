@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, ChangeEvent, FormEvent } from "react";
+import LoaderPersonalizado from "../components/LoaderPersonalizado";
 import { useRouter } from "next/navigation";
 import { useZonasStore } from "@/store/zonasStore";
 
@@ -111,7 +112,10 @@ export default function MenuAgregarMinisterio() {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 1959 }, (_, i) => 1960 + i);
 
-  if (!iglesiaSelected) return null;
+  // Mostrar loader mientras se cargan estados o cargos
+  if (!iglesiaSelected || estados.length === 0 || cargos.length === 0) {
+    return <LoaderPersonalizado>Cargando...</LoaderPersonalizado>;
+  }
 
   return (
     <main
