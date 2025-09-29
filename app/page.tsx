@@ -22,10 +22,7 @@ export default function Home() {
   };
 
   return (
-    <main
-      className="min-h-screen grid place-items-center bg-cover bg-center"
-      style={{ backgroundImage: "url('/background.jpg')" }}
-    >
+    <main className="min-h-screen grid place-items-center bg-gradient-to-br from-blue-900 via-white to-blue-400">
       <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white/90 backdrop-blur-sm p-6 shadow-sm">
         <h1 className="text-xl font-semibold text-gray-900 mb-2">
           Bienvenido a GMIEF

@@ -11,7 +11,6 @@ export default function MenuMinisterios() {
   const iglesiaSelected = useZonasStore((s) => s.iglesiaSelected);
   const setMinisterioEditId = useZonasStore((s) => s.setMinisterioEditId);
   const [ministerios, setMinisterios] = useState<Ministerio[]>([]);
-  // const [estados, setEstados] = useState<Estado[]>([]);
   const [cargos, setCargos] = useState<Cargo[]>([]);
   const [avatarModal, setAvatarModal] = useState<{
     open: boolean;
@@ -55,14 +54,7 @@ export default function MenuMinisterios() {
   if (!iglesiaSelected) return null;
 
   return (
-    <main
-      className="min-h-screen max-h-screen flex flex-col font-sans bg-cover bg-center"
-      style={{
-        backgroundImage: "url('/background.jpg')",
-        backgroundRepeat: "no-repeat",
-        backgroundSize: "cover",
-      }}
-    >
+    <main className="min-h-screen flex flex-col font-sans bg-gradient-to-br from-blue-900 via-white to-blue-400">
       {/* Menú superior */}
       <div className="w-full flex justify-center z-[1000] mb-4 sm:sticky sm:top-0">
         <div className="mt-4 w-[95%] flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-8 rounded-2xl border border-gray-200 bg-white/90 backdrop-blur px-6 py-2 shadow-sm ">
@@ -118,7 +110,7 @@ export default function MenuMinisterios() {
         </div>
       </div>
       {/* Cards de ministerios */}
-      <div className="flex flex-col gap-4 w-full max-w-4xl mx-auto px-2 sm:px-0">
+      <div className="flex flex-col gap-4 w-full max-w-4xl mx-auto px-2 sm:px-0 mb-4">
         {loading ? (
           <LoaderPersonalizado>Cargando ministerios...</LoaderPersonalizado>
         ) : ministerios.length === 0 ? (
@@ -128,7 +120,6 @@ export default function MenuMinisterios() {
         ) : (
           [...ministerios]
             .sort((a, b) => {
-              // Ordenar siempre por el campo que se muestra en negrita (alias si existe, si no nombre + apellidos)
               const titularA = (
                 a.alias ? a.alias : `${a.nombre} ${a.apellidos || ""}`
               ).toLowerCase();
@@ -140,22 +131,16 @@ export default function MenuMinisterios() {
               return 0;
             })
             .map((min) => {
-              // Alias o nombre
               const titulo = min.alias
                 ? min.alias
                 : `${min.nombre} ${min.apellidos}`;
-              // Si alias, debajo nombre+apellidos
               const subtitulo = min.alias
                 ? `${min.nombre} ${min.apellidos}`
                 : null;
-              // Estado
               const estado = min.estado_nombre;
-              // Año aprobación
               const aprob = min.aprob;
-              // Teléfono y email
               const telefono = min.telefono;
               const email = min.email;
-              // Cargos (ids separados por coma)
               const cargoIds = min.cargos
                 ? min.cargos.split(",").map(Number)
                 : [];
@@ -165,86 +150,89 @@ export default function MenuMinisterios() {
                   key={min.id}
                   className="bg-white/90 border border-gray-200 rounded-2xl shadow-sm px-5 py-4 flex flex-col gap-2"
                 >
-                  <div className="flex items-center gap-4">
-                    {/* Avatar genérico clickable */}
-                    <button
-                      type="button"
-                      className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-bold text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                      title="Ver avatar"
-                      onClick={() =>
-                        setAvatarModal({ open: true, letra: titulo[0] })
-                      }
-                      style={{ cursor: "zoom-in" }}
-                    >
-                      {titulo[0]}
-                    </button>
-                    <div className="flex flex-col flex-1">
-                      <span className="font-semibold text-lg text-gray-900">
-                        {titulo}
-                      </span>
-                      {subtitulo && (
-                        <span className="text-gray-500 text-sm">
-                          {subtitulo}
+                  <div className="flex flex-col items-center text-center gap-4 sm:flex-row sm:items-center sm:text-left sm:gap-4 w-full">
+                    {/* Avatar y nombre */}
+                    <div className="flex flex-col items-center sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+                      <button
+                        type="button"
+                        className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-bold text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        title="Ver avatar"
+                        onClick={() =>
+                          setAvatarModal({ open: true, letra: titulo[0] })
+                        }
+                        style={{ cursor: "zoom-in" }}
+                      >
+                        {titulo[0]}
+                      </button>
+                      <div className="flex flex-col items-center sm:items-start flex-1 min-w-0">
+                        <span className="font-semibold text-lg text-gray-900 truncate">
+                          {titulo}
                         </span>
-                      )}
+                        {subtitulo && (
+                          <span className="text-gray-500 text-sm truncate">
+                            {subtitulo}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex flex-col items-end">
+                    {/* Código */}
+                    <div className="flex flex-col items-center sm:items-end gap-2 w-full sm:w-auto sm:ml-auto">
                       <span className="text-xs text-gray-500">Código</span>
                       <span className="font-mono text-base text-gray-800">
                         {min.codigo}
                       </span>
-                    </div>
-                    {/* Botón editar y eliminar */}
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        className="flex items-center gap-1 px-3 py-2 rounded-xl bg-orange-400 text-white font-semibold text-sm shadow transition cursor-pointer"
-                        title="Editar ministerio"
-                        onClick={() => {
-                          setMinisterioEditId(min.id);
-                          router.push("/MenuEditarMinisterio");
-                        }}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={2}
-                          stroke="currentColor"
-                          className="w-5 h-5"
+                      {/* Botones solo en sm+ */}
+                      <div className="hidden sm:flex flex-row gap-2 w-full sm:w-auto justify-end items-end">
+                        <button
+                          type="button"
+                          className="flex items-center gap-1 px-3 py-2 rounded-xl bg-orange-400 text-white font-semibold text-sm shadow transition cursor-pointer w-auto justify-center"
+                          title="Editar ministerio"
+                          onClick={() => {
+                            setMinisterioEditId(min.id);
+                            router.push("/MenuEditarMinisterio");
+                          }}
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M16.862 4.487a2.1 2.1 0 1 1 2.97 2.97L7.5 19.79l-4 1 1-4 12.362-12.303z"
-                          />
-                        </svg>
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        className="flex items-center gap-1 px-3 py-2 rounded-xl bg-red-600 text-white font-semibold text-sm shadow transition cursor-pointer"
-                        title="Eliminar ministerio"
-                        onClick={() =>
-                          setDeleteModal({ open: true, ministerio: min })
-                        }
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={2}
-                          stroke="currentColor"
-                          className="w-5 h-5"
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={2}
+                            stroke="currentColor"
+                            className="w-5 h-5"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M16.862 4.487a2.1 2.1 0 1 1 2.97 2.97L7.5 19.79l-4 1 1-4 12.362-12.303z"
+                            />
+                          </svg>
+                          <span className="hidden sm:inline">Editar</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="flex items-center gap-1 px-3 py-2 rounded-xl bg-red-600 text-white font-semibold text-sm shadow transition cursor-pointer w-auto justify-center"
+                          title="Eliminar ministerio"
+                          onClick={() =>
+                            setDeleteModal({ open: true, ministerio: min })
+                          }
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
-                        Eliminar
-                      </button>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={2}
+                            stroke="currentColor"
+                            className="w-5 h-5"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                          <span className="hidden sm:inline">Eliminar</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 items-center mt-2">
@@ -308,6 +296,56 @@ export default function MenuMinisterios() {
                         {cargo.cargo}
                       </span>
                     ))}
+                  </div>
+                  {/* Botones en móvil, debajo de los tags/cargos, al final de la card */}
+                  <div className="flex sm:hidden flex-row gap-2 w-full mt-2">
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 px-3 py-2 rounded-xl bg-orange-400 text-white font-semibold text-sm shadow transition cursor-pointer w-1/2 justify-center"
+                      title="Editar ministerio"
+                      onClick={() => {
+                        setMinisterioEditId(min.id);
+                        router.push("/MenuEditarMinisterio");
+                      }}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
+                        stroke="currentColor"
+                        className="w-5 h-5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M16.862 4.487a2.1 2.1 0 1 1 2.97 2.97L7.5 19.79l-4 1 1-4 12.362-12.303z"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 px-3 py-2 rounded-xl bg-red-600 text-white font-semibold text-sm shadow transition cursor-pointer w-1/2 justify-center"
+                      title="Eliminar ministerio"
+                      onClick={() =>
+                        setDeleteModal({ open: true, ministerio: min })
+                      }
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
+                        stroke="currentColor"
+                        className="w-5 h-5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
                   </div>
                 </div>
               );

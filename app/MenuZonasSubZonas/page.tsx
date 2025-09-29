@@ -13,14 +13,7 @@ export default function MenuZonasSubZonas() {
   const [busqueda, setBusqueda] = useState("");
   // Pasar el valor de búsqueda a Iglesias como prop
   return (
-    <main
-      className="min-h-screen max-h-screen flex flex-col font-sans bg-cover bg-center"
-      style={{
-        backgroundImage: "url('/background.jpg')",
-        backgroundRepeat: "no-repeat",
-        backgroundSize: "cover",
-      }}
-    >
+    <main className="min-h-screen max-h-screen flex flex-col font-sans bg-gradient-to-br from-blue-900 via-white to-blue-400">
       {/* Menú superior: sticky solo en PC, normal en móvil */}
       <div className="w-full flex justify-center z-[1000] mb-4 sm:sticky sm:top-0">
         <div className="mt-4 w-[95%] flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-8 rounded-2xl border border-gray-200 bg-white/90 backdrop-blur px-6 py-2 shadow-sm ">

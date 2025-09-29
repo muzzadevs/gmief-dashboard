@@ -118,14 +118,7 @@ export default function MenuAgregarMinisterio() {
   }
 
   return (
-    <main
-      className="min-h-screen flex flex-col font-sans bg-cover bg-center items-center justify-center"
-      style={{
-        backgroundImage: "url('/background.jpg')",
-        backgroundRepeat: "no-repeat",
-        backgroundSize: "cover",
-      }}
-    >
+    <main className="min-h-screen flex flex-col font-sans bg-gradient-to-br from-blue-900 via-white to-blue-400 items-center justify-center">
       <div className="w-[95vw] max-w-3xl lg:max-w-6xl bg-white/95 rounded-3xl border border-gray-300 shadow-2xl p-4 sm:p-8 mt-8 mb-8 mx-auto animate-fadein">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
           <h2 className="text-2xl font-bold text-black tracking-tight font-sans text-center sm:text-left flex-1">
