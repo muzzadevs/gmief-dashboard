@@ -4,13 +4,14 @@ import React, { useEffect, useState } from "react";
 import LoaderPersonalizado from "../components/LoaderPersonalizado";
 import { useRouter } from "next/navigation";
 import { useZonasStore } from "@/store/zonasStore";
-import type { Ministerio, Cargo, Estado } from "@/types/ministerios";
+import type { Ministerio, Cargo } from "@/types/ministerios";
 
 export default function MenuMinisterios() {
   const router = useRouter();
   const iglesiaSelected = useZonasStore((s) => s.iglesiaSelected);
+  const setMinisterioEditId = useZonasStore((s) => s.setMinisterioEditId);
   const [ministerios, setMinisterios] = useState<Ministerio[]>([]);
-  const [estados, setEstados] = useState<Estado[]>([]);
+  // const [estados, setEstados] = useState<Estado[]>([]);
   const [cargos, setCargos] = useState<Cargo[]>([]);
   const [avatarModal, setAvatarModal] = useState<{
     open: boolean;
@@ -26,19 +27,16 @@ export default function MenuMinisterios() {
     }
     const fetchData = async () => {
       setLoading(true);
-      const [minRes, estRes, carRes] = await Promise.all([
+      const [minRes, carRes] = await Promise.all([
         fetch(`/api/ministerios?iglesiaId=${iglesiaSelected.id}`),
-        fetch(`/api/estados`),
         fetch(`/api/cargos`),
       ]);
-      const [minData, estData, carData] = await Promise.all([
+      const [minData, carData] = await Promise.all([
         minRes.json(),
-        estRes.json(),
         carRes.json(),
       ]);
       if (isMounted) {
         setMinisterios(minData);
-        setEstados(estData);
         setCargos(carData);
         setLoading(false);
       }
@@ -191,6 +189,32 @@ export default function MenuMinisterios() {
                         {min.codigo}
                       </span>
                     </div>
+                    {/* Botón editar */}
+                    <button
+                      type="button"
+                      className="ml-2 flex items-center gap-1 px-3 py-2 rounded-xl bg-orange-400 text-white font-semibold text-sm shadow transition cursor-pointer"
+                      title="Editar ministerio"
+                      onClick={() => {
+                        setMinisterioEditId(min.id);
+                        router.push("/MenuEditarMinisterio");
+                      }}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
+                        stroke="currentColor"
+                        className="w-5 h-5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M16.862 4.487a2.1 2.1 0 1 1 2.97 2.97L7.5 19.79l-4 1 1-4 12.362-12.303z"
+                        />
+                      </svg>
+                      Editar
+                    </button>
                   </div>
                   <div className="flex flex-wrap gap-2 items-center mt-2">
                     <span className="px-2 py-1 rounded bg-gray-100 text-xs font-medium text-gray-700 border border-gray-200">

@@ -1,28 +1,32 @@
 "use client";
 
-import React, { useEffect, useState, ChangeEvent, FormEvent } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useZonasStore } from "@/store/zonasStore";
 
 type Estado = { id: number; nombre: string };
 type Cargo = { id: number; cargo: string };
 
-export default function MenuAgregarMinisterio() {
+type Ministerio = {
+  id: number;
+  nombre: string;
+  apellidos: string;
+  alias: string;
+  codigo: string;
+  estado_id: string | number;
+  aprob: string;
+  telefono: string;
+  email: string;
+  cargos: number[];
+};
+
+export default function MenuEditarMinisterio() {
   const router = useRouter();
   const iglesiaSelected = useZonasStore((s) => s.iglesiaSelected);
+  const ministerioEditId = useZonasStore((s) => s.ministerioEditId);
   const [estados, setEstados] = useState<Estado[]>([]);
   const [cargos, setCargos] = useState<Cargo[]>([]);
-  const [form, setForm] = useState({
-    nombre: "",
-    apellidos: "",
-    alias: "",
-    codigo: "",
-    estado_id: "",
-    aprob: "",
-    telefono: "",
-    email: "",
-    cargos: [4], // Obrero preseleccionado
-  });
+  const [form, setForm] = useState<Ministerio | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -30,37 +34,51 @@ export default function MenuAgregarMinisterio() {
       router.push("/MenuZonasSubZonas");
       return;
     }
+    const id = ministerioEditId;
+    if (!id) {
+      router.push("/MenuMinisterios");
+      return;
+    }
     const fetchData = async () => {
-      const [estRes, carRes] = await Promise.all([
+      const [estRes, carRes, minRes] = await Promise.all([
         fetch(`/api/estados`),
         fetch(`/api/cargos`),
+        fetch(`/api/ministerios/${id}`),
       ]);
       setEstados(await estRes.json());
       setCargos(await carRes.json());
+      const minData = await minRes.json();
+      setForm({
+        ...minData,
+        estado_id: minData.estado_id?.toString() || "",
+        cargos: minData.cargos ? minData.cargos.split(",").map(Number) : [4],
+      });
     };
     fetchData();
-  }, [iglesiaSelected, router]);
+  }, [iglesiaSelected, router, ministerioEditId]);
 
   const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value, type } = e.target;
+    if (!form) return;
+    const { name, value } = e.target;
     if (name === "codigo") {
-      setForm((f) => ({ ...f, codigo: value.toUpperCase() }));
+      setForm((f) => f && { ...f, codigo: value.toUpperCase() });
     } else if (name === "telefono") {
-      // Only allow numbers
       const numeric = value.replace(/[^0-9]/g, "");
-      setForm((f) => ({ ...f, telefono: numeric }));
+      setForm((f) => f && { ...f, telefono: numeric });
     } else if (name === "email") {
-      setForm((f) => ({ ...f, email: value }));
+      setForm((f) => f && { ...f, email: value });
     } else {
-      setForm((f) => ({ ...f, [name]: value }));
+      setForm((f) => f && { ...f, [name]: value });
     }
   };
 
   const handleCargoChange = (id: number) => {
+    if (!form) return;
     if (id === 4) return; // Obrero siempre seleccionado
     setForm((f) => {
+      if (!f) return f;
       const cargos = f.cargos.includes(id)
         ? f.cargos.filter((c) => c !== id)
         : [...f.cargos, id];
@@ -68,8 +86,9 @@ export default function MenuAgregarMinisterio() {
     });
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!form || !iglesiaSelected) return;
     // Email validation if not empty
     if (form.email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -80,10 +99,9 @@ export default function MenuAgregarMinisterio() {
     }
     setLoading(true);
     try {
-      if (!iglesiaSelected) throw new Error("No hay iglesia seleccionada");
-      // Crear ministerio
-      const res = await fetch("/api/ministerios", {
-        method: "POST",
+      // Actualizar ministerio
+      const res = await fetch(`/api/ministerios/${form.id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
@@ -91,19 +109,18 @@ export default function MenuAgregarMinisterio() {
           iglesia_id: iglesiaSelected.id,
         }),
       });
-      if (!res.ok) throw new Error("No se pudo crear el ministerio");
-      const { id: ministerio_id } = await res.json();
-      // Insertar cargos
-      await fetch("/api/ministerio_cargo", {
-        method: "POST",
+      if (!res.ok) throw new Error("No se pudo actualizar el ministerio");
+      // Actualizar cargos
+      await fetch(`/api/ministerio_cargo/${form.id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ministerio_id, cargos: form.cargos }),
+        body: JSON.stringify({ cargos: form.cargos }),
       });
-      setLoading(false); // Habilitar antes de redirigir
+      setLoading(false);
       router.push("/MenuMinisterios");
     } catch {
-      setLoading(false); // Habilitar antes de redirigir
-      alert("No se pudo crear el ministerio");
+      setLoading(false);
+      alert("No se pudo actualizar el ministerio");
       router.push("/MenuMinisterios");
     }
   };
@@ -111,7 +128,7 @@ export default function MenuAgregarMinisterio() {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 1959 }, (_, i) => 1960 + i);
 
-  if (!iglesiaSelected) return null;
+  if (!iglesiaSelected || !form) return null;
 
   return (
     <main
@@ -125,7 +142,7 @@ export default function MenuAgregarMinisterio() {
       <div className="w-[95vw] max-w-3xl lg:max-w-6xl bg-white/95 rounded-3xl border border-gray-300 shadow-2xl p-4 sm:p-8 mt-8 mb-8 mx-auto animate-fadein">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
           <h2 className="text-2xl font-bold text-black tracking-tight font-sans text-center sm:text-left flex-1">
-            Agregar Ministerio
+            Editar Ministerio
           </h2>
           <button
             type="button"
@@ -320,7 +337,7 @@ export default function MenuAgregarMinisterio() {
             className="w-full py-2 rounded-xl bg-gradient-to-r from-green-600 to-green-500 text-white font-bold text-base shadow-lg hover:from-green-700 hover:to-green-600 transition  disabled:opacity-60 disabled:cursor-not-allowed mt-2"
             disabled={loading}
           >
-            {loading ? "Creando..." : "Crear ministerio"}
+            {loading ? "Guardando..." : "Guardar cambios"}
           </button>
         </form>
       </div>
