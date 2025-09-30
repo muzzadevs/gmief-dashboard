@@ -36,11 +36,18 @@ export default function Iglesias({ busqueda = "" }: Props) {
 
   if (!zonaSelected) return null;
 
-  // Filtrar por nombre de iglesia si hay búsqueda
+  // Función para quitar tildes/acentos
+  function quitarTildes(str: string) {
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
+  // Filtrar por nombre de iglesia ignorando tildes/acentos
   const iglesiasFiltradas = (
     busqueda.trim().length > 0
       ? iglesias.filter((ig: Iglesia) =>
-          ig.nombre.toLowerCase().startsWith(busqueda.trim().toLowerCase())
+          quitarTildes(ig.nombre.toLowerCase()).startsWith(
+            quitarTildes(busqueda.trim().toLowerCase())
+          )
         )
       : iglesias
   )

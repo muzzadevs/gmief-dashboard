@@ -147,7 +147,10 @@ export default function MenuEditarMinisterio() {
   };
 
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: currentYear - 1959 }, (_, i) => 1960 + i);
+  const years = Array.from(
+    { length: currentYear - 1959 },
+    (_, i) => currentYear - i
+  );
 
   // Mostrar loader mientras se cargan los datos del ministerio, estados o cargos
   if (

@@ -127,7 +127,10 @@ export default function MenuAgregarMinisterio() {
   };
 
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: currentYear - 1959 }, (_, i) => 1960 + i);
+  const years = Array.from(
+    { length: currentYear - 1959 },
+    (_, i) => currentYear - i
+  );
 
   // Mostrar loader mientras se cargan estados o cargos
   if (!iglesiaSelected || estados.length === 0 || cargos.length === 0) {
