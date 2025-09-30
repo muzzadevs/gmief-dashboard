@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
@@ -8,6 +9,7 @@ export default function Home() {
   const [user, setUser] = useState("");
   const [pass, setPass] = useState("");
   const [error, setError] = useState("");
+  const [showPass, setShowPass] = useState(false);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -41,16 +43,32 @@ export default function Home() {
             />
           </div>
 
-          <div>
+          <div className="relative w-full">
             <input
               id="contrasena"
-              type="password"
+              type={showPass ? "text" : "password"}
               value={pass}
               onChange={(e) => setPass(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900"
+              className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900 pr-12"
               placeholder="Contraseña"
               autoComplete="current-password"
             />
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-label={
+                showPass ? "Ocultar contraseña" : "Mostrar contraseña"
+              }
+              onClick={() => setShowPass((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 bg-transparent border-none outline-none cursor-pointer"
+              style={{ lineHeight: 0 }}
+            >
+              {showPass ? (
+                <FaEye className="w-6 h-6 text-gray-800" />
+              ) : (
+                <FaEyeSlash className="w-6 h-6 text-gray-800" />
+              )}
+            </button>
           </div>
 
           {error && (
