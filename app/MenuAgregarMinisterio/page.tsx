@@ -51,7 +51,12 @@ export default function MenuAgregarMinisterio() {
   ) => {
     const { name, value, type } = e.target;
     if (name === "codigo") {
-      setForm((f) => ({ ...f, codigo: value.toUpperCase() }));
+      // Allow only letters and numbers, convert letters to uppercase, limit length to 6
+      const cleaned = value
+        .replace(/[^a-zA-Z0-9]/g, "")
+        .toUpperCase()
+        .slice(0, 6);
+      setForm((f) => ({ ...f, codigo: cleaned }));
     } else if (name === "telefono") {
       // Only allow numbers
       const numeric = value.replace(/[^0-9]/g, "");
@@ -85,6 +90,15 @@ export default function MenuAgregarMinisterio() {
     }
     setLoading(true);
     try {
+      // Validate codigo strictly: 3 uppercase letters then 3 digits
+      const codigoRegex = /^[A-Z]{3}\d{3}$/;
+      if (!codigoRegex.test(form.codigo)) {
+        setLoading(false);
+        alert(
+          "El código debe tener el formato AAA111 (3 letras mayúsculas seguidas de 3 números)"
+        );
+        return;
+      }
       if (!iglesiaSelected) throw new Error("No hay iglesia seleccionada");
       // Validar código único
       const codigo = form.codigo.toUpperCase();
@@ -236,10 +250,24 @@ export default function MenuAgregarMinisterio() {
                   onChange={handleChange}
                   required
                   placeholder="Ej: ABC123"
-                  className="px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-green-400 focus:border-green-400 outline-none shadow-sm placeholder:text-gray-700 text-base"
+                  pattern="[A-Z]{3}[0-9]{3}"
+                  maxLength={6}
+                  inputMode="text"
                   autoComplete="off"
+                  className="px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-green-400 focus:border-green-400 outline-none shadow-sm placeholder:text-gray-700 text-base"
+                  onInvalid={(e) => {
+                    const input = e.target as HTMLInputElement;
+                    input.setCustomValidity(
+                      "El código de ministerio debe estar formado por 3 letras y 3 números"
+                    );
+                  }}
+                  onInput={(e) => {
+                    const input = e.target as HTMLInputElement;
+                    input.setCustomValidity("");
+                  }}
                 />
               </div>
+
               <div className="flex flex-col gap-1">
                 <label htmlFor="estado_id" className="font-medium text-black">
                   Estado

@@ -68,7 +68,12 @@ export default function MenuEditarMinisterio() {
     if (!form) return;
     const { name, value } = e.target;
     if (name === "codigo") {
-      setForm((f) => f && { ...f, codigo: value.toUpperCase() });
+      // Allow only letters and numbers, convert to uppercase, limit to 6
+      const cleaned = value
+        .replace(/[^a-zA-Z0-9]/g, "")
+        .toUpperCase()
+        .slice(0, 6);
+      setForm((f) => f && { ...f, codigo: cleaned });
     } else if (name === "telefono") {
       const numeric = value.replace(/[^0-9]/g, "");
       setForm((f) => f && { ...f, telefono: numeric });
@@ -104,6 +109,15 @@ export default function MenuEditarMinisterio() {
     }
     setLoading(true);
     try {
+      // Validate codigo strictly: 3 uppercase letters then 3 digits
+      const codigoRegex = /^[A-Z]{3}\d{3}$/;
+      if (!codigoRegex.test((form.codigo || "").toString())) {
+        setLoading(false);
+        alert(
+          "El código debe tener el formato AAA111 (3 letras mayúsculas seguidas de 3 números)"
+        );
+        return;
+      }
       // Validar código único (excepto si es el mismo ministerio)
       const codigo = form.codigo.toUpperCase();
       const resCodigo = await fetch(
@@ -261,6 +275,10 @@ export default function MenuEditarMinisterio() {
                   onChange={handleChange}
                   required
                   placeholder="Ej: ABC123"
+                  // Enforce exactly 6 chars: 3 uppercase letters then 3 numbers
+                  pattern="[A-Z]{3}[0-9]{3}"
+                  maxLength={6}
+                  inputMode="text"
                   className="px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-green-400 focus:border-green-400 outline-none shadow-sm placeholder:text-gray-700 text-base"
                   autoComplete="off"
                 />
