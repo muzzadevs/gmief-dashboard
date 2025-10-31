@@ -51,7 +51,7 @@ export default function MenuAgregarMinisterio() {
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value, type } = e.target;
+    const { name, value } = e.target;
     if (name === "codigo") {
       // Allow only letters and numbers, convert letters to uppercase, limit length to 6
       const cleaned = value

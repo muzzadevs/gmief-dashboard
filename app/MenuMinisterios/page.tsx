@@ -418,7 +418,8 @@ export default function MenuMinisterios() {
                       setMinisterios((prev) =>
                         prev.filter((m) => m.id !== deleteModal.ministerio!.id)
                       );
-                    } catch (e) {
+                    } catch (error) {
+                      console.error("Error eliminando ministerio:", error);
                       alert("Error eliminando ministerio");
                     }
                     setDeleteModal({ open: false, ministerio: null });

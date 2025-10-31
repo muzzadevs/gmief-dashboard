@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json({
-      id: (result as any).insertId,
+      id: result.insertId,
       message: "Iglesia creada exitosamente",
     });
   } catch (error) {

@@ -42,7 +42,7 @@ export default function MenuEditarIglesia({ params }: Props) {
   const [loadingData, setLoadingData] = useState(true);
 
   // Función helper para limpiar valores null/undefined
-  const cleanValue = (value: any): string => {
+  const cleanValue = (value: unknown): string => {
     if (value === null || value === undefined || value === "null") {
       return "";
     }
@@ -123,7 +123,7 @@ export default function MenuEditarIglesia({ params }: Props) {
     };
 
     fetchData();
-  }, [resolvedParams.id, router]); // Removido showError de las dependencias
+  }, [resolvedParams.id, router, showError]);
 
   const handleZonaChange = async (zonaId: string) => {
     setForm((f) => ({ ...f, zona_id: zonaId, subzona_id: "" }));
