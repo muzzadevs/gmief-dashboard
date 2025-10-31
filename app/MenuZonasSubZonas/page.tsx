@@ -59,7 +59,29 @@ export default function MenuZonasSubZonas() {
           <div className="flex flex-row items-center gap-2 w-full">
             <SelectMenuSubzonas />
           </div>
-          {/* Aquí irán botones en el futuro */}
+          {/* Botón Agregar Iglesia */}
+          <button
+            type="button"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-600 text-white font-semibold text-sm shadow hover:bg-green-700 transition border border-green-600 cursor-pointer whitespace-nowrap"
+            onClick={() => router.push("/MenuAgregarIglesia")}
+            aria-label="Agregar Iglesia"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="w-5 h-5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 4.5v15m7.5-7.5h-15"
+              />
+            </svg>
+            Agregar Iglesia
+          </button>
         </div>
       </div>
       {/* Contenido scrollable */}

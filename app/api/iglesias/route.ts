@@ -22,3 +22,43 @@ export async function GET(req: NextRequest) {
   }
   return NextResponse.json(iglesias);
 }
+
+export async function POST(req: NextRequest) {
+  try {
+    const { nombre, direccion, municipio, provincia, cp, subzona_id } =
+      await req.json();
+
+    // Validar campos requeridos
+    if (!nombre || !subzona_id) {
+      return NextResponse.json(
+        { error: "Nombre y subzona son requeridos" },
+        { status: 400 }
+      );
+    }
+
+    // Insertar nueva iglesia
+    const result = await query<{ insertId: number }>(
+      `INSERT INTO iglesias (nombre, direccion, municipio, provincia, cp, subzona_id) 
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        nombre,
+        direccion || null,
+        municipio || null,
+        provincia || null,
+        cp || null,
+        subzona_id,
+      ]
+    );
+
+    return NextResponse.json({
+      id: (result as any).insertId,
+      message: "Iglesia creada exitosamente",
+    });
+  } catch (error) {
+    console.error("Error creating iglesia:", error);
+    return NextResponse.json(
+      { error: "Error interno del servidor" },
+      { status: 500 }
+    );
+  }
+}

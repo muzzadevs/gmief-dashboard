@@ -3,6 +3,7 @@
 import React, { useEffect, useState, ChangeEvent, FormEvent } from "react";
 import ModalCodigoDuplicado from "../components/ModalCodigoDuplicado";
 import LoaderPersonalizado from "../components/LoaderPersonalizado";
+import Toast, { useToast } from "../components/Toast";
 import { useRouter } from "next/navigation";
 import { useZonasStore } from "@/store/zonasStore";
 
@@ -12,6 +13,7 @@ type Cargo = { id: number; cargo: string };
 export default function MenuAgregarMinisterio() {
   const router = useRouter();
   const iglesiaSelected = useZonasStore((s) => s.iglesiaSelected);
+  const { toast, showSuccess, showError, hideToast } = useToast();
   const [estados, setEstados] = useState<Estado[]>([]);
   const [cargos, setCargos] = useState<Cargo[]>([]);
   const [form, setForm] = useState({
@@ -84,7 +86,7 @@ export default function MenuAgregarMinisterio() {
     if (form.email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(form.email)) {
-        alert("El email no es válido");
+        showError("El email no es válido");
         return;
       }
     }
@@ -94,7 +96,7 @@ export default function MenuAgregarMinisterio() {
       const codigoRegex = /^[A-Z]{3}\d{3}$/;
       if (!codigoRegex.test(form.codigo)) {
         setLoading(false);
-        alert(
+        showError(
           "El código debe tener el formato AAA111 (3 letras mayúsculas seguidas de 3 números)"
         );
         return;
@@ -131,12 +133,16 @@ export default function MenuAgregarMinisterio() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ministerio_id, cargos: form.cargos }),
       });
-      setLoading(false); // Habilitar antes de redirigir
-      router.push("/MenuMinisterios");
+
+      showSuccess("Ministerio creado exitosamente");
+      setLoading(false);
+      // Esperar un poco para que se vea el toast antes de navegar
+      setTimeout(() => {
+        router.push("/MenuMinisterios");
+      }, 1500);
     } catch {
-      setLoading(false); // Habilitar antes de redirigir
-      alert("No se pudo crear el ministerio");
-      router.push("/MenuMinisterios");
+      setLoading(false);
+      showError("No se pudo crear el ministerio");
     }
   };
 
@@ -153,6 +159,12 @@ export default function MenuAgregarMinisterio() {
 
   return (
     <>
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        show={toast.show}
+        onClose={hideToast}
+      />
       <ModalCodigoDuplicado
         open={modalOpen}
         nombreMinisterio={modalNombre}
