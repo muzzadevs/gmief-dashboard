@@ -23,17 +23,11 @@ export default function RootLayout({
     <html lang="es">
       <head>
         {/*
-        Desarrollado por David Muza Vizarraga para la gloria de Dios, un proyecto ocn mucho amor para una obra que amo con todo mi corazón como es Filadelfia
+        Desarrollado por David Muza Vizarraga para la gloria de Dios, un proyecto con mucho amor para una obra que amo con todo mi corazón como es Filadelfia
         */}
       </head>
       <body
         className={`${poppins.variable} antialiased min-h-screen min-w-full`}
-        style={{
-          backgroundImage: "url('/background.jpg')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }}
       >
         {children}
       </body>

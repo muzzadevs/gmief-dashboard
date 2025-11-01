@@ -19,6 +19,6 @@ body,
 }
 
 body {
-  background: var(--background);
+  background: linear-gradient(to bottom right, #1e3a8a, #ffffff, #60a5fa);
   color: var(--foreground);
 }
