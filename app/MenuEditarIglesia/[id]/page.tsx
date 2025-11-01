@@ -290,7 +290,7 @@ export default function MenuEditarIglesia({ params }: Props) {
             <div className="grid grid-cols-1 gap-4">
               <div className="flex flex-col gap-1">
                 <label htmlFor="direccion" className="font-medium text-black">
-                  Dirección (opcional)
+                  Dirección
                 </label>
                 <input
                   id="direccion"
@@ -308,7 +308,7 @@ export default function MenuEditarIglesia({ params }: Props) {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="flex flex-col gap-1">
                 <label htmlFor="municipio" className="font-medium text-black">
-                  Municipio (opcional)
+                  Municipio
                 </label>
                 <input
                   id="municipio"
@@ -322,7 +322,7 @@ export default function MenuEditarIglesia({ params }: Props) {
               </div>
               <div className="flex flex-col gap-1">
                 <label htmlFor="provincia" className="font-medium text-black">
-                  Provincia (opcional)
+                  Provincia
                 </label>
                 <input
                   id="provincia"
@@ -336,7 +336,7 @@ export default function MenuEditarIglesia({ params }: Props) {
               </div>
               <div className="flex flex-col gap-1">
                 <label htmlFor="cp" className="font-medium text-black">
-                  Código Postal (opcional)
+                  Código Postal
                 </label>
                 <input
                   id="cp"
