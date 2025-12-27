@@ -1,12 +1,28 @@
 "use client";
 
-import React, { useEffect, useState, ChangeEvent, FormEvent, use } from "react";
+import React, {
+  useEffect,
+  useState,
+  ChangeEvent,
+  FormEvent,
+  use,
+  useCallback,
+} from "react";
 import LoaderPersonalizado from "../../components/LoaderPersonalizado";
 import Toast, { useToast } from "../../components/Toast";
 import { useRouter } from "next/navigation";
 
 type Zona = { id: number; nombre: string };
 type Subzona = { id: number; nombre: string; zona_id: number };
+type FormData = {
+  nombre: string;
+  direccion: string;
+  municipio: string;
+  provincia: string;
+  cp: string;
+  zona_id: string;
+  subzona_id: string;
+};
 type Iglesia = {
   id: number;
   nombre: string;
@@ -28,7 +44,7 @@ export default function MenuEditarIglesia({ params }: Props) {
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [subzonas, setSubzonas] = useState<Subzona[]>([]);
   const [iglesia, setIglesia] = useState<Iglesia | null>(null);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormData>({
     nombre: "",
     direccion: "",
     municipio: "",
@@ -40,93 +56,94 @@ export default function MenuEditarIglesia({ params }: Props) {
   const [loading, setLoading] = useState(false);
   const [loadingSubzonas, setLoadingSubzonas] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  // Función helper para limpiar valores null/undefined
+  // Función helper para limpiar valores
   const cleanValue = (value: unknown): string => {
-    if (value === null || value === undefined || value === "null") {
-      return "";
-    }
-    return String(value);
+    return value == null || value === "null" ? "" : String(value);
   };
 
-  // Cargar datos de la iglesia y zonas
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [iglesiasRes, zonasRes] = await Promise.all([
-          fetch(`/api/iglesias/${resolvedParams.id}`),
-          fetch(`/api/zonas`),
-        ]);
+  // Función para cargar datos iniciales
+  const loadInitialData = useCallback(async () => {
+    try {
+      const [iglesiasRes, zonasRes] = await Promise.all([
+        fetch(`/api/iglesias/${resolvedParams.id}`),
+        fetch(`/api/zonas`),
+      ]);
 
-        if (!iglesiasRes.ok) {
-          throw new Error("Iglesia no encontrada");
-        }
+      if (!iglesiasRes.ok) throw new Error("Iglesia no encontrada");
 
-        const iglesiadata = await iglesiasRes.json();
-        setIglesia(iglesiadata);
+      const iglesiaData = await iglesiasRes.json();
+      setIglesia(iglesiaData);
 
-        if (zonasRes.ok) {
-          const zonasResponse = await zonasRes.json();
-          if (zonasResponse.ok && zonasResponse.data) {
-            setZonas(zonasResponse.data);
+      if (zonasRes.ok) {
+        const zonasResponse = await zonasRes.json();
+        if (zonasResponse.ok && zonasResponse.data) {
+          setZonas(zonasResponse.data);
 
-            // Buscar la zona de la subzona actual
-            const subzonasRes = await fetch(`/api/subzonas?zonaId=ALL`);
-            if (subzonasRes.ok) {
-              const allSubzonas = await subzonasRes.json();
-              const currentSubzona = allSubzonas.find(
-                (s: Subzona) => s.id === iglesiadata.subzona_id
+          // Obtener todas las subzonas para encontrar la zona actual
+          const subzonasRes = await fetch(`/api/subzonas?zonaId=ALL`);
+          if (subzonasRes.ok) {
+            const allSubzonas = await subzonasRes.json();
+            const currentSubzona = allSubzonas.find(
+              (s: Subzona) => s.id === iglesiaData.subzona_id
+            );
+
+            if (currentSubzona) {
+              // Cargar subzonas de la zona actual
+              const zonaSubzonasRes = await fetch(
+                `/api/subzonas?zonaId=${currentSubzona.zona_id}`
               );
+              if (zonaSubzonasRes.ok) {
+                const zonaSubzonas = await zonaSubzonasRes.json();
+                setSubzonas(zonaSubzonas);
+              }
 
-              if (currentSubzona) {
-                // Cargar subzonas de la zona actual
-                const zonaSubzonasRes = await fetch(
-                  `/api/subzonas?zonaId=${currentSubzona.zona_id}`
-                );
-                if (zonaSubzonasRes.ok) {
-                  const zonaSubzonas = await zonaSubzonasRes.json();
-                  setSubzonas(zonaSubzonas);
-                }
-
-                // Configurar form con datos de la iglesia
-                console.log("Setting form with iglesia data:", iglesiadata); // Debug log
-                console.log("Current subzona:", currentSubzona); // Debug log
-
-                setForm((prevForm) => {
-                  const newForm = {
-                    ...prevForm,
-                    nombre: cleanValue(iglesiadata.nombre),
-                    direccion: cleanValue(iglesiadata.direccion),
-                    municipio: cleanValue(iglesiadata.municipio),
-                    provincia: cleanValue(iglesiadata.provincia),
-                    cp: cleanValue(iglesiadata.cp),
-                    zona_id: currentSubzona.zona_id.toString(),
-                    subzona_id: iglesiadata.subzona_id.toString(),
-                  };
-
-                  console.log("New form state:", newForm); // Debug log
-                  return newForm;
+              // Configurar formulario solo una vez
+              if (!isLoaded) {
+                setForm({
+                  nombre: cleanValue(iglesiaData.nombre),
+                  direccion: cleanValue(iglesiaData.direccion),
+                  municipio: cleanValue(iglesiaData.municipio),
+                  provincia: cleanValue(iglesiaData.provincia),
+                  cp: cleanValue(iglesiaData.cp),
+                  zona_id: currentSubzona.zona_id.toString(),
+                  subzona_id: iglesiaData.subzona_id.toString(),
                 });
+                setIsLoaded(true);
               }
             }
           }
         }
-      } catch (error) {
-        console.error("Error loading data:", error);
-        showError("Error al cargar los datos de la iglesia");
-        setTimeout(() => {
-          router.push("/MenuZonasSubZonas");
-        }, 2000);
-      } finally {
-        setLoadingData(false);
       }
-    };
+    } catch (error) {
+      console.error("Error loading data:", error);
+      showError("Error al cargar los datos de la iglesia");
+      setTimeout(() => router.push("/MenuZonasSubZonas"), 2000);
+    } finally {
+      setLoadingData(false);
+    }
+  }, [
+    resolvedParams.id,
+    router,
+    showError,
+    isLoaded,
+    setIglesia,
+    setZonas,
+    setSubzonas,
+    setForm,
+    setIsLoaded,
+    setLoadingData,
+  ]);
 
-    fetchData();
-  }, [resolvedParams.id, router, showError]);
+  // Efecto para cargar datos iniciales
+  useEffect(() => {
+    loadInitialData();
+  }, [loadInitialData]);
 
+  // Manejar cambio de zona
   const handleZonaChange = async (zonaId: string) => {
-    setForm((f) => ({ ...f, zona_id: zonaId, subzona_id: "" }));
+    setForm((f) => ({ ...f, zona_id: zonaId }));
     setSubzonas([]);
 
     if (!zonaId) return;
@@ -137,6 +154,15 @@ export default function MenuEditarIglesia({ params }: Props) {
       if (res.ok) {
         const subzonasData = await res.json();
         setSubzonas(subzonasData);
+
+        // Verificar si la subzona actual es válida para la nueva zona
+        const currentSubzonaId = parseInt(form.subzona_id);
+        if (
+          !currentSubzonaId ||
+          !subzonasData.some((s: Subzona) => s.id === currentSubzonaId)
+        ) {
+          setForm((f) => ({ ...f, subzona_id: "" }));
+        }
       }
     } catch (error) {
       console.error("Error fetching subzonas:", error);
@@ -145,34 +171,24 @@ export default function MenuEditarIglesia({ params }: Props) {
     }
   };
 
+  // Manejar cambios en el formulario
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
 
-    console.log("handleChange called:", name, "=", value); // Debug log
-
     if (name === "zona_id") {
       handleZonaChange(value);
     } else if (name === "cp") {
-      // Only allow numbers for postal code
-      const numeric = value.replace(/[^0-9]/g, "");
-      console.log("Setting CP to:", numeric); // Debug log
-      setForm((f) => {
-        const newForm = { ...f, cp: numeric };
-        console.log("New form state after CP change:", newForm);
-        return newForm;
-      });
+      // Solo números para código postal
+      const numericValue = value.replace(/[^0-9]/g, "");
+      setForm((prev) => ({ ...prev, cp: numericValue }));
     } else {
-      console.log(`Setting ${name} to:`, value); // Debug log
-      setForm((f) => {
-        const newForm = { ...f, [name]: value };
-        console.log("New form state after change:", newForm);
-        return newForm;
-      });
+      setForm((prev) => ({ ...prev, [name]: value }));
     }
   };
 
+  // Manejar envío del formulario
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
