@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, ChangeEvent, FormEvent, use } from "react";
+import React, { useEffect, useState, ChangeEvent, FormEvent } from "react";
 import LoaderPersonalizado from "../../components/LoaderPersonalizado";
 import Toast, { useToast } from "../../components/Toast";
 import { useRouter } from "next/navigation";
@@ -18,13 +18,17 @@ type Iglesia = {
 };
 
 interface Props {
+  // En Next.js 15.5.3 params es una Promise en componentes cliente
   params: Promise<{ id: string }>;
 }
 
 export default function MenuEditarIglesia({ params }: Props) {
-  const resolvedParams = use(params);
+  // ✅ Desenrolla params con React.use() (requisito de Next 15.5.3)
+  const { id } = React.use(params);
+
   const router = useRouter();
   const { toast, showSuccess, showError, hideToast } = useToast();
+
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [subzonas, setSubzonas] = useState<Subzona[]>([]);
   const [iglesia, setIglesia] = useState<Iglesia | null>(null);
@@ -41,72 +45,64 @@ export default function MenuEditarIglesia({ params }: Props) {
   const [loadingSubzonas, setLoadingSubzonas] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
 
-  // Función helper para limpiar valores null/undefined
-  const cleanValue = (value: unknown): string => {
-    if (value === null || value === undefined || value === "null") {
-      return "";
-    }
-    return String(value);
-  };
+  const cleanValue = (value: unknown): string =>
+    value === null || value === undefined || value === "null"
+      ? ""
+      : String(value);
 
-  // Cargar datos de la iglesia y zonas
+  // Carga inicial: depende SOLO de id para evitar renders en bucle
   useEffect(() => {
+    if (!id) return;
+
+    let aborted = false;
+
     const fetchData = async () => {
       try {
         const [iglesiasRes, zonasRes] = await Promise.all([
-          fetch(`/api/iglesias/${resolvedParams.id}`),
+          fetch(`/api/iglesias/${id}`),
           fetch(`/api/zonas`),
         ]);
 
-        if (!iglesiasRes.ok) {
-          throw new Error("Iglesia no encontrada");
-        }
+        if (!iglesiasRes.ok) throw new Error("Iglesia no encontrada");
 
-        const iglesiadata = await iglesiasRes.json();
+        const iglesiadata: Iglesia = await iglesiasRes.json();
+        if (aborted) return;
         setIglesia(iglesiadata);
 
         if (zonasRes.ok) {
           const zonasResponse = await zonasRes.json();
-          if (zonasResponse.ok && zonasResponse.data) {
+          if (!aborted && zonasResponse?.ok && zonasResponse?.data) {
             setZonas(zonasResponse.data);
 
-            // Buscar la zona de la subzona actual
+            // Localiza la subzona actual
             const subzonasRes = await fetch(`/api/subzonas?zonaId=ALL`);
             if (subzonasRes.ok) {
-              const allSubzonas = await subzonasRes.json();
+              const allSubzonas: Subzona[] = await subzonasRes.json();
               const currentSubzona = allSubzonas.find(
-                (s: Subzona) => s.id === iglesiadata.subzona_id
+                (s) => s.id === iglesiadata.subzona_id
               );
 
               if (currentSubzona) {
-                // Cargar subzonas de la zona actual
+                // Carga subzonas de la zona actual para el selector
                 const zonaSubzonasRes = await fetch(
                   `/api/subzonas?zonaId=${currentSubzona.zona_id}`
                 );
                 if (zonaSubzonasRes.ok) {
-                  const zonaSubzonas = await zonaSubzonasRes.json();
-                  setSubzonas(zonaSubzonas);
+                  const zonaSubzonas: Subzona[] = await zonaSubzonasRes.json();
+                  if (!aborted) setSubzonas(zonaSubzonas);
                 }
 
-                // Configurar form con datos de la iglesia
-                console.log("Setting form with iglesia data:", iglesiadata); // Debug log
-                console.log("Current subzona:", currentSubzona); // Debug log
-
-                setForm((prevForm) => {
-                  const newForm = {
-                    ...prevForm,
-                    nombre: cleanValue(iglesiadata.nombre),
-                    direccion: cleanValue(iglesiadata.direccion),
-                    municipio: cleanValue(iglesiadata.municipio),
-                    provincia: cleanValue(iglesiadata.provincia),
-                    cp: cleanValue(iglesiadata.cp),
-                    zona_id: currentSubzona.zona_id.toString(),
-                    subzona_id: iglesiadata.subzona_id.toString(),
-                  };
-
-                  console.log("New form state:", newForm); // Debug log
-                  return newForm;
-                });
+                // Inicializa formulario
+                setForm((prev) => ({
+                  ...prev,
+                  nombre: cleanValue(iglesiadata.nombre),
+                  direccion: cleanValue(iglesiadata.direccion),
+                  municipio: cleanValue(iglesiadata.municipio),
+                  provincia: cleanValue(iglesiadata.provincia),
+                  cp: cleanValue(iglesiadata.cp),
+                  zona_id: String(currentSubzona.zona_id),
+                  subzona_id: String(iglesiadata.subzona_id),
+                }));
               }
             }
           }
@@ -114,16 +110,20 @@ export default function MenuEditarIglesia({ params }: Props) {
       } catch (error) {
         console.error("Error loading data:", error);
         showError("Error al cargar los datos de la iglesia");
-        setTimeout(() => {
-          router.push("/MenuZonasSubZonas");
-        }, 2000);
+        setTimeout(() => router.push("/MenuZonasSubZonas"), 2000);
       } finally {
-        setLoadingData(false);
+        if (!aborted) setLoadingData(false);
       }
     };
 
     fetchData();
-  }, [resolvedParams.id, router, showError]);
+
+    return () => {
+      aborted = true;
+    };
+    // ⚠️ Solo dependemos de id para no re-disparar por refs/funciones
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const handleZonaChange = async (zonaId: string) => {
     setForm((f) => ({ ...f, zona_id: zonaId, subzona_id: "" }));
@@ -135,7 +135,7 @@ export default function MenuEditarIglesia({ params }: Props) {
     try {
       const res = await fetch(`/api/subzonas?zonaId=${zonaId}`);
       if (res.ok) {
-        const subzonasData = await res.json();
+        const subzonasData: Subzona[] = await res.json();
         setSubzonas(subzonasData);
       }
     } catch (error) {
@@ -150,27 +150,18 @@ export default function MenuEditarIglesia({ params }: Props) {
   ) => {
     const { name, value } = e.target;
 
-    console.log("handleChange called:", name, "=", value); // Debug log
-
     if (name === "zona_id") {
       handleZonaChange(value);
-    } else if (name === "cp") {
-      // Only allow numbers for postal code
-      const numeric = value.replace(/[^0-9]/g, "");
-      console.log("Setting CP to:", numeric); // Debug log
-      setForm((f) => {
-        const newForm = { ...f, cp: numeric };
-        console.log("New form state after CP change:", newForm);
-        return newForm;
-      });
-    } else {
-      console.log(`Setting ${name} to:`, value); // Debug log
-      setForm((f) => {
-        const newForm = { ...f, [name]: value };
-        console.log("New form state after change:", newForm);
-        return newForm;
-      });
+      return;
     }
+
+    if (name === "cp") {
+      const numeric = value.replace(/[^0-9]/g, "");
+      setForm((f) => ({ ...f, cp: numeric }));
+      return;
+    }
+
+    setForm((f) => ({ ...f, [name]: value }));
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -188,7 +179,7 @@ export default function MenuEditarIglesia({ params }: Props) {
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/iglesias/${resolvedParams.id}`, {
+      const res = await fetch(`/api/iglesias/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -197,19 +188,14 @@ export default function MenuEditarIglesia({ params }: Props) {
           municipio: form.municipio.trim() || null,
           provincia: form.provincia.trim() || null,
           cp: form.cp || null,
-          subzona_id: parseInt(form.subzona_id),
+          subzona_id: parseInt(form.subzona_id, 10),
         }),
       });
 
-      if (!res.ok) {
-        throw new Error("No se pudo actualizar la iglesia");
-      }
+      if (!res.ok) throw new Error("No se pudo actualizar la iglesia");
 
       showSuccess("Iglesia actualizada exitosamente");
-      // Esperar un poco para que se vea el toast antes de navegar
-      setTimeout(() => {
-        router.push("/MenuZonasSubZonas");
-      }, 1500);
+      setTimeout(() => router.push("/MenuZonasSubZonas"), 1500);
     } catch (error) {
       console.error("Error updating iglesia:", error);
       showError("No se pudo actualizar la iglesia");
@@ -218,7 +204,6 @@ export default function MenuEditarIglesia({ params }: Props) {
     }
   };
 
-  // Mostrar loader mientras se cargan los datos
   if (loadingData || !iglesia) {
     return (
       <LoaderPersonalizado>Cargando datos de la iglesia...</LoaderPersonalizado>
@@ -263,11 +248,12 @@ export default function MenuEditarIglesia({ params }: Props) {
               Volver
             </button>
           </div>
+
           <form
             className="flex flex-col gap-4 font-sans text-base text-black"
             onSubmit={handleSubmit}
           >
-            {/* Primera fila: Nombre */}
+            {/* Nombre */}
             <div className="grid grid-cols-1 gap-4">
               <div className="flex flex-col gap-1">
                 <label htmlFor="nombre" className="font-medium text-black">
@@ -286,7 +272,7 @@ export default function MenuEditarIglesia({ params }: Props) {
               </div>
             </div>
 
-            {/* Segunda fila: Dirección */}
+            {/* Dirección */}
             <div className="grid grid-cols-1 gap-4">
               <div className="flex flex-col gap-1">
                 <label htmlFor="direccion" className="font-medium text-black">
@@ -304,7 +290,7 @@ export default function MenuEditarIglesia({ params }: Props) {
               </div>
             </div>
 
-            {/* Tercera fila: Municipio, Provincia, CP */}
+            {/* Municipio, Provincia, CP */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="flex flex-col gap-1">
                 <label htmlFor="municipio" className="font-medium text-black">
@@ -352,7 +338,7 @@ export default function MenuEditarIglesia({ params }: Props) {
               </div>
             </div>
 
-            {/* Cuarta fila: Zona y Subzona */}
+            {/* Zona y Subzona */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div className="flex flex-col gap-1">
                 <label htmlFor="zona_id" className="font-medium text-black">
