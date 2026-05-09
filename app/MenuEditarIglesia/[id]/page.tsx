@@ -15,7 +15,8 @@ type Iglesia = {
   municipio: string;
   provincia: string;
   cp: string;
-  subzona_id: number;
+  zona_id: number;
+  subzona_id: number | null;
 };
 
 interface Props {
@@ -72,34 +73,25 @@ export default function MenuEditarIglesia({ params }: Props) {
           if (!aborted && zonasResponse?.ok && zonasResponse?.data) {
             setZonas(zonasResponse.data);
 
-            const subzonasRes = await fetch(`/api/subzonas?zonaId=ALL`);
-            if (subzonasRes.ok) {
-              const allSubzonas: Subzona[] = await subzonasRes.json();
-              const currentSubzona = allSubzonas.find(
-                (s) => s.id === iglesiadata.subzona_id
-              );
-
-              if (currentSubzona) {
-                const zonaSubzonasRes = await fetch(
-                  `/api/subzonas?zonaId=${currentSubzona.zona_id}`
-                );
-                if (zonaSubzonasRes.ok) {
-                  const zonaSubzonas: Subzona[] = await zonaSubzonasRes.json();
-                  if (!aborted) setSubzonas(zonaSubzonas);
-                }
-
-                setForm((prev) => ({
-                  ...prev,
-                  nombre: cleanValue(iglesiadata.nombre),
-                  direccion: cleanValue(iglesiadata.direccion),
-                  municipio: cleanValue(iglesiadata.municipio),
-                  provincia: cleanValue(iglesiadata.provincia),
-                  cp: cleanValue(iglesiadata.cp),
-                  zona_id: String(currentSubzona.zona_id),
-                  subzona_id: String(iglesiadata.subzona_id),
-                }));
+            // Load subzonas for the iglesia's zona
+            const zonaId = iglesiadata.zona_id;
+            if (zonaId) {
+              const subzonasRes = await fetch(`/api/subzonas?zonaId=${zonaId}`);
+              if (subzonasRes.ok) {
+                const zonaSubzonas: Subzona[] = await subzonasRes.json();
+                if (!aborted) setSubzonas(zonaSubzonas);
               }
             }
+
+            setForm({
+              nombre: cleanValue(iglesiadata.nombre),
+              direccion: cleanValue(iglesiadata.direccion),
+              municipio: cleanValue(iglesiadata.municipio),
+              provincia: cleanValue(iglesiadata.provincia),
+              cp: cleanValue(iglesiadata.cp),
+              zona_id: String(iglesiadata.zona_id),
+              subzona_id: iglesiadata.subzona_id ? String(iglesiadata.subzona_id) : "",
+            });
           }
         }
       } catch (error) {
@@ -166,8 +158,8 @@ export default function MenuEditarIglesia({ params }: Props) {
       return;
     }
 
-    if (!form.subzona_id) {
-      showError("Debe seleccionar una subzona");
+    if (!form.zona_id) {
+      showError("Debe seleccionar una zona");
       return;
     }
 
@@ -182,7 +174,8 @@ export default function MenuEditarIglesia({ params }: Props) {
           municipio: form.municipio.trim() || null,
           provincia: form.provincia.trim() || null,
           cp: form.cp ? parseInt(form.cp, 10) : null,
-          subzona_id: parseInt(form.subzona_id, 10),
+          zona_id: parseInt(form.zona_id, 10),
+          subzona_id: form.subzona_id ? parseInt(form.subzona_id, 10) : null,
         }),
       });
 
@@ -331,7 +324,7 @@ export default function MenuEditarIglesia({ params }: Props) {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="zona_id" className="font-medium text-slate-700 text-sm">
-                  Zona
+                  Zona <span className="text-red-500">*</span>
                 </label>
                 <Combobox
                   id="zona_id"
@@ -346,7 +339,7 @@ export default function MenuEditarIglesia({ params }: Props) {
               </div>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="subzona_id" className="font-medium text-slate-700 text-sm">
-                  Subzona
+                  Subzona <span className="text-slate-400 text-xs font-normal">(opcional)</span>
                 </label>
                 <Combobox
                   id="subzona_id"
@@ -359,7 +352,9 @@ export default function MenuEditarIglesia({ params }: Props) {
                       ? "Cargando subzonas..."
                       : !form.zona_id
                       ? "Selecciona primero una zona"
-                      : "Selecciona una subzona"
+                      : subzonas.length === 0
+                      ? "No hay subzonas en esta zona"
+                      : "Selecciona una subzona (opcional)"
                   }
                   searchPlaceholder="Buscar subzona..."
                   emptyMessage="No se encontraron subzonas."

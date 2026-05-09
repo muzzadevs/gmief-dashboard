@@ -10,6 +10,7 @@ export type Iglesia = {
   direccion: string | null;
   municipio: string | null;
   provincia: string | null;
-  subzona_id: number;
+  zona_id: number;
+  subzona_id: number | null;
   cp: number | null;
 };

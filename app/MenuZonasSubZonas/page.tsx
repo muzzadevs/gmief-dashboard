@@ -58,7 +58,7 @@ export default function MenuZonasSubZonas() {
           </div>
 
           {/* Tercera fila: Botones de acción */}
-          <div className="flex flex-col xs:flex-row items-stretch gap-2">
+          <div className="flex flex-col lg:flex-row items-stretch gap-2">
             <button
               type="button"
               className="btn-primary bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 flex-1 text-xs sm:text-sm"

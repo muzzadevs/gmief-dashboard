@@ -46,12 +46,12 @@ export async function PUT(
       return NextResponse.json({ error: "ID inválido" }, { status: 400 });
     }
 
-    const { nombre, direccion, municipio, provincia, cp, subzona_id } =
+    const { nombre, direccion, municipio, provincia, cp, zona_id, subzona_id } =
       await request.json();
 
-    if (!nombre || !subzona_id) {
+    if (!nombre || !zona_id) {
       return NextResponse.json(
-        { error: "Nombre y subzona son requeridos" },
+        { error: "Nombre y zona son requeridos" },
         { status: 400 }
       );
     }
@@ -75,7 +75,8 @@ export async function PUT(
         municipio: municipio || null,
         provincia: provincia || null,
         cp: cp || null,
-        subzona_id,
+        zona_id,
+        subzona_id: subzona_id || null,
       },
     });
 

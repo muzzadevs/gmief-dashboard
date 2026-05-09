@@ -8,7 +8,10 @@ export async function GET(req: NextRequest) {
 
   if (subzonaId) {
     const iglesias = await prisma.iglesia.findMany({
-      where: { subzona_id: Number(subzonaId) },
+      where: {
+        zona_id: Number(zonaId),
+        subzona_id: Number(subzonaId),
+      },
       orderBy: { nombre: "asc" },
     });
     return NextResponse.json(iglesias);
@@ -16,9 +19,7 @@ export async function GET(req: NextRequest) {
 
   const iglesias = await prisma.iglesia.findMany({
     where: {
-      subzona: {
-        zona_id: Number(zonaId),
-      },
+      zona_id: Number(zonaId),
     },
     orderBy: { nombre: "asc" },
   });
@@ -27,12 +28,12 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { nombre, direccion, municipio, provincia, cp, subzona_id } =
+    const { nombre, direccion, municipio, provincia, cp, zona_id, subzona_id } =
       await req.json();
 
-    if (!nombre || !subzona_id) {
+    if (!nombre || !zona_id) {
       return NextResponse.json(
-        { error: "Nombre y subzona son requeridos" },
+        { error: "Nombre y zona son requeridos" },
         { status: 400 }
       );
     }
@@ -44,7 +45,8 @@ export async function POST(req: NextRequest) {
         municipio: municipio || null,
         provincia: provincia || null,
         cp: cp || null,
-        subzona_id,
+        zona_id,
+        subzona_id: subzona_id || null,
       },
     });
 

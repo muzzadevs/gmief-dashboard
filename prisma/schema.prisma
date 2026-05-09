@@ -12,6 +12,7 @@ model Zona {
   nombre   String    @db.VarChar(100)
   codigo   String    @db.VarChar(10)
   subzonas Subzona[]
+  iglesias Iglesia[]
 
   @@map("zonas")
 }
@@ -33,11 +34,14 @@ model Iglesia {
   direccion   String?      @db.VarChar(255)
   municipio   String?      @db.VarChar(100)
   provincia   String?      @db.VarChar(100)
-  subzona_id  Int
+  zona_id     Int
+  subzona_id  Int?
   cp          Int?
-  subzona     Subzona      @relation(fields: [subzona_id], references: [id])
+  zona        Zona         @relation(fields: [zona_id], references: [id])
+  subzona     Subzona?     @relation(fields: [subzona_id], references: [id])
   ministerios Ministerio[]
 
+  @@index([zona_id])
   @@index([subzona_id])
   @@map("iglesias")
 }

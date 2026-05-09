@@ -88,8 +88,8 @@ export default function MenuAgregarIglesia() {
       return;
     }
 
-    if (!form.subzona_id) {
-      showError("Debe seleccionar una subzona");
+    if (!form.zona_id) {
+      showError("Debe seleccionar una zona");
       return;
     }
 
@@ -104,7 +104,8 @@ export default function MenuAgregarIglesia() {
           municipio: form.municipio.trim() || null,
           provincia: form.provincia.trim() || null,
           cp: form.cp ? parseInt(form.cp, 10) : null,
-          subzona_id: parseInt(form.subzona_id),
+          zona_id: parseInt(form.zona_id),
+          subzona_id: form.subzona_id ? parseInt(form.subzona_id) : null,
         }),
       });
 
@@ -254,7 +255,7 @@ export default function MenuAgregarIglesia() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="zona_id" className="font-medium text-slate-700 text-sm">
-                  Zona
+                  Zona <span className="text-red-500">*</span>
                 </label>
                 <Combobox
                   id="zona_id"
@@ -269,7 +270,7 @@ export default function MenuAgregarIglesia() {
               </div>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="subzona_id" className="font-medium text-slate-700 text-sm">
-                  Subzona
+                  Subzona <span className="text-slate-400 text-xs font-normal">(opcional)</span>
                 </label>
                 <Combobox
                   id="subzona_id"
@@ -282,7 +283,9 @@ export default function MenuAgregarIglesia() {
                       ? "Cargando subzonas..."
                       : !form.zona_id
                       ? "Selecciona primero una zona"
-                      : "Selecciona una subzona"
+                      : subzonas.length === 0
+                      ? "No hay subzonas en esta zona"
+                      : "Selecciona una subzona (opcional)"
                   }
                   searchPlaceholder="Buscar subzona..."
                   emptyMessage="No se encontraron subzonas."
