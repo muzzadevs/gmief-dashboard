@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useZonasStore } from "@/store/zonasStore";
 import type { Zona } from "@/types/zonas";
+import Combobox from "./ui/Combobox";
 
 export default function SelectMenuZonas() {
   const { zonas, setZonas, zonaSelected, setZonaSelected } = useZonasStore();
@@ -36,36 +37,30 @@ export default function SelectMenuZonas() {
 
   const value = zonaSelected ? String(zonaSelected.id) : "";
 
+  const options = loading
+    ? [{ value: "", label: "Cargando zonas..." }]
+    : error
+    ? [{ value: "", label: "Error cargando zonas" }]
+    : zonas.map((z) => ({ value: String(z.id), label: z.nombre }));
+
   return (
-    <select
+    <Combobox
       id="zonas-select"
-      className="select-glass w-full"
+      options={options}
       value={value}
-      onChange={(e) => {
-        const id = Number(e.target.value);
+      onChange={(val) => {
+        const id = Number(val);
         const zona = zonas.find((z) => z.id === id) || null;
         setZonaSelected(zona);
         if (zona) {
           router.push("/MenuZonasSubZonas");
         }
       }}
+      placeholder="Selecciona una zona"
+      searchPlaceholder="Buscar zona..."
+      emptyMessage="No se encontraron zonas."
       aria-label="Selector de zonas"
       disabled={loading || !!error}
-    >
-      {!zonaSelected && (
-        <option value="" disabled>
-          Selecciona una zona
-        </option>
-      )}
-
-      {loading && <option value="" disabled>Cargando zonas...</option>}
-      {error && <option value="" disabled>Error cargando zonas</option>}
-
-      {!loading && !error && zonas.map((z) => (
-        <option key={z.id} value={String(z.id)}>
-          {z.nombre}
-        </option>
-      ))}
-    </select>
+    />
   );
 }

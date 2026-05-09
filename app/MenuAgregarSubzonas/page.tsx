@@ -3,6 +3,7 @@
 import React, { useEffect, useState, ChangeEvent, FormEvent } from "react";
 import LoaderPersonalizado from "../components/LoaderPersonalizado";
 import Toast, { useToast } from "../components/Toast";
+import Combobox from "../components/ui/Combobox";
 import { useRouter } from "next/navigation";
 
 type Zona = { id: number; nombre: string };
@@ -87,6 +88,11 @@ export default function MenuAgregarSubzonas() {
     return <LoaderPersonalizado>Cargando...</LoaderPersonalizado>;
   }
 
+  const zonaOptions = zonas.map((zona) => ({
+    value: String(zona.id),
+    label: zona.nombre,
+  }));
+
   return (
     <>
       <Toast
@@ -140,21 +146,16 @@ export default function MenuAgregarSubzonas() {
               <label htmlFor="zona_id" className="font-medium text-slate-700 text-sm">
                 Zona
               </label>
-              <select
+              <Combobox
                 id="zona_id"
                 name="zona_id"
+                options={zonaOptions}
                 value={form.zona_id}
-                onChange={handleChange}
-                required
-                className="select-glass w-full"
-              >
-                <option value="">Selecciona una zona</option>
-                {zonas.map((zona) => (
-                  <option key={zona.id} value={zona.id}>
-                    {zona.nombre}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setForm((f) => ({ ...f, zona_id: val }))}
+                placeholder="Selecciona una zona"
+                searchPlaceholder="Buscar zona..."
+                emptyMessage="No se encontraron zonas."
+              />
             </div>
 
             <button

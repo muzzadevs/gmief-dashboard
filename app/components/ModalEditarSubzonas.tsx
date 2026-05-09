@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Toast, { useToast } from "./Toast";
+import Combobox from "./ui/Combobox";
 
 type Zona = { id: number; nombre: string };
 type Subzona = { id: number; nombre: string; zona_id: number };
@@ -103,6 +104,11 @@ export default function ModalEditarSubzonas({
 
   if (!isOpen) return null;
 
+  const zonaOptions = zonas.map((zona) => ({
+    value: String(zona.id),
+    label: zona.nombre,
+  }));
+
   return (
     <>
       <Toast
@@ -163,25 +169,20 @@ export default function ModalEditarSubzonas({
                       <label className="font-medium text-slate-700 text-sm">
                         Zona
                       </label>
-                      <select
-                        value={subzona.zona_id}
-                        onChange={(e) =>
+                      <Combobox
+                        options={zonaOptions}
+                        value={String(subzona.zona_id)}
+                        onChange={(val) =>
                           handleSubzonaChange(
                             subzona.id,
                             "zona_id",
-                            parseInt(e.target.value)
+                            parseInt(val)
                           )
                         }
-                        className="select-glass w-full"
-                        required
-                      >
-                        <option value="">Selecciona una zona</option>
-                        {zonas.map((zona) => (
-                          <option key={zona.id} value={zona.id}>
-                            {zona.nombre}
-                          </option>
-                        ))}
-                      </select>
+                        placeholder="Selecciona una zona"
+                        searchPlaceholder="Buscar zona..."
+                        emptyMessage="No se encontraron zonas."
+                      />
                     </div>
                   </div>
                 ))}

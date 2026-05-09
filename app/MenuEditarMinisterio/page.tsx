@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import ModalCodigoDuplicado from "../components/ModalCodigoDuplicado";
 import LoaderPersonalizado from "../components/LoaderPersonalizado";
+import Combobox from "../components/ui/Combobox";
 import { useRouter } from "next/navigation";
 import { useZonasStore } from "@/store/zonasStore";
 
@@ -175,6 +176,16 @@ export default function MenuEditarMinisterio() {
     return <LoaderPersonalizado>Cargando...</LoaderPersonalizado>;
   }
 
+  const estadoOptions = estados.map((e) => ({
+    value: String(e.id),
+    label: e.nombre,
+  }));
+
+  const yearOptions = years.map((y) => ({
+    value: String(y),
+    label: String(y),
+  }));
+
   return (
     <>
       <ModalCodigoDuplicado
@@ -275,40 +286,31 @@ export default function MenuEditarMinisterio() {
                 <label htmlFor="estado_id" className="font-medium text-slate-700 text-sm">
                   Estado
                 </label>
-                <select
+                <Combobox
                   id="estado_id"
                   name="estado_id"
-                  value={form.estado_id}
-                  onChange={handleChange}
-                  required
-                  className="select-glass w-full"
-                >
-                  <option value="">Selecciona estado</option>
-                  {estados.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.nombre}
-                    </option>
-                  ))}
-                </select>
+                  options={estadoOptions}
+                  value={String(form.estado_id)}
+                  onChange={(val) => setForm((f) => f && { ...f, estado_id: val })}
+                  placeholder="Selecciona estado"
+                  searchPlaceholder="Buscar estado..."
+                  emptyMessage="No se encontraron estados."
+                />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="aprob" className="font-medium text-slate-700 text-sm">
                   Año de aprobación (opcional)
                 </label>
-                <select
+                <Combobox
                   id="aprob"
                   name="aprob"
-                  value={form.aprob}
-                  onChange={handleChange}
-                  className="select-glass w-full"
-                >
-                  <option value="">Año de aprobación</option>
-                  {years.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
+                  options={yearOptions}
+                  value={form.aprob ? String(form.aprob) : ""}
+                  onChange={(val) => setForm((f) => f && { ...f, aprob: val })}
+                  placeholder="Año de aprobación"
+                  searchPlaceholder="Buscar año..."
+                  emptyMessage="No se encontró el año."
+                />
               </div>
             </div>
 

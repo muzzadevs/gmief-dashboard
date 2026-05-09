@@ -1,6 +1,9 @@
+"use client";
+
 import { useEffect } from "react";
 import type { Subzona } from "@/types/subzonas";
 import { useZonasStore } from "@/store/zonasStore";
+import Combobox from "./ui/Combobox";
 
 export default function SelectMenuSubzonas() {
   const zonaSelected = useZonasStore((s) => s.zonaSelected);
@@ -17,24 +20,27 @@ export default function SelectMenuSubzonas() {
 
   if (!zonaSelected) return null;
 
+  const options = [
+    { value: "todas", label: "Todas las subzonas" },
+    ...subzonas.map((subzona: Subzona) => ({
+      value: String(subzona.id),
+      label: subzona.nombre,
+    })),
+  ];
+
   return (
-    <select
+    <Combobox
       id="subzonas-select"
-      className="select-glass w-full"
+      options={options}
       value={subzonaSelected ? String(subzonaSelected.id) : "todas"}
-      onChange={(e) => {
-        const id = e.target.value;
-        if (id === "todas") setSubzonaSelected(null);
-        else setSubzonaSelected(subzonas.find((s: Subzona) => s.id === Number(id)) || null);
+      onChange={(val) => {
+        if (val === "todas") setSubzonaSelected(null);
+        else setSubzonaSelected(subzonas.find((s: Subzona) => s.id === Number(val)) || null);
       }}
+      placeholder="Selecciona una subzona"
+      searchPlaceholder="Buscar subzona..."
+      emptyMessage="No se encontraron subzonas."
       aria-label="Selector de subzonas"
-    >
-      <option value="todas">Todas las subzonas</option>
-      {subzonas.map((subzona: Subzona) => (
-        <option key={subzona.id} value={subzona.id}>
-          {subzona.nombre}
-        </option>
-      ))}
-    </select>
+    />
   );
 }

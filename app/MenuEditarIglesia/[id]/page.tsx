@@ -3,6 +3,7 @@
 import React, { useEffect, useState, ChangeEvent, FormEvent } from "react";
 import LoaderPersonalizado from "../../components/LoaderPersonalizado";
 import Toast, { useToast } from "../../components/Toast";
+import Combobox from "../../components/ui/Combobox";
 import { useRouter } from "next/navigation";
 
 type Zona = { id: number; nombre: string };
@@ -203,6 +204,16 @@ export default function MenuEditarIglesia({ params }: Props) {
     );
   }
 
+  const zonaOptions = zonas.map((zona) => ({
+    value: String(zona.id),
+    label: zona.nombre,
+  }));
+
+  const subzonaOptions = subzonas.map((subzona) => ({
+    value: String(subzona.id),
+    label: subzona.nombre,
+  }));
+
   return (
     <>
       <Toast
@@ -322,48 +333,38 @@ export default function MenuEditarIglesia({ params }: Props) {
                 <label htmlFor="zona_id" className="font-medium text-slate-700 text-sm">
                   Zona
                 </label>
-                <select
+                <Combobox
                   id="zona_id"
                   name="zona_id"
+                  options={zonaOptions}
                   value={form.zona_id}
-                  onChange={handleChange}
-                  required
-                  className="select-glass w-full"
-                >
-                  <option value="">Selecciona una zona</option>
-                  {zonas.map((zona) => (
-                    <option key={zona.id} value={zona.id}>
-                      {zona.nombre}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => handleZonaChange(val)}
+                  placeholder="Selecciona una zona"
+                  searchPlaceholder="Buscar zona..."
+                  emptyMessage="No se encontraron zonas."
+                />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="subzona_id" className="font-medium text-slate-700 text-sm">
                   Subzona
                 </label>
-                <select
+                <Combobox
                   id="subzona_id"
                   name="subzona_id"
+                  options={subzonaOptions}
                   value={form.subzona_id}
-                  onChange={handleChange}
-                  required
-                  disabled={!form.zona_id || loadingSubzonas}
-                  className="select-glass w-full"
-                >
-                  <option value="">
-                    {loadingSubzonas
+                  onChange={(val) => setForm((f) => ({ ...f, subzona_id: val }))}
+                  placeholder={
+                    loadingSubzonas
                       ? "Cargando subzonas..."
                       : !form.zona_id
                       ? "Selecciona primero una zona"
-                      : "Selecciona una subzona"}
-                  </option>
-                  {subzonas.map((subzona) => (
-                    <option key={subzona.id} value={subzona.id}>
-                      {subzona.nombre}
-                    </option>
-                  ))}
-                </select>
+                      : "Selecciona una subzona"
+                  }
+                  searchPlaceholder="Buscar subzona..."
+                  emptyMessage="No se encontraron subzonas."
+                  disabled={!form.zona_id || loadingSubzonas}
+                />
               </div>
             </div>
 

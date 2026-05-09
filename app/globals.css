@@ -109,23 +109,37 @@ body {
   background: rgba(255, 255, 255, 0.95);
   border: 1px solid rgba(203, 213, 225, 0.6);
   border-radius: 0.75rem;
-  padding: 0.625rem 1rem;
+  padding: 0.625rem 2.5rem 0.625rem 1rem;
   font-size: 0.9375rem;
   color: #0f172a;
   outline: none;
   transition: all 0.2s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  appearance: auto;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='2' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.25rem 1.25rem;
+  cursor: pointer;
 }
 
 .select-glass:focus {
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='2' stroke='%233b82f6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'/%3E%3C/svg%3E");
+}
+
+.select-glass:hover:not(:disabled) {
+  border-color: rgba(148, 163, 184, 0.8);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
 .select-glass:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='2' stroke='%23cbd5e1'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'/%3E%3C/svg%3E");
 }
 
 /* ── Button styles ── */
