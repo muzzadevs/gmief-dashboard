@@ -34,13 +34,11 @@ export default function ModalAgregarZona({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validaciones del nombre
     if (!nombre.trim()) {
       showError("El nombre es requerido");
       return;
     }
 
-    // Validaciones del código
     const normalizedCodigo = codigo.trim().toUpperCase();
 
     if (!normalizedCodigo) {
@@ -110,41 +108,28 @@ export default function ModalAgregarZona({
         show={toast.show}
         onClose={hideToast}
       />
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+        <div className="glass-card-solid w-full max-w-md overflow-hidden animate-fadein">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <h2 className="text-2xl font-bold text-black">
+          <div className="flex items-center justify-between p-6 border-b border-slate-200">
+            <h2 className="text-xl font-bold text-slate-800">
               Agregar Nueva Zona
             </h2>
             <button
               onClick={handleClose}
               disabled={loading}
-              className="text-gray-500 hover:text-gray-700 disabled:opacity-50"
+              className="text-slate-400 hover:text-slate-600 disabled:opacity-50 transition-colors"
             >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
           {/* Content */}
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            <div className="flex flex-col gap-2">
-              <label
-                htmlFor="nombre"
-                className="font-medium text-black text-sm"
-              >
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="nombre" className="font-medium text-slate-700 text-sm">
                 Nombre de la Zona *
               </label>
               <input
@@ -152,7 +137,7 @@ export default function ModalAgregarZona({
                 type="text"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                className="px-3 py-2 rounded-lg border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-green-400 focus:border-green-400 outline-none shadow-sm text-black"
+                className="input-glass w-full"
                 placeholder="Ej: Zona Norte"
                 required
                 disabled={loading}
@@ -160,11 +145,8 @@ export default function ModalAgregarZona({
               />
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label
-                htmlFor="codigo"
-                className="font-medium text-black text-sm"
-              >
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="codigo" className="font-medium text-slate-700 text-sm">
                 Código de la Zona *
               </label>
               <input
@@ -179,26 +161,25 @@ export default function ModalAgregarZona({
                     setCodigo(value);
                   }
                 }}
-                className="px-3 py-2 rounded-lg border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-green-400 focus:border-green-400 outline-none shadow-sm text-black"
+                className="input-glass w-full"
                 placeholder="Ej: ZN1"
                 required
                 disabled={loading}
                 maxLength={3}
               />
-              <p className="text-xs text-gray-500">
-                Código único para identificar la zona (máx. 3 caracteres, solo
-                letras y números)
+              <p className="text-xs text-slate-400">
+                Código único para identificar la zona (máx. 3 caracteres, solo letras y números)
               </p>
             </div>
           </form>
 
           {/* Footer */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 p-6 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 p-6 border-t border-slate-200">
             <button
               type="button"
               onClick={handleClose}
               disabled={loading}
-              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"
             >
               Cancelar
             </button>
@@ -206,7 +187,7 @@ export default function ModalAgregarZona({
               type="submit"
               onClick={handleSubmit}
               disabled={loading || !nombre.trim() || !codigo.trim()}
-              className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/20"
             >
               {loading ? "Creando..." : "Crear Zona"}
             </button>

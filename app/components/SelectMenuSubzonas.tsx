@@ -18,23 +18,23 @@ export default function SelectMenuSubzonas() {
   if (!zonaSelected) return null;
 
   return (
-          <select
-          id="subzonas-select"
-          className="rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900 min-w-52 w-full"
-          value={subzonaSelected ? String(subzonaSelected.id) : "todas"}
-          onChange={(e) => {
-            const id = e.target.value;
-            if (id === "todas") setSubzonaSelected(null);
-            else setSubzonaSelected(subzonas.find((s: Subzona) => s.id === Number(id)) || null);
-          }}
-          aria-label="Selector de subzonas"
-        >
-          <option value="todas">Todas</option>
-          {subzonas.map((subzona: Subzona) => (
-            <option key={subzona.id} value={subzona.id}>
-              {subzona.nombre}
-            </option>
-          ))}
-        </select>
+    <select
+      id="subzonas-select"
+      className="select-glass w-full"
+      value={subzonaSelected ? String(subzonaSelected.id) : "todas"}
+      onChange={(e) => {
+        const id = e.target.value;
+        if (id === "todas") setSubzonaSelected(null);
+        else setSubzonaSelected(subzonas.find((s: Subzona) => s.id === Number(id)) || null);
+      }}
+      aria-label="Selector de subzonas"
+    >
+      <option value="todas">Todas las subzonas</option>
+      {subzonas.map((subzona: Subzona) => (
+        <option key={subzona.id} value={subzona.id}>
+          {subzona.nombre}
+        </option>
+      ))}
+    </select>
   );
 }

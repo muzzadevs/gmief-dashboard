@@ -23,7 +23,7 @@ export default function SelectMenuZonas() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json: { ok: boolean; data: Zona[] } = await res.json();
         if (!json.ok) throw new Error("Respuesta no OK");
-        if (!ignore) setZonas(json.data); // 👈 no seleccionamos nada
+        if (!ignore) setZonas(json.data);
       } catch (e: unknown) {
         if (!ignore && !(e instanceof DOMException && e.name === "AbortError")) setError("No se pudieron cargar las zonas");
       } finally {
@@ -34,13 +34,12 @@ export default function SelectMenuZonas() {
     return () => { ignore = true; ac.abort(); };
   }, [setZonas]);
 
-  // valor vacío hasta que el usuario elija
   const value = zonaSelected ? String(zonaSelected.id) : "";
 
   return (
-      <select
+    <select
       id="zonas-select"
-      className="rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900 min-w-52 w-full"
+      className="select-glass w-full"
       value={value}
       onChange={(e) => {
         const id = Number(e.target.value);
@@ -53,7 +52,6 @@ export default function SelectMenuZonas() {
       aria-label="Selector de zonas"
       disabled={loading || !!error}
     >
-      {/* Placeholder: visible solo mientras no haya selección */}
       {!zonaSelected && (
         <option value="" disabled>
           Selecciona una zona

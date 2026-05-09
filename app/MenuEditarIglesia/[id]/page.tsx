@@ -18,12 +18,10 @@ type Iglesia = {
 };
 
 interface Props {
-  // En Next.js 15.5.3 params es una Promise en componentes cliente
   params: Promise<{ id: string }>;
 }
 
 export default function MenuEditarIglesia({ params }: Props) {
-  // ✅ Desenrolla params con React.use() (requisito de Next 15.5.3)
   const { id } = React.use(params);
 
   const router = useRouter();
@@ -50,7 +48,6 @@ export default function MenuEditarIglesia({ params }: Props) {
       ? ""
       : String(value);
 
-  // Carga inicial: depende SOLO de id para evitar renders en bucle
   useEffect(() => {
     if (!id) return;
 
@@ -74,7 +71,6 @@ export default function MenuEditarIglesia({ params }: Props) {
           if (!aborted && zonasResponse?.ok && zonasResponse?.data) {
             setZonas(zonasResponse.data);
 
-            // Localiza la subzona actual
             const subzonasRes = await fetch(`/api/subzonas?zonaId=ALL`);
             if (subzonasRes.ok) {
               const allSubzonas: Subzona[] = await subzonasRes.json();
@@ -83,7 +79,6 @@ export default function MenuEditarIglesia({ params }: Props) {
               );
 
               if (currentSubzona) {
-                // Carga subzonas de la zona actual para el selector
                 const zonaSubzonasRes = await fetch(
                   `/api/subzonas?zonaId=${currentSubzona.zona_id}`
                 );
@@ -92,7 +87,6 @@ export default function MenuEditarIglesia({ params }: Props) {
                   if (!aborted) setSubzonas(zonaSubzonas);
                 }
 
-                // Inicializa formulario
                 setForm((prev) => ({
                   ...prev,
                   nombre: cleanValue(iglesiadata.nombre),
@@ -121,7 +115,6 @@ export default function MenuEditarIglesia({ params }: Props) {
     return () => {
       aborted = true;
     };
-    // ⚠️ Solo dependemos de id para no re-disparar por refs/funciones
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -187,7 +180,7 @@ export default function MenuEditarIglesia({ params }: Props) {
           direccion: form.direccion.trim() || null,
           municipio: form.municipio.trim() || null,
           provincia: form.provincia.trim() || null,
-          cp: form.cp || null,
+          cp: form.cp ? parseInt(form.cp, 10) : null,
           subzona_id: parseInt(form.subzona_id, 10),
         }),
       });
@@ -218,82 +211,67 @@ export default function MenuEditarIglesia({ params }: Props) {
         show={toast.show}
         onClose={hideToast}
       />
-      <main className="min-h-screen flex flex-col font-sans bg-gradient-to-br from-blue-900 via-white to-blue-400 items-center justify-center">
-        <div className="w-[95vw] max-w-3xl lg:max-w-6xl bg-white/95 rounded-3xl border border-gray-300 shadow-2xl p-4 sm:p-8 mt-8 mb-8 mx-auto animate-fadein">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
-            <h2 className="text-2xl font-bold text-black tracking-tight font-sans text-center sm:text-left flex-1">
+      <main className="min-h-screen flex flex-col items-center justify-center px-3 py-8">
+        <div className="w-full max-w-3xl lg:max-w-5xl glass-card-solid p-5 sm:p-8 animate-fadein">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+            <h2 className="text-2xl font-bold text-slate-800 tracking-tight text-center sm:text-left flex-1">
               Editar Iglesia: {iglesia.nombre}
             </h2>
             <button
               type="button"
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black text-white font-semibold text-base shadow hover:bg-gray-900 transition border border-black cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              className="btn-primary bg-slate-800 text-white hover:bg-slate-900 shadow-lg shadow-slate-800/20"
               onClick={() => router.push("/MenuZonasSubZonas")}
               aria-label="Volver"
               disabled={loading}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-                stroke="currentColor"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15.75 19.5L8.25 12l7.5-7.5"
-                />
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
               </svg>
               Volver
             </button>
           </div>
 
           <form
-            className="flex flex-col gap-4 font-sans text-base text-black"
+            className="flex flex-col gap-5 text-base"
             onSubmit={handleSubmit}
           >
             {/* Nombre */}
-            <div className="grid grid-cols-1 gap-4">
-              <div className="flex flex-col gap-1">
-                <label htmlFor="nombre" className="font-medium text-black">
-                  Nombre de la Iglesia
-                </label>
-                <input
-                  id="nombre"
-                  name="nombre"
-                  value={form.nombre}
-                  onChange={handleChange}
-                  required
-                  className="px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none shadow-sm placeholder:text-gray-700 text-base"
-                  autoComplete="off"
-                  placeholder="Nombre de la iglesia"
-                />
-              </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="nombre" className="font-medium text-slate-700 text-sm">
+                Nombre de la Iglesia
+              </label>
+              <input
+                id="nombre"
+                name="nombre"
+                value={form.nombre}
+                onChange={handleChange}
+                required
+                className="input-glass w-full"
+                autoComplete="off"
+                placeholder="Nombre de la iglesia"
+              />
             </div>
 
             {/* Dirección */}
-            <div className="grid grid-cols-1 gap-4">
-              <div className="flex flex-col gap-1">
-                <label htmlFor="direccion" className="font-medium text-black">
-                  Dirección
-                </label>
-                <input
-                  id="direccion"
-                  name="direccion"
-                  value={form.direccion}
-                  onChange={handleChange}
-                  className="px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none shadow-sm placeholder:text-gray-700 text-base"
-                  autoComplete="off"
-                  placeholder="Dirección completa"
-                />
-              </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="direccion" className="font-medium text-slate-700 text-sm">
+                Dirección
+              </label>
+              <input
+                id="direccion"
+                name="direccion"
+                value={form.direccion}
+                onChange={handleChange}
+                className="input-glass w-full"
+                autoComplete="off"
+                placeholder="Dirección completa"
+              />
             </div>
 
             {/* Municipio, Provincia, CP */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              <div className="flex flex-col gap-1">
-                <label htmlFor="municipio" className="font-medium text-black">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="municipio" className="font-medium text-slate-700 text-sm">
                   Municipio
                 </label>
                 <input
@@ -301,13 +279,13 @@ export default function MenuEditarIglesia({ params }: Props) {
                   name="municipio"
                   value={form.municipio}
                   onChange={handleChange}
-                  className="px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none shadow-sm placeholder:text-gray-700 text-base"
+                  className="input-glass w-full"
                   autoComplete="off"
                   placeholder="Municipio"
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="provincia" className="font-medium text-black">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="provincia" className="font-medium text-slate-700 text-sm">
                   Provincia
                 </label>
                 <input
@@ -315,13 +293,13 @@ export default function MenuEditarIglesia({ params }: Props) {
                   name="provincia"
                   value={form.provincia}
                   onChange={handleChange}
-                  className="px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none shadow-sm placeholder:text-gray-700 text-base"
+                  className="input-glass w-full"
                   autoComplete="off"
                   placeholder="Provincia"
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="cp" className="font-medium text-black">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="cp" className="font-medium text-slate-700 text-sm">
                   Código Postal
                 </label>
                 <input
@@ -331,7 +309,7 @@ export default function MenuEditarIglesia({ params }: Props) {
                   onChange={handleChange}
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  className="px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none shadow-sm placeholder:text-gray-700 text-base"
+                  className="input-glass w-full"
                   autoComplete="off"
                   placeholder="Código postal"
                 />
@@ -340,8 +318,8 @@ export default function MenuEditarIglesia({ params }: Props) {
 
             {/* Zona y Subzona */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <div className="flex flex-col gap-1">
-                <label htmlFor="zona_id" className="font-medium text-black">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="zona_id" className="font-medium text-slate-700 text-sm">
                   Zona
                 </label>
                 <select
@@ -350,7 +328,7 @@ export default function MenuEditarIglesia({ params }: Props) {
                   value={form.zona_id}
                   onChange={handleChange}
                   required
-                  className="px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none shadow-sm text-base"
+                  className="select-glass w-full"
                 >
                   <option value="">Selecciona una zona</option>
                   {zonas.map((zona) => (
@@ -360,8 +338,8 @@ export default function MenuEditarIglesia({ params }: Props) {
                   ))}
                 </select>
               </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="subzona_id" className="font-medium text-black">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="subzona_id" className="font-medium text-slate-700 text-sm">
                   Subzona
                 </label>
                 <select
@@ -371,7 +349,7 @@ export default function MenuEditarIglesia({ params }: Props) {
                   onChange={handleChange}
                   required
                   disabled={!form.zona_id || loadingSubzonas}
-                  className="px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none shadow-sm text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="select-glass w-full"
                 >
                   <option value="">
                     {loadingSubzonas
@@ -391,7 +369,7 @@ export default function MenuEditarIglesia({ params }: Props) {
 
             <button
               type="submit"
-              className="w-full py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold text-base shadow-lg hover:from-blue-700 hover:to-blue-600 transition disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold text-base shadow-lg shadow-blue-600/25 hover:from-blue-700 hover:to-blue-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
               disabled={loading || loadingSubzonas}
             >
               {loading ? "Actualizando..." : "Actualizar Iglesia"}

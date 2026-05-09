@@ -12,8 +12,11 @@ const LoaderPersonalizado: React.FC<LoaderPersonalizadoProps> = ({
   <div
     className={`flex flex-col items-center justify-center w-full min-h-screen bg-transparent py-12 ${className}`}
   >
-    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-600 mb-2"></div>
-    <span className="text-gray-500 text-sm">{children}</span>
+    <div className="relative w-10 h-10 mb-3">
+      <div className="absolute inset-0 rounded-full border-2 border-white/20"></div>
+      <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-white animate-spin"></div>
+    </div>
+    <span className="text-white/70 text-sm font-medium">{children}</span>
   </div>
 );
 

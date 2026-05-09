@@ -14,12 +14,11 @@ const ModalCodigoDuplicado: React.FC<ModalCodigoDuplicadoProps> = ({
   onClose,
 }) => {
   if (!open) return null;
-  // Mensaje en formato oración, solo la primera letra en mayúscula
   const mensaje = `El código introducido ya existe y le pertenece a `;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
-        <p className="mb-8 text-lg text-black">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="glass-card-solid p-8 max-w-md w-full text-center animate-fadein">
+        <p className="mb-8 text-lg text-slate-800">
           {mensaje}
           <span className="font-bold">
             {nombreMinisterio} {apellidosMinisterio}
@@ -28,7 +27,7 @@ const ModalCodigoDuplicado: React.FC<ModalCodigoDuplicadoProps> = ({
         </p>
         <button
           onClick={onClose}
-          className="flex items-center justify-center gap-2 bg-black text-white px-6 py-2 rounded hover:bg-gray-800 transition-colors w-full"
+          className="btn-primary bg-slate-800 text-white hover:bg-slate-900 shadow-lg w-full"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
