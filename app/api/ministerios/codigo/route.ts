@@ -1,12 +1,5 @@
 import { NextResponse } from "next/server";
-import { query } from "@/lib/db";
-
-type Ministerio = {
-  id: number;
-  nombre: string;
-  apellidos: string;
-  codigo: string;
-};
+import { prisma } from "@/lib/prisma";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -14,12 +7,20 @@ export async function GET(req: Request) {
   if (!codigo) {
     return NextResponse.json({ error: "codigo requerido" }, { status: 400 });
   }
-  const ministerio = (await query(
-    `SELECT id, nombre, apellidos, codigo FROM ministerios WHERE codigo = ?`,
-    [codigo]
-  )) as Ministerio[];
-  if (!ministerio || ministerio.length === 0) {
+
+  const ministerio = await prisma.ministerio.findUnique({
+    where: { codigo },
+    select: {
+      id: true,
+      nombre: true,
+      apellidos: true,
+      codigo: true,
+    },
+  });
+
+  if (!ministerio) {
     return NextResponse.json(null);
   }
-  return NextResponse.json(ministerio[0]);
+
+  return NextResponse.json(ministerio);
 }

@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
-import { query } from "@/lib/db";
+import { prisma } from "@/lib/prisma";
 
 // Actualizar los cargos de un ministerio: elimina los que no estén, añade los nuevos
 export async function PUT(
@@ -11,32 +11,40 @@ export async function PUT(
   if (!id || !Array.isArray(cargos)) {
     return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
   }
+
+  const ministerioId = Number(id);
+
   // Obtener los cargos actuales
-  type CargoRow = { cargo_id: number };
-  const current = await query<CargoRow[]>(
-    "SELECT cargo_id FROM ministerio_cargo WHERE ministerio_id = ?",
-    [id]
-  );
-  const currentIds = Array.isArray(current)
-    ? current.map((c) => c.cargo_id)
-    : [];
+  const currentCargos = await prisma.ministerioCargo.findMany({
+    where: { ministerio_id: ministerioId },
+    select: { cargo_id: true },
+  });
+
+  const currentIds = currentCargos.map((c) => c.cargo_id);
+
   // Eliminar los que ya no estén
-  for (const cargoId of currentIds) {
-    if (!cargos.includes(cargoId)) {
-      await query(
-        "DELETE FROM ministerio_cargo WHERE ministerio_id = ? AND cargo_id = ?",
-        [id, cargoId]
-      );
-    }
+  const toDelete = currentIds.filter((cargoId) => !cargos.includes(cargoId));
+  if (toDelete.length > 0) {
+    await prisma.ministerioCargo.deleteMany({
+      where: {
+        ministerio_id: ministerioId,
+        cargo_id: { in: toDelete },
+      },
+    });
   }
+
   // Añadir los nuevos
-  for (const cargoId of cargos) {
-    if (!currentIds.includes(cargoId)) {
-      await query(
-        "INSERT INTO ministerio_cargo (ministerio_id, cargo_id) VALUES (?, ?)",
-        [id, cargoId]
-      );
-    }
+  const toAdd = cargos.filter(
+    (cargoId: number) => !currentIds.includes(cargoId)
+  );
+  if (toAdd.length > 0) {
+    await prisma.ministerioCargo.createMany({
+      data: toAdd.map((cargo_id: number) => ({
+        ministerio_id: ministerioId,
+        cargo_id,
+      })),
+    });
   }
+
   return NextResponse.json({ ok: true });
 }

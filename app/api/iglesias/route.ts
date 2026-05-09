@@ -1,25 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { query } from "@/lib/db";
-import type { Iglesia } from "@/types/subzonas";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
   const zonaId = req.nextUrl.searchParams.get("zonaId");
   const subzonaId = req.nextUrl.searchParams.get("subzonaId");
   if (!zonaId) return NextResponse.json([]);
 
-  let iglesias: Iglesia[] = [];
   if (subzonaId) {
-    iglesias = await query<Iglesia[]>(
-      `SELECT id, nombre, direccion, municipio, provincia, subzona_id, cp FROM iglesias WHERE subzona_id = ? ORDER BY nombre`,
-      [subzonaId]
-    );
-  } else {
-    iglesias = await query<Iglesia[]>(
-      `SELECT i.id, i.nombre, i.direccion, i.municipio, i.provincia, i.subzona_id, i.cp FROM iglesias i
-      JOIN subzonas s ON i.subzona_id = s.id WHERE s.zona_id = ? ORDER BY i.nombre`,
-      [zonaId]
-    );
+    const iglesias = await prisma.iglesia.findMany({
+      where: { subzona_id: Number(subzonaId) },
+      orderBy: { nombre: "asc" },
+    });
+    return NextResponse.json(iglesias);
   }
+
+  const iglesias = await prisma.iglesia.findMany({
+    where: {
+      subzona: {
+        zona_id: Number(zonaId),
+      },
+    },
+    orderBy: { nombre: "asc" },
+  });
   return NextResponse.json(iglesias);
 }
 
@@ -28,7 +30,6 @@ export async function POST(req: NextRequest) {
     const { nombre, direccion, municipio, provincia, cp, subzona_id } =
       await req.json();
 
-    // Validar campos requeridos
     if (!nombre || !subzona_id) {
       return NextResponse.json(
         { error: "Nombre y subzona son requeridos" },
@@ -36,22 +37,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Insertar nueva iglesia
-    const result = await query<{ insertId: number }>(
-      `INSERT INTO iglesias (nombre, direccion, municipio, provincia, cp, subzona_id) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [
+    const iglesia = await prisma.iglesia.create({
+      data: {
         nombre,
-        direccion || null,
-        municipio || null,
-        provincia || null,
-        cp || null,
+        direccion: direccion || null,
+        municipio: municipio || null,
+        provincia: provincia || null,
+        cp: cp || null,
         subzona_id,
-      ]
-    );
+      },
+    });
 
     return NextResponse.json({
-      id: result.insertId,
+      id: iglesia.id,
       message: "Iglesia creada exitosamente",
     });
   } catch (error) {

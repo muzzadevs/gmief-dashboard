@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Zona {
+  id       Int       @id @default(autoincrement())
+  nombre   String    @db.VarChar(100)
+  codigo   String    @db.VarChar(10)
+  subzonas Subzona[]
+
+  @@map("zonas")
+}
+
+model Subzona {
+  id       Int       @id @default(autoincrement())
+  nombre   String    @db.VarChar(100)
+  zona_id  Int
+  zona     Zona      @relation(fields: [zona_id], references: [id])
+  iglesias Iglesia[]
+
+  @@index([zona_id])
+  @@map("subzonas")
+}
+
+model Iglesia {
+  id          Int          @id @default(autoincrement())
+  nombre      String       @db.VarChar(100)
+  direccion   String?      @db.VarChar(255)
+  municipio   String?      @db.VarChar(100)
+  provincia   String?      @db.VarChar(100)
+  subzona_id  Int
+  cp          Int?
+  subzona     Subzona      @relation(fields: [subzona_id], references: [id])
+  ministerios Ministerio[]
+
+  @@index([subzona_id])
+  @@map("iglesias")
+}
+
+model Ministerio {
+  id        Int              @id @default(autoincrement())
+  nombre    String           @db.VarChar(20)
+  apellidos String           @db.VarChar(60)
+  alias     String?          @db.VarChar(50)
+  iglesia_id Int
+  codigo    String           @unique(map: "codigo") @db.VarChar(6)
+  estado_id Int
+  aprob     Int?
+  telefono  String?          @db.VarChar(15)
+  email     String?          @db.VarChar(255)
+  iglesia   Iglesia          @relation(fields: [iglesia_id], references: [id])
+  estado    Estado           @relation(fields: [estado_id], references: [id])
+  cargos    MinisterioCargo[]
+  observaciones Observacion[]
+
+  @@index([iglesia_id])
+  @@index([estado_id])
+  @@map("ministerios")
+}
+
+model Cargo {
+  id          Int              @id @default(autoincrement())
+  cargo       String           @db.VarChar(100)
+  ministerios MinisterioCargo[]
+
+  @@map("cargos")
+}
+
+model Estado {
+  id          Int          @id @default(autoincrement())
+  nombre      String       @db.VarChar(50)
+  ministerios Ministerio[]
+
+  @@map("estados")
+}
+
+model MinisterioCargo {
+  id            Int        @id @default(autoincrement())
+  ministerio_id Int
+  cargo_id      Int
+  ministerio    Ministerio @relation(fields: [ministerio_id], references: [id])
+  cargo         Cargo      @relation(fields: [cargo_id], references: [id])
+
+  @@index([ministerio_id])
+  @@index([cargo_id])
+  @@map("ministerio_cargo")
+}
+
+model Observacion {
+  id            Int        @id @default(autoincrement())
+  ministerio_id Int
+  observacion   String     @db.VarChar(255)
+  ministerio    Ministerio @relation(fields: [ministerio_id], references: [id])
+
+  @@index([ministerio_id])
+  @@map("observaciones")
+}

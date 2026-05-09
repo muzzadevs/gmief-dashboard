@@ -1,3 +1,40 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const iglesiaId = searchParams.get("iglesiaId");
+  if (!iglesiaId) {
+    return NextResponse.json({ error: "iglesiaId requerido" }, { status: 400 });
+  }
+
+  const ministerios = await prisma.ministerio.findMany({
+    where: { iglesia_id: Number(iglesiaId) },
+    include: {
+      estado: { select: { nombre: true } },
+      cargos: { select: { cargo_id: true } },
+    },
+  });
+
+  // Transformar para mantener la misma estructura de respuesta
+  const result = ministerios.map((m) => ({
+    id: m.id,
+    nombre: m.nombre,
+    apellidos: m.apellidos,
+    alias: m.alias,
+    iglesia_id: m.iglesia_id,
+    codigo: m.codigo,
+    estado_id: m.estado_id,
+    aprob: m.aprob,
+    telefono: m.telefono,
+    email: m.email,
+    estado_nombre: m.estado.nombre,
+    cargos: m.cargos.map((c) => c.cargo_id).join(",") || null,
+  }));
+
+  return NextResponse.json(result);
+}
+
 export async function POST(req: Request) {
   const data = await req.json();
   const {
@@ -11,48 +48,27 @@ export async function POST(req: Request) {
     telefono,
     email,
   } = data;
+
   if (!nombre || !apellidos || !iglesia_id || !codigo || !estado_id || !aprob) {
     return NextResponse.json(
       { error: "Faltan campos obligatorios" },
       { status: 400 }
     );
   }
-  const result = await query(
-    `INSERT INTO ministerios (nombre, apellidos, alias, iglesia_id, codigo, estado_id, aprob, telefono, email)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
+
+  const ministerio = await prisma.ministerio.create({
+    data: {
       nombre,
       apellidos,
-      alias,
+      alias: alias || null,
       iglesia_id,
       codigo,
       estado_id,
       aprob,
-      telefono,
-      email,
-    ]
-  );
-  // @ts-expect-error: result may not have insertId type, but it is present after insert
-  const id = result.insertId;
-  return NextResponse.json({ id });
-}
-import { NextResponse } from "next/server";
-import { query } from "@/lib/db";
+      telefono: telefono || null,
+      email: email || null,
+    },
+  });
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const iglesiaId = searchParams.get("iglesiaId");
-  if (!iglesiaId) {
-    return NextResponse.json({ error: "iglesiaId requerido" }, { status: 400 });
-  }
-  // Ministerios, estados, cargos y alias
-  const ministerios = await query(
-    `SELECT m.*, e.nombre as estado_nombre, 
-      (SELECT GROUP_CONCAT(cargo_id) FROM ministerio_cargo WHERE ministerio_id = m.id) as cargos
-     FROM ministerios m
-     LEFT JOIN estados e ON m.estado_id = e.id
-     WHERE m.iglesia_id = ?`,
-    [iglesiaId]
-  );
-  return NextResponse.json(ministerios);
+  return NextResponse.json({ id: ministerio.id });
 }

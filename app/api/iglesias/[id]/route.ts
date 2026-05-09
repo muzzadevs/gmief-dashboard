@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { query } from "@/lib/db";
-import type { Iglesia } from "@/types/subzonas";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: NextRequest,
@@ -14,20 +13,18 @@ export async function GET(
       return NextResponse.json({ error: "ID inválido" }, { status: 400 });
     }
 
-    const iglesia = await query<Iglesia[]>(
-      `SELECT id, nombre, direccion, municipio, provincia, cp, subzona_id 
-       FROM iglesias WHERE id = ?`,
-      [id]
-    );
+    const iglesia = await prisma.iglesia.findUnique({
+      where: { id },
+    });
 
-    if (iglesia.length === 0) {
+    if (!iglesia) {
       return NextResponse.json(
         { error: "Iglesia no encontrada" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json(iglesia[0]);
+    return NextResponse.json(iglesia);
   } catch (error) {
     console.error("Error fetching iglesia:", error);
     return NextResponse.json(
@@ -52,7 +49,6 @@ export async function PUT(
     const { nombre, direccion, municipio, provincia, cp, subzona_id } =
       await request.json();
 
-    // Validar campos requeridos
     if (!nombre || !subzona_id) {
       return NextResponse.json(
         { error: "Nombre y subzona son requeridos" },
@@ -60,34 +56,28 @@ export async function PUT(
       );
     }
 
-    // Verificar que la iglesia existe
-    const existingIglesia = await query<Iglesia[]>(
-      "SELECT id FROM iglesias WHERE id = ?",
-      [id]
-    );
+    const existingIglesia = await prisma.iglesia.findUnique({
+      where: { id },
+    });
 
-    if (existingIglesia.length === 0) {
+    if (!existingIglesia) {
       return NextResponse.json(
         { error: "Iglesia no encontrada" },
         { status: 404 }
       );
     }
 
-    // Actualizar la iglesia
-    await query(
-      `UPDATE iglesias 
-       SET nombre = ?, direccion = ?, municipio = ?, provincia = ?, cp = ?, subzona_id = ?
-       WHERE id = ?`,
-      [
+    await prisma.iglesia.update({
+      where: { id },
+      data: {
         nombre,
-        direccion || null,
-        municipio || null,
-        provincia || null,
-        cp || null,
+        direccion: direccion || null,
+        municipio: municipio || null,
+        provincia: provincia || null,
+        cp: cp || null,
         subzona_id,
-        id,
-      ]
-    );
+      },
+    });
 
     return NextResponse.json({
       id,
