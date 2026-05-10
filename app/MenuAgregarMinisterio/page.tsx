@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState, ChangeEvent, FormEvent } from "react";
-import ModalCodigoDuplicado from "../components/ModalCodigoDuplicado";
 import LoaderPersonalizado from "../components/LoaderPersonalizado";
 import Toast, { useToast } from "../components/Toast";
 import Combobox from "../components/ui/Combobox";
@@ -17,11 +16,12 @@ export default function MenuAgregarMinisterio() {
   const { toast, showSuccess, showError, hideToast } = useToast();
   const [estados, setEstados] = useState<Estado[]>([]);
   const [cargos, setCargos] = useState<Cargo[]>([]);
+  const [codigoGenerado, setCodigoGenerado] = useState<string>("");
+  const [loadingCodigo, setLoadingCodigo] = useState(true);
   const [form, setForm] = useState({
     nombre: "",
     apellidos: "",
     alias: "",
-    codigo: "",
     estado_id: "",
     aprob: "",
     telefono: "",
@@ -29,9 +29,6 @@ export default function MenuAgregarMinisterio() {
     cargos: [4],
   });
   const [loading, setLoading] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalNombre, setModalNombre] = useState("");
-  const [modalApellidos, setModalApellidos] = useState("");
 
   useEffect(() => {
     if (!iglesiaSelected) {
@@ -39,12 +36,18 @@ export default function MenuAgregarMinisterio() {
       return;
     }
     const fetchData = async () => {
-      const [estRes, carRes] = await Promise.all([
+      const [estRes, carRes, codRes] = await Promise.all([
         fetch(`/api/estados`),
         fetch(`/api/cargos`),
+        fetch(`/api/ministerios/next-codigo?iglesiaId=${iglesiaSelected.id}`),
       ]);
       setEstados(await estRes.json());
       setCargos(await carRes.json());
+      const codData = await codRes.json();
+      if (codData.codigo) {
+        setCodigoGenerado(codData.codigo);
+      }
+      setLoadingCodigo(false);
     };
     fetchData();
   }, [iglesiaSelected, router]);
@@ -53,13 +56,7 @@ export default function MenuAgregarMinisterio() {
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    if (name === "codigo") {
-      const cleaned = value
-        .replace(/[^a-zA-Z0-9]/g, "")
-        .toUpperCase()
-        .slice(0, 6);
-      setForm((f) => ({ ...f, codigo: cleaned }));
-    } else if (name === "telefono") {
+    if (name === "telefono") {
       const numeric = value.replace(/[^0-9]/g, "");
       setForm((f) => ({ ...f, telefono: numeric }));
     } else if (name === "email") {
@@ -90,27 +87,8 @@ export default function MenuAgregarMinisterio() {
     }
     setLoading(true);
     try {
-      const codigoRegex = /^[A-Z]{3}\d{3}$/;
-      if (!codigoRegex.test(form.codigo)) {
-        setLoading(false);
-        showError(
-          "El código debe tener el formato AAA111 (3 letras mayúsculas seguidas de 3 números)"
-        );
-        return;
-      }
       if (!iglesiaSelected) throw new Error("No hay iglesia seleccionada");
-      const codigo = form.codigo.toUpperCase();
-      const resCodigo = await fetch(
-        `/api/ministerios/codigo?codigo=${encodeURIComponent(codigo)}`
-      );
-      const ministerioExistente = await resCodigo.json();
-      if (ministerioExistente) {
-        setModalNombre(ministerioExistente.nombre || "");
-        setModalApellidos(ministerioExistente.apellidos || "");
-        setModalOpen(true);
-        setLoading(false);
-        return;
-      }
+      if (!codigoGenerado) throw new Error("No se ha generado el código");
       const res = await fetch("/api/ministerios", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -118,7 +96,6 @@ export default function MenuAgregarMinisterio() {
           nombre: form.nombre,
           apellidos: form.apellidos,
           alias: form.alias || null,
-          codigo,
           estado_id: parseInt(String(form.estado_id), 10),
           aprob: form.aprob ? parseInt(String(form.aprob), 10) : null,
           telefono: form.telefono || null,
@@ -126,7 +103,10 @@ export default function MenuAgregarMinisterio() {
           iglesia_id: iglesiaSelected.id,
         }),
       });
-      if (!res.ok) throw new Error("No se pudo crear el ministerio");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "No se pudo crear el ministerio");
+      }
       const { id: ministerio_id } = await res.json();
       await fetch("/api/ministerio_cargo", {
         method: "POST",
@@ -139,9 +119,9 @@ export default function MenuAgregarMinisterio() {
       setTimeout(() => {
         router.push("/MenuMinisterios");
       }, 1500);
-    } catch {
+    } catch (err) {
       setLoading(false);
-      showError("No se pudo crear el ministerio");
+      showError(err instanceof Error ? err.message : "No se pudo crear el ministerio");
     }
   };
 
@@ -172,12 +152,6 @@ export default function MenuAgregarMinisterio() {
         type={toast.type}
         show={toast.show}
         onClose={hideToast}
-      />
-      <ModalCodigoDuplicado
-        open={modalOpen}
-        nombreMinisterio={modalNombre}
-        apellidosMinisterio={modalApellidos}
-        onClose={() => setModalOpen(false)}
       />
       <main className="min-h-screen flex flex-col items-center justify-center px-3 py-8">
         <div className="w-full max-w-3xl lg:max-w-5xl glass-card-solid p-5 sm:p-8 animate-fadein">
@@ -247,35 +221,21 @@ export default function MenuAgregarMinisterio() {
               </div>
             </div>
 
-            {/* Código, Estado, Año */}
+            {/* Código (auto-generado), Estado, Año */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="codigo" className="font-medium text-slate-700 text-sm">
-                  Código
+                  Código <span className="text-xs text-slate-400 font-normal">(auto-generado)</span>
                 </label>
-                <input
-                  id="codigo"
-                  name="codigo"
-                  value={form.codigo}
-                  onChange={handleChange}
-                  required
-                  placeholder="Ej: ABC123"
-                  pattern="[A-Z]{3}[0-9]{3}"
-                  maxLength={6}
-                  inputMode="text"
-                  autoComplete="off"
-                  className="input-glass w-full"
-                  onInvalid={(e) => {
-                    const input = e.target as HTMLInputElement;
-                    input.setCustomValidity(
-                      "El código de ministerio debe estar formado por 3 letras y 3 números"
-                    );
-                  }}
-                  onInput={(e) => {
-                    const input = e.target as HTMLInputElement;
-                    input.setCustomValidity("");
-                  }}
-                />
+                <div className="input-glass w-full flex items-center bg-slate-50 cursor-not-allowed select-none">
+                  {loadingCodigo ? (
+                    <span className="text-slate-400 text-sm">Generando código...</span>
+                  ) : (
+                    <span className="font-mono text-base text-slate-700 font-semibold tracking-wider">
+                      {codigoGenerado}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="estado_id" className="font-medium text-slate-700 text-sm">
@@ -375,7 +335,7 @@ export default function MenuAgregarMinisterio() {
             <button
               type="submit"
               className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-bold text-base shadow-lg shadow-emerald-600/25 hover:from-emerald-700 hover:to-emerald-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
-              disabled={loading}
+              disabled={loading || loadingCodigo || !codigoGenerado}
             >
               {loading ? "Creando..." : "Crear ministerio"}
             </button>

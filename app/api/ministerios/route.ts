@@ -42,19 +42,71 @@ export async function POST(req: Request) {
     apellidos,
     alias,
     iglesia_id,
-    codigo,
     estado_id,
     aprob,
     telefono,
     email,
   } = data;
 
-  if (!nombre || !apellidos || !iglesia_id || !codigo || !estado_id || !aprob) {
+  if (!nombre || !apellidos || !iglesia_id || !estado_id || !aprob) {
     return NextResponse.json(
       { error: "Faltan campos obligatorios" },
       { status: 400 }
     );
   }
+
+  // Auto-generar el código basado en la zona de la iglesia
+  const iglesia = await prisma.iglesia.findUnique({
+    where: { id: iglesia_id },
+    include: {
+      zona: {
+        select: { codigo: true },
+      },
+    },
+  });
+
+  if (!iglesia) {
+    return NextResponse.json(
+      { error: "Iglesia no encontrada" },
+      { status: 404 }
+    );
+  }
+
+  const codigoZona = iglesia.zona.codigo.toUpperCase();
+
+  // Buscar el número más alto existente para esta zona
+  const ministeriosConCodigo = await prisma.ministerio.findMany({
+    where: {
+      codigo: {
+        startsWith: codigoZona,
+      },
+    },
+    select: { codigo: true },
+    orderBy: { codigo: "desc" },
+  });
+
+  let nextNumber = 0;
+  if (ministeriosConCodigo.length > 0) {
+    const numbers = ministeriosConCodigo
+      .map((m) => {
+        const numPart = m.codigo.slice(codigoZona.length);
+        const parsed = parseInt(numPart, 10);
+        return isNaN(parsed) ? -1 : parsed;
+      })
+      .filter((n) => n >= 0);
+    if (numbers.length > 0) {
+      nextNumber = Math.max(...numbers) + 1;
+    }
+  }
+
+  if (nextNumber > 999) {
+    return NextResponse.json(
+      { error: "Se ha alcanzado el límite máximo de códigos para esta zona (999)" },
+      { status: 409 }
+    );
+  }
+
+  const codigo = `${codigoZona}${String(nextNumber).padStart(3, "0")}`;
 
   const ministerio = await prisma.ministerio.create({
     data: {
@@ -70,5 +122,5 @@ export async function POST(req: Request) {
     },
   });
 
-  return NextResponse.json({ id: ministerio.id });
+  return NextResponse.json({ id: ministerio.id, codigo });
 }
