@@ -60,7 +60,15 @@ export default function Toast({
           {icon}
         </div>
         <div className="flex-1">
-          <p className="font-medium text-sm">{message}</p>
+          {message.includes("\n") ? (
+            <ul className="font-medium text-sm list-disc list-inside space-y-0.5">
+              {message.split("\n").map((line, i) => (
+                <li key={i}>{line}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="font-medium text-sm">{message}</p>
+          )}
         </div>
         <button
           onClick={() => {

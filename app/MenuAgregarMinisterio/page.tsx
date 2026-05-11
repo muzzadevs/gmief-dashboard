@@ -17,6 +17,9 @@ export default function MenuAgregarMinisterio() {
   const [estados, setEstados] = useState<Estado[]>([]);
   const [cargos, setCargos] = useState<Cargo[]>([]);
   const [codigoGenerado, setCodigoGenerado] = useState<string>("");
+  const [codigoZona, setCodigoZona] = useState<string>("");
+  const [codigoManual, setCodigoManual] = useState(false);
+  const [codigoManualNumero, setCodigoManualNumero] = useState<string>("");
   const [loadingCodigo, setLoadingCodigo] = useState(true);
   const [form, setForm] = useState({
     nombre: "",
@@ -46,6 +49,9 @@ export default function MenuAgregarMinisterio() {
       const codData = await codRes.json();
       if (codData.codigo) {
         setCodigoGenerado(codData.codigo);
+      }
+      if (codData.codigoZona) {
+        setCodigoZona(codData.codigoZona);
       }
       setLoadingCodigo(false);
     };
@@ -78,29 +84,48 @@ export default function MenuAgregarMinisterio() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // Validación amigable de campos obligatorios
+    const errores: string[] = [];
+    if (!form.nombre.trim()) errores.push("El campo «Nombre» es obligatorio");
+    if (codigoManual) {
+      if (!codigoManualNumero || codigoManualNumero.length === 0) {
+        errores.push("Debe introducir la parte numérica del «Código»");
+      }
+    } else {
+      if (!codigoGenerado) errores.push("No se ha podido generar el «Código». Recargue la página e intente de nuevo");
+    }
+    if (!form.estado_id) errores.push("Debe seleccionar un «Estado»");
+    if (form.cargos.length === 0) errores.push("Debe seleccionar al menos un «Cargo»");
+
     if (form.email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(form.email)) {
-        showError("El email no es válido");
-        return;
+        errores.push("El «Email» introducido no tiene un formato válido");
       }
     }
+
+    if (errores.length > 0) {
+      showError(errores.join("\n"));
+      return;
+    }
+
     setLoading(true);
     try {
       if (!iglesiaSelected) throw new Error("No hay iglesia seleccionada");
-      if (!codigoGenerado) throw new Error("No se ha generado el código");
       const res = await fetch("/api/ministerios", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nombre: form.nombre,
-          apellidos: form.apellidos,
+          apellidos: form.apellidos || null,
           alias: form.alias || null,
           estado_id: parseInt(String(form.estado_id), 10),
           aprob: form.aprob ? parseInt(String(form.aprob), 10) : null,
           telefono: form.telefono || null,
           email: form.email || null,
           iglesia_id: iglesiaSelected.id,
+          ...(codigoManual ? { codigo_manual: codigoManualNumero } : {}),
         }),
       });
       if (!res.ok) {
@@ -175,19 +200,19 @@ export default function MenuAgregarMinisterio() {
           <form
             className="flex flex-col gap-5 text-base"
             onSubmit={handleSubmit}
+            noValidate
           >
             {/* Nombre, Apellidos, Alias */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="nombre" className="font-medium text-slate-700 text-sm">
-                  Nombre
+                  Nombre <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="nombre"
                   name="nombre"
                   value={form.nombre}
                   onChange={handleChange}
-                  required
                   className="input-glass w-full"
                   autoComplete="off"
                 />
@@ -201,7 +226,6 @@ export default function MenuAgregarMinisterio() {
                   name="apellidos"
                   value={form.apellidos}
                   onChange={handleChange}
-                  required
                   className="input-glass w-full"
                   autoComplete="off"
                 />
@@ -221,25 +245,65 @@ export default function MenuAgregarMinisterio() {
               </div>
             </div>
 
-            {/* Código (auto-generado), Estado, Año */}
+            {/* Código (auto-generado o manual), Estado, Año */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="codigo" className="font-medium text-slate-700 text-sm">
-                  Código <span className="text-xs text-slate-400 font-normal">(auto-generado)</span>
-                </label>
-                <div className="input-glass w-full flex items-center bg-slate-50 cursor-not-allowed select-none">
-                  {loadingCodigo ? (
-                    <span className="text-slate-400 text-sm">Generando código...</span>
-                  ) : (
-                    <span className="font-mono text-base text-slate-700 font-semibold tracking-wider">
-                      {codigoGenerado}
-                    </span>
-                  )}
+                <div className="flex items-center justify-between">
+                  <label htmlFor="codigo" className="font-medium text-slate-700 text-sm">
+                    Código <span className="text-red-500">*</span> {!codigoManual}
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={codigoManual}
+                      onChange={(e) => {
+                        setCodigoManual(e.target.checked);
+                        if (!e.target.checked) {
+                          setCodigoManualNumero("");
+                        }
+                      }}
+                      className="accent-blue-600 w-3.5 h-3.5"
+                    />
+                    <span className="text-xs text-slate-500">Introducir código manualmente</span>
+                  </label>
                 </div>
+                {codigoManual ? (
+                  <div className="flex items-center gap-0">
+                    <span className="inline-flex items-center px-3 h-[42px] rounded-l-xl border border-r-0 border-slate-200 bg-slate-100 font-mono text-base text-slate-700 font-semibold tracking-wider select-none">
+                      {codigoZona}
+                    </span>
+                    <input
+                      id="codigo_manual_numero"
+                      name="codigo_manual_numero"
+                      value={codigoManualNumero}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9]/g, "");
+                        if (val.length <= 3) {
+                          setCodigoManualNumero(val);
+                        }
+                      }}
+                      inputMode="numeric"
+                      maxLength={3}
+                      placeholder="000"
+                      className="input-glass w-full rounded-l-none font-mono text-base font-semibold tracking-wider"
+                      autoComplete="off"
+                    />
+                  </div>
+                ) : (
+                  <div className="input-glass w-full flex items-center bg-slate-50 cursor-not-allowed select-none">
+                    {loadingCodigo ? (
+                      <span className="text-slate-400 text-sm">Generando código...</span>
+                    ) : (
+                      <span className="font-mono text-base text-slate-700 font-semibold tracking-wider">
+                        {codigoGenerado}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="estado_id" className="font-medium text-slate-700 text-sm">
-                  Estado
+                  Estado <span className="text-red-500">*</span>
                 </label>
                 <Combobox
                   id="estado_id"
@@ -254,7 +318,7 @@ export default function MenuAgregarMinisterio() {
               </div>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="aprob" className="font-medium text-slate-700 text-sm">
-                  Año de aprobación (opcional)
+                  Año de aprobación
                 </label>
                 <Combobox
                   id="aprob"
@@ -273,7 +337,7 @@ export default function MenuAgregarMinisterio() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="telefono" className="font-medium text-slate-700 text-sm">
-                  Teléfono (opcional)
+                  Teléfono
                 </label>
                 <input
                   id="telefono"
@@ -288,7 +352,7 @@ export default function MenuAgregarMinisterio() {
               </div>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="email" className="font-medium text-slate-700 text-sm">
-                  Email (opcional)
+                  Email
                 </label>
                 <input
                   id="email"
@@ -305,7 +369,7 @@ export default function MenuAgregarMinisterio() {
             {/* Cargos */}
             <div>
               <label className="block font-semibold mb-2 text-slate-700 text-sm">
-                Cargos
+                Cargos <span className="text-red-500">*</span>
               </label>
               <div className="flex flex-wrap gap-2">
                 {cargos.map((cargo) => (
@@ -335,7 +399,7 @@ export default function MenuAgregarMinisterio() {
             <button
               type="submit"
               className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-bold text-base shadow-lg shadow-emerald-600/25 hover:from-emerald-700 hover:to-emerald-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
-              disabled={loading || loadingCodigo || !codigoGenerado}
+              disabled={loading || loadingCodigo}
             >
               {loading ? "Creando..." : "Crear ministerio"}
             </button>

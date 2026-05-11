@@ -91,13 +91,26 @@ export default function MenuEditarMinisterio() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!form || !iglesiaSelected) return;
+
+    // Validación amigable de campos obligatorios
+    const errores: string[] = [];
+    if (!form.nombre.trim()) errores.push("El campo «Nombre» es obligatorio");
+    if (!form.codigo.trim()) errores.push("El «Código» es obligatorio");
+    if (!form.estado_id) errores.push("Debe seleccionar un «Estado»");
+    if (form.cargos.length === 0) errores.push("Debe seleccionar al menos un «Cargo»");
+
     if (form.email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(form.email)) {
-        showError("El email no es válido");
-        return;
+        errores.push("El «Email» introducido no tiene un formato válido");
       }
     }
+
+    if (errores.length > 0) {
+      showError(errores.join("\n"));
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch(`/api/ministerios/${form.id}`, {
@@ -105,7 +118,7 @@ export default function MenuEditarMinisterio() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nombre: form.nombre,
-          apellidos: form.apellidos,
+          apellidos: form.apellidos || null,
           alias: form.alias || null,
           codigo: form.codigo,
           estado_id: parseInt(String(form.estado_id), 10),
@@ -115,7 +128,10 @@ export default function MenuEditarMinisterio() {
           iglesia_id: iglesiaSelected.id,
         }),
       });
-      if (!res.ok) throw new Error("No se pudo actualizar el ministerio");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "No se pudo actualizar el ministerio");
+      }
       await fetch(`/api/ministerio_cargo/${form.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -126,9 +142,9 @@ export default function MenuEditarMinisterio() {
       setTimeout(() => {
         router.push("/MenuMinisterios");
       }, 1500);
-    } catch {
+    } catch (err) {
       setLoading(false);
-      showError("No se pudo actualizar el ministerio");
+      showError(err instanceof Error ? err.message : "No se pudo actualizar el ministerio");
     }
   };
 
@@ -187,19 +203,19 @@ export default function MenuEditarMinisterio() {
           <form
             className="flex flex-col gap-5 text-base"
             onSubmit={handleSubmit}
+            noValidate
           >
             {/* Nombre, Apellidos, Alias */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="nombre" className="font-medium text-slate-700 text-sm">
-                  Nombre
+                  Nombre <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="nombre"
                   name="nombre"
                   value={form.nombre}
                   onChange={handleChange}
-                  required
                   className="input-glass w-full"
                   autoComplete="off"
                 />
@@ -213,7 +229,6 @@ export default function MenuEditarMinisterio() {
                   name="apellidos"
                   value={form.apellidos}
                   onChange={handleChange}
-                  required
                   className="input-glass w-full"
                   autoComplete="off"
                 />
@@ -237,7 +252,7 @@ export default function MenuEditarMinisterio() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="codigo" className="font-medium text-slate-700 text-sm">
-                  Código <span className="text-xs text-slate-400 font-normal">(no editable)</span>
+                  Código <span className="text-red-500">*</span> <span className="text-xs text-slate-400 font-normal">(no editable)</span>
                 </label>
                 <div className="input-glass w-full flex items-center bg-slate-50 cursor-not-allowed select-none">
                   <span className="font-mono text-base text-slate-700 font-semibold tracking-wider">
@@ -247,7 +262,7 @@ export default function MenuEditarMinisterio() {
               </div>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="estado_id" className="font-medium text-slate-700 text-sm">
-                  Estado
+                  Estado <span className="text-red-500">*</span>
                 </label>
                 <Combobox
                   id="estado_id"
@@ -262,7 +277,7 @@ export default function MenuEditarMinisterio() {
               </div>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="aprob" className="font-medium text-slate-700 text-sm">
-                  Año de aprobación (opcional)
+                  Año de aprobación
                 </label>
                 <Combobox
                   id="aprob"
@@ -281,7 +296,7 @@ export default function MenuEditarMinisterio() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="telefono" className="font-medium text-slate-700 text-sm">
-                  Teléfono (opcional)
+                  Teléfono
                 </label>
                 <input
                   id="telefono"
@@ -296,7 +311,7 @@ export default function MenuEditarMinisterio() {
               </div>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="email" className="font-medium text-slate-700 text-sm">
-                  Email (opcional)
+                  Email
                 </label>
                 <input
                   id="email"
@@ -313,7 +328,7 @@ export default function MenuEditarMinisterio() {
             {/* Cargos */}
             <div>
               <label className="block font-semibold mb-2 text-slate-700 text-sm">
-                Cargos
+                Cargos <span className="text-red-500">*</span>
               </label>
               <div className="flex flex-wrap gap-2">
                 {cargos.map((cargo) => (

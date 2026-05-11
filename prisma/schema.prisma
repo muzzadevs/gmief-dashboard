@@ -49,7 +49,7 @@ model Iglesia {
 model Ministerio {
   id        Int              @id @default(autoincrement())
   nombre    String           @db.VarChar(20)
-  apellidos String           @db.VarChar(60)
+  apellidos String?          @db.VarChar(60)
   alias     String?          @db.VarChar(50)
   iglesia_id Int
   codigo    String           @unique(map: "codigo") @db.VarChar(6)

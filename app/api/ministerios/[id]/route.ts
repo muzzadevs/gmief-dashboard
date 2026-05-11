@@ -45,9 +45,14 @@ export async function PUT(
     email,
   } = data;
 
-  if (!nombre || !apellidos || !iglesia_id || !codigo || !estado_id || !aprob) {
+  if (!nombre || !iglesia_id || !codigo || !estado_id) {
+    const faltantes: string[] = [];
+    if (!nombre) faltantes.push("Nombre");
+    if (!iglesia_id) faltantes.push("Iglesia");
+    if (!codigo) faltantes.push("Código");
+    if (!estado_id) faltantes.push("Estado");
     return NextResponse.json(
-      { error: "Faltan campos obligatorios" },
+      { error: `Faltan campos obligatorios: ${faltantes.join(", ")}` },
       { status: 400 }
     );
   }
@@ -56,12 +61,12 @@ export async function PUT(
     where: { id: Number(id) },
     data: {
       nombre,
-      apellidos,
+      apellidos: apellidos || null,
       alias: alias || null,
       iglesia_id,
       codigo,
       estado_id,
-      aprob,
+      aprob: aprob || null,
       telefono: telefono || null,
       email: email || null,
     },
