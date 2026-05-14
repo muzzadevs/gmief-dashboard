@@ -52,18 +52,22 @@ model Ministerio {
   apellidos String?          @db.VarChar(60)
   alias     String?          @db.VarChar(50)
   iglesia_id Int
-  codigo    String           @unique(map: "codigo") @db.VarChar(6)
+  codigo    String?          @unique(map: "codigo") @db.VarChar(6)
   estado_id Int
+  tipo      String           @default("MINISTERIO") @db.VarChar(15)
   aprob     Int?
   telefono  String?          @db.VarChar(15)
   email     String?          @db.VarChar(255)
+  imagen    Bytes?           @db.LongBlob
   iglesia   Iglesia          @relation(fields: [iglesia_id], references: [id])
   estado    Estado           @relation(fields: [estado_id], references: [id])
   cargos    MinisterioCargo[]
   observaciones Observacion[]
+  candidato_detalle CandidatoDetalle?
 
   @@index([iglesia_id])
   @@index([estado_id])
+  @@index([tipo])
   @@map("ministerios")
 }
 
@@ -103,4 +107,14 @@ model Observacion {
 
   @@index([ministerio_id])
   @@map("observaciones")
+}
+
+model CandidatoDetalle {
+  id            Int        @id @default(autoincrement())
+  ministerio_id Int        @unique
+  fecha_inicio  DateTime   @db.Date
+  notas         String?    @db.VarChar(255)
+  ministerio    Ministerio @relation(fields: [ministerio_id], references: [id], onDelete: Cascade)
+
+  @@map("candidato_detalle")
 }

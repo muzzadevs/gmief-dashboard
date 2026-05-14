@@ -4,15 +4,25 @@ import { prisma } from "@/lib/prisma";
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const iglesiaId = searchParams.get("iglesiaId");
+  const tipo = searchParams.get("tipo"); // "MINISTERIO", "CANDIDATO", or null for all
+
   if (!iglesiaId) {
     return NextResponse.json({ error: "iglesiaId requerido" }, { status: 400 });
   }
 
+  const where: Record<string, unknown> = { iglesia_id: Number(iglesiaId) };
+  if (tipo) {
+    where.tipo = tipo;
+  }
+
   const ministerios = await prisma.ministerio.findMany({
-    where: { iglesia_id: Number(iglesiaId) },
+    where,
     include: {
       estado: { select: { nombre: true } },
       cargos: { select: { cargo_id: true } },
+      candidato_detalle: {
+        select: { fecha_inicio: true, notas: true },
+      },
     },
   });
 
@@ -25,11 +35,17 @@ export async function GET(req: Request) {
     iglesia_id: m.iglesia_id,
     codigo: m.codigo,
     estado_id: m.estado_id,
+    tipo: m.tipo,
     aprob: m.aprob,
     telefono: m.telefono,
     email: m.email,
     estado_nombre: m.estado.nombre,
+    has_imagen: m.imagen !== null && m.imagen !== undefined,
     cargos: m.cargos.map((c) => c.cargo_id).join(",") || null,
+    fecha_inicio: m.candidato_detalle?.fecha_inicio
+      ? new Date(m.candidato_detalle.fecha_inicio).toISOString().split("T")[0]
+      : null,
+    notas: m.candidato_detalle?.notas || null,
   }));
 
   return NextResponse.json(result);
@@ -47,6 +63,10 @@ export async function POST(req: Request) {
     telefono,
     email,
     codigo_manual,
+    tipo = "MINISTERIO",
+    // Campos de candidato
+    fecha_inicio,
+    notas,
   } = data;
 
   if (!nombre || !iglesia_id || !estado_id) {
@@ -60,83 +80,95 @@ export async function POST(req: Request) {
     );
   }
 
-  // Obtener la iglesia con su zona
-  const iglesia = await prisma.iglesia.findUnique({
-    where: { id: iglesia_id },
-    include: {
-      zona: {
-        select: { codigo: true },
-      },
-    },
-  });
-
-  if (!iglesia) {
+  // Para candidatos, fecha_inicio es obligatoria
+  if (tipo === "CANDIDATO" && !fecha_inicio) {
     return NextResponse.json(
-      { error: "Iglesia no encontrada" },
-      { status: 404 }
+      { error: "La fecha de inicio es obligatoria para candidatos" },
+      { status: 400 }
     );
   }
 
-  const codigoZona = iglesia.zona.codigo.toUpperCase();
-  let codigo: string;
+  let codigo: string | null = null;
 
-  if (codigo_manual) {
-    // Código manual: validar formato y unicidad
-    const numPart = codigo_manual.replace(/[^0-9]/g, "");
-    if (!numPart || numPart.length === 0 || numPart.length > 3) {
-      return NextResponse.json(
-        { error: "La parte numérica del código debe tener entre 1 y 3 dígitos" },
-        { status: 400 }
-      );
-    }
-
-    codigo = `${codigoZona}${numPart.padStart(3, "0")}`;
-
-    // Comprobar que el código no exista ya en la base de datos
-    const existente = await prisma.ministerio.findUnique({
-      where: { codigo },
-    });
-
-    if (existente) {
-      return NextResponse.json(
-        { error: `El código ${codigo} ya existe en la base de datos` },
-        { status: 409 }
-      );
-    }
-  } else {
-    // Auto-generar el código basado en la zona de la iglesia
-    const ministeriosConCodigo = await prisma.ministerio.findMany({
-      where: {
-        codigo: {
-          startsWith: codigoZona,
+  // Solo generar código para ministerios, no para candidatos
+  if (tipo === "MINISTERIO") {
+    // Obtener la iglesia con su zona
+    const iglesia = await prisma.iglesia.findUnique({
+      where: { id: iglesia_id },
+      include: {
+        zona: {
+          select: { codigo: true },
         },
       },
-      select: { codigo: true },
-      orderBy: { codigo: "desc" },
     });
 
-    let nextNumber = 0;
-    if (ministeriosConCodigo.length > 0) {
-      const numbers = ministeriosConCodigo
-        .map((m) => {
-          const numPart = m.codigo.slice(codigoZona.length);
-          const parsed = parseInt(numPart, 10);
-          return isNaN(parsed) ? -1 : parsed;
-        })
-        .filter((n) => n >= 0);
-      if (numbers.length > 0) {
-        nextNumber = Math.max(...numbers) + 1;
-      }
-    }
-
-    if (nextNumber > 999) {
+    if (!iglesia) {
       return NextResponse.json(
-        { error: "Se ha alcanzado el límite máximo de códigos para esta zona (999)" },
-        { status: 409 }
+        { error: "Iglesia no encontrada" },
+        { status: 404 }
       );
     }
 
-    codigo = `${codigoZona}${String(nextNumber).padStart(3, "0")}`;
+    const codigoZona = iglesia.zona.codigo.toUpperCase();
+
+    if (codigo_manual) {
+      // Código manual: validar formato y unicidad
+      const numPart = codigo_manual.replace(/[^0-9]/g, "");
+      if (!numPart || numPart.length === 0 || numPart.length > 3) {
+        return NextResponse.json(
+          { error: "La parte numérica del código debe tener entre 1 y 3 dígitos" },
+          { status: 400 }
+        );
+      }
+
+      codigo = `${codigoZona}${numPart.padStart(3, "0")}`;
+
+      // Comprobar que el código no exista ya en la base de datos
+      const existente = await prisma.ministerio.findUnique({
+        where: { codigo },
+      });
+
+      if (existente) {
+        return NextResponse.json(
+          { error: `El código ${codigo} ya existe en la base de datos` },
+          { status: 409 }
+        );
+      }
+    } else {
+      // Auto-generar el código basado en la zona de la iglesia
+      const ministeriosConCodigo = await prisma.ministerio.findMany({
+        where: {
+          codigo: {
+            startsWith: codigoZona,
+          },
+        },
+        select: { codigo: true },
+        orderBy: { codigo: "desc" },
+      });
+
+      let nextNumber = 0;
+      if (ministeriosConCodigo.length > 0) {
+        const numbers = ministeriosConCodigo
+          .map((m) => {
+            const numPart = m.codigo!.slice(codigoZona.length);
+            const parsed = parseInt(numPart, 10);
+            return isNaN(parsed) ? -1 : parsed;
+          })
+          .filter((n) => n >= 0);
+        if (numbers.length > 0) {
+          nextNumber = Math.max(...numbers) + 1;
+        }
+      }
+
+      if (nextNumber > 999) {
+        return NextResponse.json(
+          { error: "Se ha alcanzado el límite máximo de códigos para esta zona (999)" },
+          { status: 409 }
+        );
+      }
+
+      codigo = `${codigoZona}${String(nextNumber).padStart(3, "0")}`;
+    }
   }
 
   const ministerio = await prisma.ministerio.create({
@@ -147,11 +179,23 @@ export async function POST(req: Request) {
       iglesia_id,
       codigo,
       estado_id,
+      tipo,
       aprob: aprob || null,
       telefono: telefono || null,
       email: email || null,
     },
   });
+
+  // Si es candidato, crear el detalle
+  if (tipo === "CANDIDATO") {
+    await prisma.candidatoDetalle.create({
+      data: {
+        ministerio_id: ministerio.id,
+        fecha_inicio: new Date(fecha_inicio),
+        notas: notas || null,
+      },
+    });
+  }
 
   return NextResponse.json({ id: ministerio.id, codigo });
 }

@@ -5,6 +5,8 @@ import LoaderPersonalizado from "../components/LoaderPersonalizado";
 import { useRouter } from "next/navigation";
 import { useZonasStore } from "@/store/zonasStore";
 import type { Ministerio, Cargo } from "@/types/ministerios";
+import { calcularFase, formatDiasRestantes } from "@/lib/candidatoUtils";
+import Toast, { useToast } from "../components/Toast";
 
 export default function MenuMinisterios() {
   const router = useRouter();
@@ -15,13 +17,21 @@ export default function MenuMinisterios() {
   const [avatarModal, setAvatarModal] = useState<{
     open: boolean;
     letra: string | null;
-  }>({ open: false, letra: null });
+    ministerioId: number | null;
+  }>({ open: false, letra: null, ministerioId: null });
   const [deleteModal, setDeleteModal] = useState<{
+    open: boolean;
+    ministerio: Ministerio | null;
+  }>({ open: false, ministerio: null });
+  const [aprobarModal, setAprobarModal] = useState<{
     open: boolean;
     ministerio: Ministerio | null;
   }>({ open: false, ministerio: null });
   const [loading, setLoading] = useState(true);
   const [deleteExplode, setDeleteExplode] = useState(false);
+  const [aprobarLoading, setAprobarLoading] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<"TODOS" | "MINISTERIO" | "CANDIDATO">("TODOS");
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   useEffect(() => {
     let isMounted = true;
@@ -51,10 +61,52 @@ export default function MenuMinisterios() {
     };
   }, [iglesiaSelected, router]);
 
+  const handleAprobar = async (min: Ministerio) => {
+    setAprobarLoading(true);
+    try {
+      const res = await fetch(`/api/ministerios/${min.id}/aprobar`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "No se pudo aprobar el candidato");
+      }
+      const data = await res.json();
+      showSuccess(data.message || "Candidato aprobado como obrero");
+
+      // Actualizar lista
+      if (iglesiaSelected) {
+        const minRes = await fetch(`/api/ministerios?iglesiaId=${iglesiaSelected.id}`);
+        const minData = await minRes.json();
+        setMinisterios(minData);
+      }
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Error al aprobar candidato");
+    } finally {
+      setAprobarLoading(false);
+      setAprobarModal({ open: false, ministerio: null });
+    }
+  };
+
   if (!iglesiaSelected) return null;
+
+  const filteredMinisterios =
+    activeFilter === "TODOS"
+      ? ministerios
+      : ministerios.filter((m) => m.tipo === activeFilter);
+
+  const countMinisterios = ministerios.filter((m) => m.tipo === "MINISTERIO").length;
+  const countCandidatos = ministerios.filter((m) => m.tipo === "CANDIDATO").length;
 
   return (
     <main className="min-h-screen flex flex-col">
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        show={toast.show}
+        onClose={hideToast}
+      />
+
       {/* Menú superior */}
       <div className="w-full flex justify-center z-[1000] mb-4 sm:sticky sm:top-0 px-2 sm:px-0">
         <div className="mt-3 sm:mt-4 w-full sm:w-[95%] flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-6 glass-card-solid px-4 sm:px-6 py-3">
@@ -77,28 +129,72 @@ export default function MenuMinisterios() {
               type="button"
               className="btn-primary bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 ml-auto sm:ml-2"
               onClick={() => router.push("/MenuAgregarMinisterio")}
-              aria-label="Agregar ministerio"
+              aria-label="Agregar"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
-              <span className="hidden sm:inline">Agregar ministerio</span>
-              <span className="sm:hidden">Agregar</span>
+              <span className="hidden sm:inline">Agregar</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Cards de ministerios */}
+      {/* Filtro de tipo */}
+      {!loading && ministerios.length > 0 && (
+        <div className="flex justify-center mb-4 px-3">
+          <div className="flex rounded-xl overflow-hidden border border-slate-200 bg-white">
+            <button
+              type="button"
+              onClick={() => setActiveFilter("TODOS")}
+              className={`px-4 py-2 text-xs font-semibold transition-all ${
+                activeFilter === "TODOS"
+                  ? "bg-slate-800 text-white"
+                  : "text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              Todos ({ministerios.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveFilter("MINISTERIO")}
+              className={`px-4 py-2 text-xs font-semibold transition-all ${
+                activeFilter === "MINISTERIO"
+                  ? "bg-emerald-600 text-white"
+                  : "text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              Ministerios ({countMinisterios})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveFilter("CANDIDATO")}
+              className={`px-4 py-2 text-xs font-semibold transition-all ${
+                activeFilter === "CANDIDATO"
+                  ? "bg-blue-600 text-white"
+                  : "text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              Candidatos ({countCandidatos})
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Cards de ministerios/candidatos */}
       <div className="flex flex-col gap-3 w-full max-w-4xl mx-auto px-3 sm:px-0 mb-6">
         {loading ? (
-          <LoaderPersonalizado>Cargando ministerios...</LoaderPersonalizado>
-        ) : ministerios.length === 0 ? (
+          <LoaderPersonalizado>Cargando...</LoaderPersonalizado>
+        ) : filteredMinisterios.length === 0 ? (
           <div className="text-center text-white/60 py-12 text-sm">
-            No hay ministerios en esta iglesia
+            {activeFilter === "TODOS"
+              ? "No hay ministerios ni candidatos en esta iglesia"
+              : activeFilter === "MINISTERIO"
+              ? "No hay ministerios en esta iglesia"
+              : "No hay candidatos en esta iglesia"}
           </div>
         ) : (
-          [...ministerios]
+          [...filteredMinisterios]
             .sort((a, b) => {
               const titularA = (
                 a.alias ? a.alias : `${a.nombre} ${a.apellidos || ""}`
@@ -125,29 +221,62 @@ export default function MenuMinisterios() {
                 ? min.cargos.split(",").map(Number)
                 : [];
               const cargoTags = cargos.filter((c) => cargoIds.includes(c.id));
+
+              // Calcular fase si es candidato
+              const faseInfo =
+                min.tipo === "CANDIDATO" && min.fecha_inicio
+                  ? calcularFase(min.fecha_inicio)
+                  : null;
+
+              const isCandidato = min.tipo === "CANDIDATO";
+              const avatarGradient = isCandidato
+                ? "from-blue-500 to-purple-600"
+                : "from-blue-500 to-blue-700";
+
               return (
                 <div
                   key={min.id}
-                  className="glass-card-solid px-5 py-4 flex flex-col gap-2 animate-fadein"
+                  className={`glass-card-solid px-5 py-4 flex flex-col gap-2 animate-fadein ${
+                    isCandidato ? "border-l-4 border-l-blue-400" : ""
+                  }`}
                 >
                   <div className="flex flex-col items-center text-center gap-4 sm:flex-row sm:items-center sm:text-left sm:gap-4 w-full">
                     {/* Avatar y nombre */}
                     <div className="flex flex-col items-center sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
                       <button
                         type="button"
-                        className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-xl font-bold text-white shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition-transform hover:scale-105"
+                        className={`w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br ${avatarGradient} flex items-center justify-center text-xl font-bold text-white shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition-transform hover:scale-105`}
                         title="Ver avatar"
                         onClick={() =>
-                          setAvatarModal({ open: true, letra: titulo[0] })
+                          setAvatarModal({
+                            open: true,
+                            letra: titulo[0],
+                            ministerioId: min.has_imagen ? min.id : null,
+                          })
                         }
                         style={{ cursor: "zoom-in" }}
                       >
-                        {titulo[0]}
+                        {min.has_imagen ? (
+                          <img
+                            src={`/api/ministerios/${min.id}/imagen`}
+                            alt={titulo}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          titulo[0]
+                        )}
                       </button>
                       <div className="flex flex-col items-center sm:items-start flex-1 min-w-0">
-                        <span className="font-semibold text-base text-slate-800 truncate">
-                          {titulo}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-base text-slate-800 truncate">
+                            {titulo}
+                          </span>
+                          {isCandidato && (
+                            <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-wider">
+                              Candidato
+                            </span>
+                          )}
+                        </div>
                         {subtitulo && (
                           <span className="text-slate-500 text-sm truncate">
                             {subtitulo}
@@ -155,18 +284,37 @@ export default function MenuMinisterios() {
                         )}
                       </div>
                     </div>
-                    {/* Código */}
+                    {/* Código / Fase */}
                     <div className="flex flex-col items-center sm:items-end gap-2 w-full sm:w-auto sm:ml-auto">
-                      <span className="text-xs text-slate-400 uppercase tracking-wider">Código</span>
-                      <span className="font-mono text-base text-slate-700 bg-slate-100 px-2 py-0.5 rounded-lg">
-                        {min.codigo}
-                      </span>
+                      {min.codigo ? (
+                        <>
+                          <span className="text-xs text-slate-400 uppercase tracking-wider">Código</span>
+                          <span className="font-mono text-base text-slate-700 bg-slate-100 px-2 py-0.5 rounded-lg">
+                            {min.codigo}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">Sin código</span>
+                      )}
                       {/* Botones solo en sm+ */}
                       <div className="hidden sm:flex flex-row gap-2 w-full sm:w-auto justify-end items-end">
+                        {isCandidato && faseInfo?.fase === "APTO_OBRERO" && (
+                          <button
+                            type="button"
+                            className="btn-primary bg-emerald-600 text-white hover:bg-emerald-700 shadow-md text-sm"
+                            title="Aprobar como obrero"
+                            onClick={() => setAprobarModal({ open: true, ministerio: min })}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Aprobar
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="btn-primary bg-amber-500 text-white hover:bg-amber-600 shadow-md text-sm"
-                          title="Editar ministerio"
+                          title="Editar"
                           onClick={() => {
                             setMinisterioEditId(min.id);
                             router.push("/MenuEditarMinisterio");
@@ -180,7 +328,7 @@ export default function MenuMinisterios() {
                         <button
                           type="button"
                           className="btn-primary bg-red-600 text-white hover:bg-red-700 shadow-md text-sm"
-                          title="Eliminar ministerio"
+                          title="Eliminar"
                           onClick={() =>
                             setDeleteModal({ open: true, ministerio: min })
                           }
@@ -194,14 +342,55 @@ export default function MenuMinisterios() {
                     </div>
                   </div>
 
+                  {/* Barra de progreso del candidato */}
+                  {isCandidato && faseInfo && (
+                    <div className="mt-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-xs font-bold ${faseInfo.textColor} flex items-center gap-1.5`}>
+                          {faseInfo.fase === "ENSAYISTA" && "🟡"}
+                          {faseInfo.fase === "CANDIDATO_LOCAL" && "🔵"}
+                          {faseInfo.fase === "CANDIDATO_NACIONAL" && "🟣"}
+                          {faseInfo.fase === "APTO_OBRERO" && "🟢"}
+                          {faseInfo.label}
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          {faseInfo.fase === "APTO_OBRERO"
+                            ? "✅ Completado"
+                            : `${formatDiasRestantes(faseInfo.diasRestantes)} restantes`}
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                        <div
+                          className={`h-2 rounded-full transition-all duration-500 ${
+                            faseInfo.fase === "ENSAYISTA"
+                              ? "bg-amber-500"
+                              : faseInfo.fase === "CANDIDATO_LOCAL"
+                              ? "bg-blue-500"
+                              : faseInfo.fase === "CANDIDATO_NACIONAL"
+                              ? "bg-purple-500"
+                              : "bg-emerald-500"
+                          }`}
+                          style={{ width: `${Math.round(faseInfo.progreso)}%` }}
+                        />
+                      </div>
+                      {min.fecha_inicio && (
+                        <p className="text-[10px] text-slate-400 mt-1">
+                          Inicio: {new Date(min.fecha_inicio).toLocaleDateString("es-ES")}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   {/* Tags */}
                   <div className="flex flex-wrap gap-1.5 items-center mt-2">
                     <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-xs font-medium text-slate-600">
                       {estado}
                     </span>
-                    <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-xs font-medium text-slate-600">
-                      Desde: {aprob}
-                    </span>
+                    {!isCandidato && aprob && (
+                      <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-xs font-medium text-slate-600">
+                        Desde: {aprob}
+                      </span>
+                    )}
                     {telefono && (
                       <a
                         href={`tel:${telefono}`}
@@ -234,14 +423,32 @@ export default function MenuMinisterios() {
                         {cargo.cargo}
                       </span>
                     ))}
+                    {isCandidato && min.notas && (
+                      <span className="px-2.5 py-1 rounded-lg bg-yellow-50 text-xs font-medium text-yellow-700" title={min.notas}>
+                        📝 {min.notas.length > 40 ? min.notas.slice(0, 40) + "..." : min.notas}
+                      </span>
+                    )}
                   </div>
 
                   {/* Botones en móvil */}
                   <div className="flex sm:hidden flex-row gap-2 w-full mt-2">
+                    {isCandidato && faseInfo?.fase === "APTO_OBRERO" && (
+                      <button
+                        type="button"
+                        className="btn-primary bg-emerald-600 text-white hover:bg-emerald-700 shadow-md w-full text-sm"
+                        title="Aprobar como obrero"
+                        onClick={() => setAprobarModal({ open: true, ministerio: min })}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Aprobar
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="btn-primary bg-amber-500 text-white hover:bg-amber-600 shadow-md w-1/2 text-sm"
-                      title="Editar ministerio"
+                      title="Editar"
                       onClick={() => {
                         setMinisterioEditId(min.id);
                         router.push("/MenuEditarMinisterio");
@@ -255,7 +462,7 @@ export default function MenuMinisterios() {
                     <button
                       type="button"
                       className="btn-primary bg-red-600 text-white hover:bg-red-700 shadow-md w-1/2 text-sm"
-                      title="Eliminar ministerio"
+                      title="Eliminar"
                       onClick={() =>
                         setDeleteModal({ open: true, ministerio: min })
                       }
@@ -276,20 +483,28 @@ export default function MenuMinisterios() {
       {avatarModal.open && (
         <div
           className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/70 backdrop-blur-sm"
-          onClick={() => setAvatarModal({ open: false, letra: null })}
+          onClick={() => setAvatarModal({ open: false, letra: null, ministerioId: null })}
         >
           <div
             className="flex flex-col items-center animate-fadein"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-36 h-36 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-6xl font-bold text-white shadow-2xl ring-4 ring-white/20">
-              {avatarModal.letra}
+            <div className="w-36 h-36 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-6xl font-bold text-white shadow-2xl ring-4 ring-white/20">
+              {avatarModal.ministerioId ? (
+                <img
+                  src={`/api/ministerios/${avatarModal.ministerioId}/imagen`}
+                  alt="Foto"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                avatarModal.letra
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal de eliminar ministerio */}
+      {/* Modal de eliminar */}
       {deleteModal.open && deleteModal.ministerio && (
         <div
           className="fixed inset-0 z-[2100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
@@ -339,8 +554,8 @@ export default function MenuMinisterios() {
                         prev.filter((m) => m.id !== deleteModal.ministerio!.id)
                       );
                     } catch (error) {
-                      console.error("Error eliminando ministerio:", error);
-                      alert("Error eliminando ministerio");
+                      console.error("Error eliminando:", error);
+                      showError("Error eliminando el registro");
                     }
                     setDeleteModal({ open: false, ministerio: null });
                     setDeleteExplode(false);
@@ -348,6 +563,53 @@ export default function MenuMinisterios() {
                 }}
               >
                 Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de aprobar candidato */}
+      {aprobarModal.open && aprobarModal.ministerio && (
+        <div
+          className="fixed inset-0 z-[2100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setAprobarModal({ open: false, ministerio: null })}
+        >
+          <div
+            className="glass-card-solid p-8 max-w-sm w-full flex flex-col gap-6 animate-fadein"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8 text-emerald-600">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="text-lg font-semibold text-slate-800">
+                ¿Aprobar como Obrero?
+              </div>
+              <p className="text-sm text-slate-500 mt-2">
+                <span className="font-bold text-emerald-600">
+                  {aprobarModal.ministerio.nombre}{" "}
+                  {aprobarModal.ministerio.apellidos}
+                </span>{" "}
+                será aprobado como obrero. Se le asignará un código de ministerio automáticamente y el cargo de Obrero.
+              </p>
+            </div>
+            <div className="flex gap-3 justify-center mt-2">
+              <button
+                className="btn-primary bg-slate-800 text-white hover:bg-slate-900 shadow-md"
+                onClick={() => setAprobarModal({ open: false, ministerio: null })}
+                disabled={aprobarLoading}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn-primary bg-emerald-600 text-white hover:bg-emerald-700 shadow-md"
+                onClick={() => handleAprobar(aprobarModal.ministerio!)}
+                disabled={aprobarLoading}
+              >
+                {aprobarLoading ? "Aprobando..." : "Aprobar"}
               </button>
             </div>
           </div>

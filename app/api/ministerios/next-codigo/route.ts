@@ -56,6 +56,7 @@ export async function GET(req: Request) {
     // Extraer las partes numéricas de los códigos existentes
     const numbers = ministeriosConCodigo
       .map((m) => {
+        if (!m.codigo) return -1;
         const numPart = m.codigo.slice(codigoZona.length);
         const parsed = parseInt(numPart, 10);
         return isNaN(parsed) ? -1 : parsed;
