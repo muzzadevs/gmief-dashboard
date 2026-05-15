@@ -30,6 +30,7 @@ export default function MenuMinisterios() {
   }>({ open: false, ministerio: null });
   const [loading, setLoading] = useState(true);
   const [deleteExplode, setDeleteExplode] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [aprobarLoading, setAprobarLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"TODOS" | "MINISTERIO" | "CANDIDATO">("TODOS");
   const [imgTimestamp, setImgTimestamp] = useState<number>(Date.now());
@@ -540,7 +541,8 @@ export default function MenuMinisterios() {
             </div>
             <div className="flex gap-3 justify-center mt-2">
               <button
-                className="btn-primary bg-slate-800 text-white hover:bg-slate-900 shadow-md"
+                className="btn-primary bg-slate-800 text-white hover:bg-slate-900 shadow-md disabled:opacity-50"
+                disabled={deleteLoading}
                 onClick={() => {
                   setDeleteModal({ open: false, ministerio: null });
                   setDeleteExplode(false);
@@ -549,9 +551,11 @@ export default function MenuMinisterios() {
                 Cancelar
               </button>
               <button
-                className="btn-primary bg-red-600 text-white hover:bg-red-700 shadow-md"
+                className="btn-primary bg-red-600 text-white hover:bg-red-700 shadow-md disabled:opacity-50"
+                disabled={deleteLoading}
                 onClick={async () => {
                   setDeleteExplode(true);
+                  setDeleteLoading(true);
                   setTimeout(async () => {
                     if (!deleteModal.ministerio) return;
                     try {
@@ -562,16 +566,28 @@ export default function MenuMinisterios() {
                       setMinisterios((prev) =>
                         prev.filter((m) => m.id !== deleteModal.ministerio!.id)
                       );
+                      showSuccess("Registro eliminado correctamente");
                     } catch (error) {
                       console.error("Error eliminando:", error);
                       showError("Error eliminando el registro");
                     }
                     setDeleteModal({ open: false, ministerio: null });
                     setDeleteExplode(false);
+                    setDeleteLoading(false);
                   }, 500);
                 }}
               >
-                Eliminar
+                {deleteLoading ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Eliminando...
+                  </span>
+                ) : (
+                  "Eliminar"
+                )}
               </button>
             </div>
           </div>
@@ -614,11 +630,21 @@ export default function MenuMinisterios() {
                 Cancelar
               </button>
               <button
-                className="btn-primary bg-emerald-600 text-white hover:bg-emerald-700 shadow-md"
+                className="btn-primary bg-emerald-600 text-white hover:bg-emerald-700 shadow-md disabled:opacity-50"
                 onClick={() => handleAprobar(aprobarModal.ministerio!)}
                 disabled={aprobarLoading}
               >
-                {aprobarLoading ? "Aprobando..." : "Aprobar"}
+                {aprobarLoading ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Aprobando...
+                  </span>
+                ) : (
+                  "Aprobar"
+                )}
               </button>
             </div>
           </div>
