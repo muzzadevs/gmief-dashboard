@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import LoaderPersonalizado from "../components/LoaderPersonalizado";
 import { useRouter } from "next/navigation";
 import { useZonasStore } from "@/store/zonasStore";
@@ -257,10 +258,13 @@ export default function MenuMinisterios() {
                         style={{ cursor: "zoom-in" }}
                       >
                         {min.has_imagen ? (
-                          <img
+                          <Image
                             src={`/api/ministerios/${min.id}/imagen`}
                             alt={titulo}
+                            width={48}
+                            height={48}
                             className="w-full h-full object-cover"
+                            unoptimized
                           />
                         ) : (
                           titulo[0]
@@ -489,12 +493,15 @@ export default function MenuMinisterios() {
             className="flex flex-col items-center animate-fadein"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-36 h-36 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-6xl font-bold text-white shadow-2xl ring-4 ring-white/20">
+            <div className="w-72 h-72 sm:w-80 sm:h-80 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-8xl font-bold text-white shadow-2xl ring-4 ring-white/20">
               {avatarModal.ministerioId ? (
-                <img
+                <Image
                   src={`/api/ministerios/${avatarModal.ministerioId}/imagen`}
                   alt="Foto"
+                  width={320}
+                  height={320}
                   className="w-full h-full object-cover"
+                  unoptimized
                 />
               ) : (
                 avatarModal.letra
