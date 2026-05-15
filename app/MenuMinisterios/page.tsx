@@ -32,6 +32,7 @@ export default function MenuMinisterios() {
   const [deleteExplode, setDeleteExplode] = useState(false);
   const [aprobarLoading, setAprobarLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"TODOS" | "MINISTERIO" | "CANDIDATO">("TODOS");
+  const [imgTimestamp, setImgTimestamp] = useState<number>(Date.now());
   const { toast, showSuccess, showError, hideToast } = useToast();
 
   useEffect(() => {
@@ -53,6 +54,7 @@ export default function MenuMinisterios() {
       if (isMounted) {
         setMinisterios(minData);
         setCargos(carData);
+        setImgTimestamp(Date.now());
         setLoading(false);
       }
     };
@@ -259,7 +261,7 @@ export default function MenuMinisterios() {
                       >
                         {min.has_imagen ? (
                           <Image
-                            src={`/api/ministerios/${min.id}/imagen`}
+                            src={`/api/ministerios/${min.id}/imagen?t=${imgTimestamp}`}
                             alt={titulo}
                             width={48}
                             height={48}
@@ -496,7 +498,7 @@ export default function MenuMinisterios() {
             <div className="w-72 h-72 sm:w-80 sm:h-80 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-8xl font-bold text-white shadow-2xl ring-4 ring-white/20">
               {avatarModal.ministerioId ? (
                 <Image
-                  src={`/api/ministerios/${avatarModal.ministerioId}/imagen`}
+                  src={`/api/ministerios/${avatarModal.ministerioId}/imagen?t=${imgTimestamp}`}
                   alt="Foto"
                   width={320}
                   height={320}

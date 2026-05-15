@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { devtools } from "zustand/middleware";
+import { devtools, persist, createJSONStorage } from "zustand/middleware";
 import type { Zona } from "@/types/zonas";
 import type { Subzona, Iglesia } from "@/types/subzonas";
 
@@ -27,45 +27,61 @@ interface Actions {
 }
 
 export const useZonasStore = create<State & Actions>()(
-  devtools((set, get) => ({
-    zonas: [],
-    zonaSelected: null,
-    subzonas: [],
-    subzonaSelected: null,
-    iglesias: [],
-    iglesiaSelected: null,
-    ministerioEditId: null,
+  devtools(
+    persist(
+      (set) => ({
+        zonas: [],
+        zonaSelected: null,
+        subzonas: [],
+        subzonaSelected: null,
+        iglesias: [],
+        iglesiaSelected: null,
+        ministerioEditId: null,
 
-    setZonas: (zs) => set({ zonas: zs }, false, "setZonas"),
-    setZonaSelected: (zona) =>
-      set(
-        { zonaSelected: zona, subzonaSelected: null },
-        false,
-        "setZonaSelected"
-      ),
-    setSubzonas: (szs) => set({ subzonas: szs }, false, "setSubzonas"),
-    setSubzonaSelected: (subzona) =>
-      set({ subzonaSelected: subzona }, false, "setSubzonaSelected"),
-    setIglesias: (igs) => set({ iglesias: igs }, false, "setIglesias"),
-    setIglesiaSelected: (iglesia) =>
-      set({ iglesiaSelected: iglesia }, false, "setIglesiaSelected"),
+        setZonas: (zs) => set({ zonas: zs }, false, "setZonas"),
+        setZonaSelected: (zona) =>
+          set(
+            { zonaSelected: zona, subzonaSelected: null },
+            false,
+            "setZonaSelected"
+          ),
+        setSubzonas: (szs) => set({ subzonas: szs }, false, "setSubzonas"),
+        setSubzonaSelected: (subzona) =>
+          set({ subzonaSelected: subzona }, false, "setSubzonaSelected"),
+        setIglesias: (igs) => set({ iglesias: igs }, false, "setIglesias"),
+        setIglesiaSelected: (iglesia) =>
+          set({ iglesiaSelected: iglesia }, false, "setIglesiaSelected"),
 
-    setMinisterioEditId: (id) =>
-      set({ ministerioEditId: id }, false, "setMinisterioEditId"),
-    clearMinisterioEditId: () =>
-      set({ ministerioEditId: null }, false, "clearMinisterioEditId"),
+        setMinisterioEditId: (id) =>
+          set({ ministerioEditId: id }, false, "setMinisterioEditId"),
+        clearMinisterioEditId: () =>
+          set({ ministerioEditId: null }, false, "clearMinisterioEditId"),
 
-    fetchSubzonas: async (zonaId) => {
-      const res = await fetch(`/api/subzonas?zonaId=${zonaId}`);
-      const data = await res.json();
-      set({ subzonas: data }, false, "fetchSubzonas");
-    },
-    fetchIglesias: async (zonaId, subzonaId) => {
-      let url = `/api/iglesias?zonaId=${zonaId}`;
-      if (subzonaId) url += `&subzonaId=${subzonaId}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      set({ iglesias: data }, false, "fetchIglesias");
-    },
-  }))
+        fetchSubzonas: async (zonaId) => {
+          const res = await fetch(`/api/subzonas?zonaId=${zonaId}`);
+          const data = await res.json();
+          set({ subzonas: data }, false, "fetchSubzonas");
+        },
+        fetchIglesias: async (zonaId, subzonaId) => {
+          let url = `/api/iglesias?zonaId=${zonaId}`;
+          if (subzonaId) url += `&subzonaId=${subzonaId}`;
+          const res = await fetch(url);
+          const data = await res.json();
+          set({ iglesias: data }, false, "fetchIglesias");
+        },
+      }),
+      {
+        name: "gmief-zonas-store",
+        storage: createJSONStorage(() => sessionStorage),
+        // Solo persistir los datos de selección, no las listas completas
+        // que se recargan desde la API
+        partialize: (state) => ({
+          zonaSelected: state.zonaSelected,
+          subzonaSelected: state.subzonaSelected,
+          iglesiaSelected: state.iglesiaSelected,
+          ministerioEditId: state.ministerioEditId,
+        }),
+      }
+    )
+  )
 );

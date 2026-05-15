@@ -51,8 +51,9 @@ model Ministerio {
   nombre    String           @db.VarChar(20)
   apellidos String?          @db.VarChar(60)
   alias     String?          @db.VarChar(50)
+  dni_encrypted String?      @db.VarChar(255)
   iglesia_id Int
-  codigo    String?          @unique(map: "codigo") @db.VarChar(6)
+  codigo    String?          @unique(map: "codigo") @db.VarChar(7)
   estado_id Int
   tipo      String           @default("MINISTERIO") @db.VarChar(15)
   aprob     Int?
@@ -110,11 +111,12 @@ model Observacion {
 }
 
 model CandidatoDetalle {
-  id            Int        @id @default(autoincrement())
-  ministerio_id Int        @unique
-  fecha_inicio  DateTime   @db.Date
-  notas         String?    @db.VarChar(255)
-  ministerio    Ministerio @relation(fields: [ministerio_id], references: [id], onDelete: Cascade)
+  id                      Int        @id @default(autoincrement())
+  ministerio_id           Int        @unique
+  fecha_inicio            DateTime   @db.Date
+  fecha_candidato_nacional DateTime? @db.Date
+  notas                   String?    @db.VarChar(255)
+  ministerio              Ministerio @relation(fields: [ministerio_id], references: [id], onDelete: Cascade)
 
   @@map("candidato_detalle")
 }

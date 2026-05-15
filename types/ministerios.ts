@@ -3,6 +3,7 @@ export type Ministerio = {
   nombre: string;
   apellidos: string;
   alias: string | null;
+  dni: string | null; // DNI desencriptado (solo en respuesta API, nunca en BD)
   iglesia_id: number;
   codigo: string | null;
   estado_id: number;
@@ -15,6 +16,7 @@ export type Ministerio = {
   cargos: string | null; // ids separados por coma
   // Campos de candidato (solo si tipo = CANDIDATO)
   fecha_inicio: string | null;
+  fecha_candidato_nacional: string | null;
   notas: string | null;
 };
 

@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { encrypt, decrypt } from "@/lib/encryption";
+import { validarDNI } from "@/lib/dniUtils";
+import { calcularFase } from "@/lib/candidatoUtils";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -21,32 +24,68 @@ export async function GET(req: Request) {
       estado: { select: { nombre: true } },
       cargos: { select: { cargo_id: true } },
       candidato_detalle: {
-        select: { fecha_inicio: true, notas: true },
+        select: { fecha_inicio: true, fecha_candidato_nacional: true, notas: true },
       },
     },
   });
 
+  // Auto-detectar y persistir fecha_candidato_nacional
+  for (const m of ministerios) {
+    if (
+      m.tipo === "CANDIDATO" &&
+      m.candidato_detalle?.fecha_inicio &&
+      !m.candidato_detalle.fecha_candidato_nacional
+    ) {
+      const fase = calcularFase(m.candidato_detalle.fecha_inicio);
+      if (fase.fase === "CANDIDATO_NACIONAL" || fase.fase === "APTO_OBRERO") {
+        const fechaHoy = new Date();
+        fechaHoy.setHours(0, 0, 0, 0);
+        await prisma.candidatoDetalle.update({
+          where: { ministerio_id: m.id },
+          data: { fecha_candidato_nacional: fechaHoy },
+        });
+        m.candidato_detalle.fecha_candidato_nacional = fechaHoy;
+      }
+    }
+  }
+
   // Transformar para mantener la misma estructura de respuesta
-  const result = ministerios.map((m) => ({
-    id: m.id,
-    nombre: m.nombre,
-    apellidos: m.apellidos,
-    alias: m.alias,
-    iglesia_id: m.iglesia_id,
-    codigo: m.codigo,
-    estado_id: m.estado_id,
-    tipo: m.tipo,
-    aprob: m.aprob,
-    telefono: m.telefono,
-    email: m.email,
-    estado_nombre: m.estado.nombre,
-    has_imagen: m.imagen !== null && m.imagen !== undefined,
-    cargos: m.cargos.map((c) => c.cargo_id).join(",") || null,
-    fecha_inicio: m.candidato_detalle?.fecha_inicio
-      ? new Date(m.candidato_detalle.fecha_inicio).toISOString().split("T")[0]
-      : null,
-    notas: m.candidato_detalle?.notas || null,
-  }));
+  const result = ministerios.map((m) => {
+    // Desencriptar DNI si existe
+    let dni: string | null = null;
+    if (m.dni_encrypted) {
+      try {
+        dni = decrypt(m.dni_encrypted);
+      } catch {
+        dni = null; // Si falla la desencriptación, no romper
+      }
+    }
+
+    return {
+      id: m.id,
+      nombre: m.nombre,
+      apellidos: m.apellidos,
+      alias: m.alias,
+      dni,
+      iglesia_id: m.iglesia_id,
+      codigo: m.codigo,
+      estado_id: m.estado_id,
+      tipo: m.tipo,
+      aprob: m.aprob,
+      telefono: m.telefono,
+      email: m.email,
+      estado_nombre: m.estado.nombre,
+      has_imagen: m.imagen !== null && m.imagen !== undefined,
+      cargos: m.cargos.map((c) => c.cargo_id).join(",") || null,
+      fecha_inicio: m.candidato_detalle?.fecha_inicio
+        ? new Date(m.candidato_detalle.fecha_inicio).toISOString().split("T")[0]
+        : null,
+      fecha_candidato_nacional: m.candidato_detalle?.fecha_candidato_nacional
+        ? new Date(m.candidato_detalle.fecha_candidato_nacional).toISOString().split("T")[0]
+        : null,
+      notas: m.candidato_detalle?.notas || null,
+    };
+  });
 
   return NextResponse.json(result);
 }
@@ -57,6 +96,7 @@ export async function POST(req: Request) {
     nombre,
     apellidos,
     alias,
+    dni,
     iglesia_id,
     estado_id,
     aprob,
@@ -78,6 +118,16 @@ export async function POST(req: Request) {
       { error: `Faltan campos obligatorios: ${faltantes.join(", ")}` },
       { status: 400 }
     );
+  }
+
+  // Validar y encriptar DNI si se proporciona
+  let dniEncrypted: string | null = null;
+  if (dni) {
+    const dniResult = validarDNI(dni);
+    if (!dniResult.valid) {
+      return NextResponse.json({ error: dniResult.error }, { status: 400 });
+    }
+    dniEncrypted = encrypt(dniResult.normalized);
   }
 
   // Para candidatos, fecha_inicio es obligatoria
@@ -114,14 +164,14 @@ export async function POST(req: Request) {
     if (codigo_manual) {
       // Código manual: validar formato y unicidad
       const numPart = codigo_manual.replace(/[^0-9]/g, "");
-      if (!numPart || numPart.length === 0 || numPart.length > 3) {
+      if (!numPart || numPart.length === 0 || numPart.length > 4) {
         return NextResponse.json(
-          { error: "La parte numérica del código debe tener entre 1 y 3 dígitos" },
+          { error: "La parte numérica del código debe tener entre 1 y 4 dígitos" },
           { status: 400 }
         );
       }
 
-      codigo = `${codigoZona}${numPart.padStart(3, "0")}`;
+      codigo = `${codigoZona}${numPart.padStart(4, "0")}`;
 
       // Comprobar que el código no exista ya en la base de datos
       const existente = await prisma.ministerio.findUnique({
@@ -160,14 +210,14 @@ export async function POST(req: Request) {
         }
       }
 
-      if (nextNumber > 999) {
+      if (nextNumber > 9999) {
         return NextResponse.json(
-          { error: "Se ha alcanzado el límite máximo de códigos para esta zona (999)" },
+          { error: "Se ha alcanzado el límite máximo de códigos para esta zona (9999)" },
           { status: 409 }
         );
       }
 
-      codigo = `${codigoZona}${String(nextNumber).padStart(3, "0")}`;
+      codigo = `${codigoZona}${String(nextNumber).padStart(4, "0")}`;
     }
   }
 
@@ -176,6 +226,7 @@ export async function POST(req: Request) {
       nombre,
       apellidos: apellidos || null,
       alias: alias || null,
+      dni_encrypted: dniEncrypted,
       iglesia_id,
       codigo,
       estado_id,

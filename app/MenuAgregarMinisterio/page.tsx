@@ -12,6 +12,21 @@ type Estado = { id: number; nombre: string };
 type Cargo = { id: number; cargo: string };
 type TabType = "MINISTERIO" | "CANDIDATO";
 
+// Validación de DNI español en frontend
+const DNI_LETTERS = "TRWAGMYFPDXBNJZSQVHLCKE";
+function validarDNIFrontend(dni: string): { valid: boolean; error?: string } {
+  if (!dni) return { valid: true }; // DNI es opcional
+  const trimmed = dni.trim();
+  if (trimmed.length !== 9) return { valid: false, error: "El DNI debe tener 9 caracteres (8 dígitos + 1 letra)" };
+  const numberPart = trimmed.slice(0, 8);
+  const letterPart = trimmed.slice(8, 9).toUpperCase();
+  if (!/^\d{8}$/.test(numberPart)) return { valid: false, error: "Los 8 primeros caracteres del DNI deben ser numéricos" };
+  if (!/^[A-Z]$/.test(letterPart)) return { valid: false, error: "El último carácter del DNI debe ser una letra" };
+  const expected = DNI_LETTERS[parseInt(numberPart, 10) % 23];
+  if (letterPart !== expected) return { valid: false, error: `Letra del DNI incorrecta. Para ${numberPart} la letra debe ser «${expected}»` };
+  return { valid: true };
+}
+
 export default function MenuAgregarMinisterio() {
   const router = useRouter();
   const iglesiaSelected = useZonasStore((s) => s.iglesiaSelected);
@@ -30,6 +45,7 @@ export default function MenuAgregarMinisterio() {
     nombre: "",
     apellidos: "",
     alias: "",
+    dni: "",
     estado_id: "",
     aprob: "",
     telefono: "",
@@ -80,6 +96,10 @@ export default function MenuAgregarMinisterio() {
       setForm((f) => ({ ...f, telefono: numeric }));
     } else if (name === "email") {
       setForm((f) => ({ ...f, email: value }));
+    } else if (name === "dni") {
+      // Permitir solo dígitos y letras, máximo 9 caracteres
+      const cleaned = value.replace(/[^0-9a-zA-Z]/g, "").slice(0, 9);
+      setForm((f) => ({ ...f, dni: cleaned.toUpperCase() }));
     } else {
       setForm((f) => ({ ...f, [name]: value }));
     }
@@ -130,6 +150,12 @@ export default function MenuAgregarMinisterio() {
     const errores: string[] = [];
     if (!form.nombre.trim()) errores.push("El campo «Nombre» es obligatorio");
 
+    // Validar DNI si se ha introducido
+    if (form.dni) {
+      const dniCheck = validarDNIFrontend(form.dni);
+      if (!dniCheck.valid) errores.push(dniCheck.error!);
+    }
+
     if (activeTab === "MINISTERIO") {
       if (codigoManual) {
         if (!codigoManualNumero || codigoManualNumero.length === 0) {
@@ -167,6 +193,7 @@ export default function MenuAgregarMinisterio() {
         nombre: form.nombre,
         apellidos: form.apellidos || null,
         alias: form.alias || null,
+        dni: form.dni || null,
         estado_id: parseInt(String(form.estado_id), 10),
         telefono: form.telefono || null,
         email: form.email || null,
@@ -374,6 +401,46 @@ export default function MenuAgregarMinisterio() {
               </div>
             </div>
 
+            {/* DNI */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="dni" className="font-medium text-slate-700 text-sm">
+                  DNI
+                  <span className="text-xs text-slate-400 font-normal ml-2">
+                    (8 dígitos + letra)
+                  </span>
+                </label>
+                <input
+                  id="dni"
+                  name="dni"
+                  value={form.dni}
+                  onChange={handleChange}
+                  maxLength={9}
+                  placeholder="12345678Z"
+                  className="input-glass w-full font-mono tracking-wider uppercase"
+                  autoComplete="off"
+                />
+                {form.dni && form.dni.length === 9 && (() => {
+                  const check = validarDNIFrontend(form.dni);
+                  return check.valid ? (
+                    <span className="text-xs text-emerald-600 flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      DNI válido
+                    </span>
+                  ) : (
+                    <span className="text-xs text-red-500 flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                      </svg>
+                      {check.error}
+                    </span>
+                  );
+                })()}
+              </div>
+            </div>
+
             {/* Sección condicional según tab */}
             {activeTab === "MINISTERIO" ? (
               <>
@@ -410,13 +477,13 @@ export default function MenuAgregarMinisterio() {
                           value={codigoManualNumero}
                           onChange={(e) => {
                             const val = e.target.value.replace(/[^0-9]/g, "");
-                            if (val.length <= 3) {
+                            if (val.length <= 4) {
                               setCodigoManualNumero(val);
                             }
                           }}
                           inputMode="numeric"
-                          maxLength={3}
-                          placeholder="000"
+                          maxLength={4}
+                          placeholder="0000"
                           className="input-glass w-full rounded-l-none font-mono text-base font-semibold tracking-wider"
                           autoComplete="off"
                         />

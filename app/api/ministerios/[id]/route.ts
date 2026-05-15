@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { encrypt, decrypt } from "@/lib/encryption";
+import { validarDNI } from "@/lib/dniUtils";
+import { calcularFase } from "@/lib/candidatoUtils";
 
 // Obtener un ministerio por id (con cargos y candidato_detalle)
 export async function GET(
@@ -14,7 +17,7 @@ export async function GET(
     include: {
       cargos: { select: { cargo_id: true } },
       candidato_detalle: {
-        select: { fecha_inicio: true, notas: true },
+        select: { fecha_inicio: true, fecha_candidato_nacional: true, notas: true },
       },
     },
   });
@@ -23,13 +26,46 @@ export async function GET(
     return NextResponse.json({ error: "No encontrado" }, { status: 404 });
   }
 
+  // Auto-detectar y persistir fecha_candidato_nacional
+  if (
+    ministerio.tipo === "CANDIDATO" &&
+    ministerio.candidato_detalle?.fecha_inicio &&
+    !ministerio.candidato_detalle.fecha_candidato_nacional
+  ) {
+    const fase = calcularFase(ministerio.candidato_detalle.fecha_inicio);
+    if (fase.fase === "CANDIDATO_NACIONAL" || fase.fase === "APTO_OBRERO") {
+      const fechaHoy = new Date();
+      fechaHoy.setHours(0, 0, 0, 0);
+      await prisma.candidatoDetalle.update({
+        where: { ministerio_id: ministerio.id },
+        data: { fecha_candidato_nacional: fechaHoy },
+      });
+      ministerio.candidato_detalle.fecha_candidato_nacional = fechaHoy;
+    }
+  }
+
+  // Desencriptar DNI si existe
+  let dni: string | null = null;
+  if (ministerio.dni_encrypted) {
+    try {
+      dni = decrypt(ministerio.dni_encrypted);
+    } catch {
+      dni = null;
+    }
+  }
+
   return NextResponse.json({
     ...ministerio,
     imagen: undefined, // No enviar el blob binario en el JSON
     has_imagen: ministerio.imagen !== null && ministerio.imagen !== undefined,
+    dni,
+    dni_encrypted: undefined, // No enviar el dato encriptado al frontend
     cargos: ministerio.cargos.map((c: { cargo_id: number }) => c.cargo_id).join(",") || null,
     fecha_inicio: ministerio.candidato_detalle?.fecha_inicio
       ? new Date(ministerio.candidato_detalle.fecha_inicio).toISOString().split("T")[0]
+      : null,
+    fecha_candidato_nacional: ministerio.candidato_detalle?.fecha_candidato_nacional
+      ? new Date(ministerio.candidato_detalle.fecha_candidato_nacional).toISOString().split("T")[0]
       : null,
     notas: ministerio.candidato_detalle?.notas || null,
   });
@@ -46,6 +82,7 @@ export async function PUT(
     nombre,
     apellidos,
     alias,
+    dni,
     iglesia_id,
     codigo,
     estado_id,
@@ -69,6 +106,16 @@ export async function PUT(
     );
   }
 
+  // Validar y encriptar DNI si se proporciona
+  let dniEncrypted: string | null = null;
+  if (dni) {
+    const dniResult = validarDNI(dni);
+    if (!dniResult.valid) {
+      return NextResponse.json({ error: dniResult.error }, { status: 400 });
+    }
+    dniEncrypted = encrypt(dniResult.normalized);
+  }
+
   // Para ministerios, código es obligatorio
   if (tipo === "MINISTERIO" && !codigo) {
     return NextResponse.json(
@@ -83,6 +130,7 @@ export async function PUT(
       nombre,
       apellidos: apellidos || null,
       alias: alias || null,
+      dni_encrypted: dniEncrypted,
       iglesia_id,
       codigo: tipo === "MINISTERIO" ? codigo : null,
       estado_id,

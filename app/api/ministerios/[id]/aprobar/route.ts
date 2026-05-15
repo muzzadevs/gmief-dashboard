@@ -64,14 +64,14 @@ export async function POST(
     }
   }
 
-  if (nextNumber > 999) {
+  if (nextNumber > 9999) {
     return NextResponse.json(
-      { error: "Se ha alcanzado el límite máximo de códigos para esta zona (999)" },
+      { error: "Se ha alcanzado el límite máximo de códigos para esta zona (9999)" },
       { status: 409 }
     );
   }
 
-  const codigo = `${codigoZona}${String(nextNumber).padStart(3, "0")}`;
+  const codigo = `${codigoZona}${String(nextNumber).padStart(4, "0")}`;
   const currentYear = new Date().getFullYear();
 
   // Actualizar: tipo → MINISTERIO, asignar código y año de aprobación

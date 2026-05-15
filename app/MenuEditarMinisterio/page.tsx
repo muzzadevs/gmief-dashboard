@@ -12,11 +12,27 @@ import { calcularFase, formatDiasRestantes } from "@/lib/candidatoUtils";
 type Estado = { id: number; nombre: string };
 type Cargo = { id: number; cargo: string };
 
+// Validación de DNI español en frontend
+const DNI_LETTERS = "TRWAGMYFPDXBNJZSQVHLCKE";
+function validarDNIFrontend(dni: string): { valid: boolean; error?: string } {
+  if (!dni) return { valid: true }; // DNI es opcional
+  const trimmed = dni.trim();
+  if (trimmed.length !== 9) return { valid: false, error: "El DNI debe tener 9 caracteres (8 dígitos + 1 letra)" };
+  const numberPart = trimmed.slice(0, 8);
+  const letterPart = trimmed.slice(8, 9).toUpperCase();
+  if (!/^\d{8}$/.test(numberPart)) return { valid: false, error: "Los 8 primeros caracteres del DNI deben ser numéricos" };
+  if (!/^[A-Z]$/.test(letterPart)) return { valid: false, error: "El último carácter del DNI debe ser una letra" };
+  const expected = DNI_LETTERS[parseInt(numberPart, 10) % 23];
+  if (letterPart !== expected) return { valid: false, error: `Letra del DNI incorrecta. Para ${numberPart} la letra debe ser «${expected}»` };
+  return { valid: true };
+}
+
 type MinisterioForm = {
   id: number;
   nombre: string;
   apellidos: string;
   alias: string;
+  dni: string;
   codigo: string | null;
   estado_id: string | number;
   tipo: "MINISTERIO" | "CANDIDATO";
@@ -25,6 +41,7 @@ type MinisterioForm = {
   email: string;
   cargos: number[];
   fecha_inicio: string;
+  fecha_candidato_nacional: string;
   notas: string;
 };
 
@@ -66,11 +83,13 @@ export default function MenuEditarMinisterio() {
         tipo: minData.tipo || "MINISTERIO",
         cargos: minData.cargos ? minData.cargos.split(",").map(Number) : minData.tipo === "MINISTERIO" ? [4] : [],
         fecha_inicio: minData.fecha_inicio || "",
+        fecha_candidato_nacional: minData.fecha_candidato_nacional || "",
         notas: minData.notas || "",
         telefono: minData.telefono || "",
         email: minData.email || "",
         apellidos: minData.apellidos || "",
         alias: minData.alias || "",
+        dni: minData.dni || "",
         aprob: minData.aprob ? String(minData.aprob) : "",
       });
       setHasImagen(!!minData.has_imagen);
@@ -88,6 +107,9 @@ export default function MenuEditarMinisterio() {
       setForm((f) => f && { ...f, telefono: numeric });
     } else if (name === "email") {
       setForm((f) => f && { ...f, email: value });
+    } else if (name === "dni") {
+      const cleaned = value.replace(/[^0-9a-zA-Z]/g, "").slice(0, 9);
+      setForm((f) => f && { ...f, dni: cleaned.toUpperCase() });
     } else {
       setForm((f) => f && { ...f, [name]: value });
     }
@@ -115,6 +137,12 @@ export default function MenuEditarMinisterio() {
 
     const errores: string[] = [];
     if (!form.nombre.trim()) errores.push("El campo «Nombre» es obligatorio");
+
+    // Validar DNI si se ha introducido
+    if (form.dni) {
+      const dniCheck = validarDNIFrontend(form.dni);
+      if (!dniCheck.valid) errores.push(dniCheck.error!);
+    }
 
     if (form.tipo === "MINISTERIO") {
       if (!form.codigo) errores.push("El «Código» es obligatorio");
@@ -148,6 +176,7 @@ export default function MenuEditarMinisterio() {
           nombre: form.nombre,
           apellidos: form.apellidos || null,
           alias: form.alias || null,
+          dni: form.dni || null,
           codigo: form.tipo === "MINISTERIO" ? form.codigo : null,
           estado_id: parseInt(String(form.estado_id), 10),
           aprob: form.aprob ? parseInt(String(form.aprob), 10) : null,
@@ -298,6 +327,11 @@ export default function MenuEditarMinisterio() {
                   style={{ width: `${Math.round(faseInfo.progreso)}%` }}
                 />
               </div>
+              {form.fecha_candidato_nacional && (
+                <p className="text-[10px] text-purple-600 mt-1.5 font-medium">
+                  📅 Candidato Nacional desde: {new Date(form.fecha_candidato_nacional).toLocaleDateString("es-ES")}
+                </p>
+              )}
             </div>
           )}
 
@@ -364,6 +398,46 @@ export default function MenuEditarMinisterio() {
                   className="input-glass w-full"
                   autoComplete="off"
                 />
+              </div>
+            </div>
+
+            {/* DNI */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="dni" className="font-medium text-slate-700 text-sm">
+                  DNI
+                  <span className="text-xs text-slate-400 font-normal ml-2">
+                    (8 dígitos + letra)
+                  </span>
+                </label>
+                <input
+                  id="dni"
+                  name="dni"
+                  value={form.dni}
+                  onChange={handleChange}
+                  maxLength={9}
+                  placeholder="12345678Z"
+                  className="input-glass w-full font-mono tracking-wider uppercase"
+                  autoComplete="off"
+                />
+                {form.dni && form.dni.length === 9 && (() => {
+                  const check = validarDNIFrontend(form.dni);
+                  return check.valid ? (
+                    <span className="text-xs text-emerald-600 flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      DNI válido
+                    </span>
+                  ) : (
+                    <span className="text-xs text-red-500 flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                      </svg>
+                      {check.error}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
 
