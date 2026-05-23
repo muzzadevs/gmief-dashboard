@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useEffect, useState, ChangeEvent, FormEvent } from "react";
-import LoaderPersonalizado from "../components/LoaderPersonalizado";
-import Toast, { useToast } from "../components/Toast";
-import Combobox from "../components/ui/Combobox";
+import LoaderPersonalizado from "../../../components/LoaderPersonalizado";
+import Toast, { useToast } from "../../../components/Toast";
+import Combobox from "../../../components/ui/Combobox";
 import { useRouter } from "next/navigation";
 
 type Zona = { id: number; nombre: string };
 
-export default function MenuAgregarSubzonas() {
+export default function AgregarSubzonas() {
   const router = useRouter();
   const { toast, showSuccess, showError, hideToast } = useToast();
   const [zonas, setZonas] = useState<Zona[]>([]);
@@ -74,7 +74,7 @@ export default function MenuAgregarSubzonas() {
 
       showSuccess("Subzona creada exitosamente");
       setTimeout(() => {
-        router.push("/MenuZonasSubZonas");
+        router.push("/modulos/gestion-ministerios/zonas-subzonas");
       }, 1500);
     } catch (error) {
       console.error("Error creating subzona:", error);
@@ -110,7 +110,7 @@ export default function MenuAgregarSubzonas() {
             <button
               type="button"
               className="btn-primary bg-slate-800 text-white hover:bg-slate-900 shadow-lg shadow-slate-800/20"
-              onClick={() => router.push("/MenuZonasSubZonas")}
+              onClick={() => router.push("/modulos/gestion-ministerios/zonas-subzonas")}
               aria-label="Volver"
               disabled={loading}
             >

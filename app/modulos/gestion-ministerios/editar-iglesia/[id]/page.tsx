@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useEffect, useState, ChangeEvent, FormEvent } from "react";
-import LoaderPersonalizado from "../../components/LoaderPersonalizado";
-import Toast, { useToast } from "../../components/Toast";
-import Combobox from "../../components/ui/Combobox";
+import LoaderPersonalizado from "../../../../components/LoaderPersonalizado";
+import Toast, { useToast } from "../../../../components/Toast";
+import Combobox from "../../../../components/ui/Combobox";
 import { useRouter } from "next/navigation";
 
 type Zona = { id: number; nombre: string };
@@ -23,7 +23,7 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
-export default function MenuEditarIglesia({ params }: Props) {
+export default function EditarIglesia({ params }: Props) {
   const { id } = React.use(params);
 
   const router = useRouter();
@@ -97,7 +97,7 @@ export default function MenuEditarIglesia({ params }: Props) {
       } catch (error) {
         console.error("Error loading data:", error);
         showError("Error al cargar los datos de la iglesia");
-        setTimeout(() => router.push("/MenuZonasSubZonas"), 2000);
+        setTimeout(() => router.push("/modulos/gestion-ministerios/zonas-subzonas"), 2000);
       } finally {
         if (!aborted) setLoadingData(false);
       }
@@ -182,7 +182,7 @@ export default function MenuEditarIglesia({ params }: Props) {
       if (!res.ok) throw new Error("No se pudo actualizar la iglesia");
 
       showSuccess("Iglesia actualizada exitosamente");
-      setTimeout(() => router.push("/MenuZonasSubZonas"), 1500);
+      setTimeout(() => router.push("/modulos/gestion-ministerios/zonas-subzonas"), 1500);
     } catch (error) {
       console.error("Error updating iglesia:", error);
       showError("No se pudo actualizar la iglesia");
@@ -224,7 +224,7 @@ export default function MenuEditarIglesia({ params }: Props) {
             <button
               type="button"
               className="btn-primary bg-slate-800 text-white hover:bg-slate-900 shadow-lg shadow-slate-800/20"
-              onClick={() => router.push("/MenuZonasSubZonas")}
+              onClick={() => router.push("/modulos/gestion-ministerios/zonas-subzonas")}
               aria-label="Volver"
               disabled={loading}
             >

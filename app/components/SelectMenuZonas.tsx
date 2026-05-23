@@ -53,7 +53,7 @@ export default function SelectMenuZonas() {
         const zona = zonas.find((z) => z.id === id) || null;
         setZonaSelected(zona);
         if (zona) {
-          router.push("/MenuZonasSubZonas");
+          router.push("/modulos/gestion-ministerios/zonas-subzonas");
         }
       }}
       placeholder="Selecciona una zona"

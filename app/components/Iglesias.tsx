@@ -120,7 +120,7 @@ export default function Iglesias({ busqueda = "" }: Props) {
                   type="button"
                   className="btn-primary bg-amber-500 text-white hover:bg-amber-600 shadow-md text-sm"
                   onClick={() => {
-                    router.push(`/MenuEditarIglesia/${iglesia.id}`);
+                    router.push(`/modulos/gestion-ministerios/editar-iglesia/${iglesia.id}`);
                   }}
                   aria-label="Editar iglesia"
                 >
@@ -132,7 +132,7 @@ export default function Iglesias({ busqueda = "" }: Props) {
                   className="btn-primary bg-blue-700 text-white hover:bg-blue-800 shadow-md text-sm"
                   onClick={() => {
                     setIglesiaSelected(iglesia);
-                    router.push("/MenuMinisterios");
+                    router.push("/modulos/gestion-ministerios/ministerios");
                   }}
                   aria-label="Gestionar ministerios"
                 >

@@ -10,7 +10,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "GMIEF",
+  title: "filadelfiaConecta",
   description: "Desarrollado por Kodaly para KDK",
 };
 

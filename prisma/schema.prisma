@@ -120,3 +120,15 @@ model CandidatoDetalle {
 
   @@map("candidato_detalle")
 }
+
+model Modulo {
+  id          Int      @id @default(autoincrement())
+  nombre      String   @db.VarChar(100)
+  descripcion String?  @db.VarChar(255)
+  icono       String?  @db.VarChar(50)
+  href        String   @db.VarChar(255)
+  activo      Boolean  @default(true)
+  orden       Int      @default(0)
+
+  @@map("modulos")
+}

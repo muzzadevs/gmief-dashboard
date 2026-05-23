@@ -1,14 +1,14 @@
 "use client";
 
-import Iglesias from "../components/Iglesias";
+import Iglesias from "../../../components/Iglesias";
 import { useState } from "react";
-import SelectMenuSubzonas from "../components/SelectMenuSubzonas";
-import SelectMenuZonas from "../components/SelectMenuZonas";
-import ModalEditarSubzonas from "../components/ModalEditarSubzonas";
+import SelectMenuSubzonas from "../../../components/SelectMenuSubzonas";
+import SelectMenuZonas from "../../../components/SelectMenuZonas";
+import ModalEditarSubzonas from "../../../components/ModalEditarSubzonas";
 import { useRouter } from "next/navigation";
 import { useZonasStore } from "@/store/zonasStore";
 
-export default function MenuZonasSubZonas() {
+export default function ZonasSubZonas() {
   const router = useRouter();
   const setZonaSelected = useZonasStore((s) => s.setZonaSelected);
   const [busqueda, setBusqueda] = useState("");
@@ -26,7 +26,7 @@ export default function MenuZonasSubZonas() {
               className="btn-primary bg-slate-800 text-white hover:bg-slate-900 shadow-lg shadow-slate-800/20 sm:w-auto"
               onClick={() => {
                 setZonaSelected(null);
-                router.push("/MenuZonas");
+                router.push("/modulos/gestion-ministerios");
               }}
               aria-label="Volver"
             >
@@ -62,7 +62,7 @@ export default function MenuZonasSubZonas() {
             <button
               type="button"
               className="btn-primary bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 flex-1 text-xs sm:text-sm"
-              onClick={() => router.push("/MenuAgregarIglesia")}
+              onClick={() => router.push("/modulos/gestion-ministerios/agregar-iglesia")}
               aria-label="Agregar Iglesia"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
@@ -73,7 +73,7 @@ export default function MenuZonasSubZonas() {
             <button
               type="button"
               className="btn-primary bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/20 flex-1 text-xs sm:text-sm"
-              onClick={() => router.push("/MenuAgregarSubzonas")}
+              onClick={() => router.push("/modulos/gestion-ministerios/agregar-subzonas")}
               aria-label="Agregar Subzona"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">

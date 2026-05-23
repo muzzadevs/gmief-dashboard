@@ -2,14 +2,14 @@
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import LoaderPersonalizado from "../components/LoaderPersonalizado";
+import LoaderPersonalizado from "../../../components/LoaderPersonalizado";
 import { useRouter } from "next/navigation";
 import { useZonasStore } from "@/store/zonasStore";
 import type { Ministerio, Cargo } from "@/types/ministerios";
 import { calcularFase, formatDiasRestantes } from "@/lib/candidatoUtils";
-import Toast, { useToast } from "../components/Toast";
+import Toast, { useToast } from "../../../components/Toast";
 
-export default function MenuMinisterios() {
+export default function Ministerios() {
   const router = useRouter();
   const iglesiaSelected = useZonasStore((s) => s.iglesiaSelected);
   const setMinisterioEditId = useZonasStore((s) => s.setMinisterioEditId);
@@ -39,7 +39,7 @@ export default function MenuMinisterios() {
   useEffect(() => {
     let isMounted = true;
     if (!iglesiaSelected) {
-      router.push("/MenuZonasSubZonas");
+      router.push("/modulos/gestion-ministerios/zonas-subzonas");
       return;
     }
     const fetchData = async () => {
@@ -117,7 +117,7 @@ export default function MenuMinisterios() {
           <button
             type="button"
             className="btn-primary bg-slate-800 text-white hover:bg-slate-900 shadow-lg shadow-slate-800/20"
-            onClick={() => router.push("/MenuZonasSubZonas")}
+            onClick={() => router.push("/modulos/gestion-ministerios/zonas-subzonas")}
             aria-label="Volver"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
@@ -132,7 +132,7 @@ export default function MenuMinisterios() {
             <button
               type="button"
               className="btn-primary bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 ml-auto sm:ml-2"
-              onClick={() => router.push("/MenuAgregarMinisterio")}
+              onClick={() => router.push("/modulos/gestion-ministerios/agregar-ministerio")}
               aria-label="Agregar"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
@@ -226,7 +226,6 @@ export default function MenuMinisterios() {
                 : [];
               const cargoTags = cargos.filter((c) => cargoIds.includes(c.id));
 
-              // Calcular fase si es candidato
               const faseInfo =
                 min.tipo === "CANDIDATO" && min.fecha_inicio
                   ? calcularFase(min.fecha_inicio)
@@ -324,7 +323,7 @@ export default function MenuMinisterios() {
                           title="Editar"
                           onClick={() => {
                             setMinisterioEditId(min.id);
-                            router.push("/MenuEditarMinisterio");
+                            router.push("/modulos/gestion-ministerios/editar-ministerio");
                           }}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
@@ -458,7 +457,7 @@ export default function MenuMinisterios() {
                       title="Editar"
                       onClick={() => {
                         setMinisterioEditId(min.id);
-                        router.push("/MenuEditarMinisterio");
+                        router.push("/modulos/gestion-ministerios/editar-ministerio");
                       }}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
