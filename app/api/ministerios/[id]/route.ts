@@ -124,6 +124,21 @@ export async function PUT(
     );
   }
 
+  // Validar unicidad del código si ha cambiado
+  if (tipo === "MINISTERIO" && codigo) {
+    const existente = await prisma.ministerio.findUnique({
+      where: { codigo },
+      select: { id: true },
+    });
+
+    if (existente && existente.id !== Number(id)) {
+      return NextResponse.json(
+        { error: `El código ${codigo} ya existe en la base de datos` },
+        { status: 409 }
+      );
+    }
+  }
+
   await prisma.ministerio.update({
     where: { id: Number(id) },
     data: {

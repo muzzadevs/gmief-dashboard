@@ -56,6 +56,9 @@ export default function EditarMinisterio() {
   const [imagenFile, setImagenFile] = useState<File | null>(null);
   const [imagenRemoved, setImagenRemoved] = useState(false);
   const [hasImagen, setHasImagen] = useState(false);
+  const [codigoZona, setCodigoZona] = useState<string>("");
+  const [codigoNumero, setCodigoNumero] = useState<string>("");
+  const [codigoOriginal, setCodigoOriginal] = useState<string>("");
 
   useEffect(() => {
     if (!iglesiaSelected) {
@@ -76,6 +79,20 @@ export default function EditarMinisterio() {
       setEstados(await estRes.json());
       setCargos(await carRes.json());
       const minData = await minRes.json();
+
+      // Obtener el código de zona de la iglesia para separar prefijo y parte numérica
+      const zonaRes = await fetch(`/api/ministerios/next-codigo?iglesiaId=${iglesiaSelected.id}`);
+      const zonaData = await zonaRes.json();
+      const zonaCodigo = zonaData.codigoZona || "";
+      setCodigoZona(zonaCodigo);
+
+      // Separar la parte numérica del código
+      if (minData.codigo && zonaCodigo) {
+        const numPart = minData.codigo.slice(zonaCodigo.length);
+        setCodigoNumero(numPart);
+        setCodigoOriginal(minData.codigo);
+      }
+
       setForm({
         ...minData,
         estado_id: minData.estado_id?.toString() || "",
@@ -131,7 +148,10 @@ export default function EditarMinisterio() {
     const errores: string[] = [];
     if (!form.nombre.trim()) errores.push("El campo «Nombre» es obligatorio");
     if (form.dni) { const dniCheck = validarDNIFrontend(form.dni); if (!dniCheck.valid) errores.push(dniCheck.error!); }
-    if (form.tipo === "MINISTERIO") { if (!form.codigo) errores.push("El «Código» es obligatorio"); if (form.cargos.length === 0) errores.push("Debe seleccionar al menos un «Cargo»"); }
+    if (form.tipo === "MINISTERIO") {
+      if (!codigoNumero || codigoNumero.length === 0) errores.push("Debe introducir la parte numérica del «Código»");
+      if (form.cargos.length === 0) errores.push("Debe seleccionar al menos un «Cargo»");
+    }
     if (form.tipo === "CANDIDATO") { if (!form.fecha_inicio) errores.push("La «Fecha de inicio» es obligatoria para candidatos"); }
     if (!form.estado_id) errores.push("Debe seleccionar un «Estado»");
     if (form.email) { const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; if (!emailRegex.test(form.email)) errores.push("El «Email» introducido no tiene un formato válido"); }
@@ -144,7 +164,7 @@ export default function EditarMinisterio() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nombre: form.nombre, apellidos: form.apellidos || null, alias: form.alias || null, dni: form.dni || null,
-          codigo: form.tipo === "MINISTERIO" ? form.codigo : null, estado_id: parseInt(String(form.estado_id), 10),
+          codigo: form.tipo === "MINISTERIO" ? `${codigoZona}${codigoNumero.padStart(4, "0")}` : null, estado_id: parseInt(String(form.estado_id), 10),
           aprob: form.aprob ? parseInt(String(form.aprob), 10) : null, telefono: form.telefono || null, email: form.email || null,
           iglesia_id: iglesiaSelected.id, tipo: form.tipo,
           fecha_inicio: form.tipo === "CANDIDATO" ? form.fecha_inicio : null,
@@ -226,7 +246,32 @@ export default function EditarMinisterio() {
 
             {!isCandidato ? (
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                <div className="flex flex-col gap-1.5"><label htmlFor="codigo" className="font-medium text-slate-700 text-sm">Código <span className="text-red-500">*</span> <span className="text-xs text-slate-400 font-normal">(no editable)</span></label><div className="input-glass w-full flex items-center bg-slate-50 cursor-not-allowed select-none"><span className="font-mono text-base text-slate-700 font-semibold tracking-wider">{form.codigo}</span></div></div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="codigo_numero" className="font-medium text-slate-700 text-sm">Código <span className="text-red-500">*</span> <span className="text-xs text-slate-400 font-normal">(parte numérica editable)</span></label>
+                  <div className="flex items-center gap-0">
+                    <span className="inline-flex items-center px-3 h-[42px] rounded-l-xl border border-r-0 border-slate-200 bg-slate-100 font-mono text-base text-slate-700 font-semibold tracking-wider select-none">{codigoZona}</span>
+                    <input
+                      id="codigo_numero"
+                      name="codigo_numero"
+                      value={codigoNumero}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9]/g, "");
+                        if (val.length <= 4) setCodigoNumero(val);
+                      }}
+                      inputMode="numeric"
+                      maxLength={4}
+                      placeholder="0000"
+                      className="input-glass w-full rounded-l-none font-mono text-base font-semibold tracking-wider"
+                      autoComplete="off"
+                    />
+                  </div>
+                  {codigoNumero && codigoOriginal && `${codigoZona}${codigoNumero.padStart(4, "0")}` !== codigoOriginal && (
+                    <span className="text-xs text-amber-600 flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+                      Código cambiado: {codigoOriginal} → {codigoZona}{codigoNumero.padStart(4, "0")}
+                    </span>
+                  )}
+                </div>
                 <div className="flex flex-col gap-1.5"><label htmlFor="estado_id" className="font-medium text-slate-700 text-sm">Estado <span className="text-red-500">*</span></label><Combobox id="estado_id" name="estado_id" options={estadoOptions} value={String(form.estado_id)} onChange={(val) => setForm((f) => f && { ...f, estado_id: val })} placeholder="Selecciona estado" searchPlaceholder="Buscar estado..." emptyMessage="No se encontraron estados." /></div>
                 <div className="flex flex-col gap-1.5"><label htmlFor="aprob" className="font-medium text-slate-700 text-sm">Año de aprobación</label><Combobox id="aprob" name="aprob" options={yearOptions} value={form.aprob ? String(form.aprob) : ""} onChange={(val) => setForm((f) => f && { ...f, aprob: val })} placeholder="Año de aprobación" searchPlaceholder="Buscar año..." emptyMessage="No se encontró el año." /></div>
               </div>
