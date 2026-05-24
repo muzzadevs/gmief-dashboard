@@ -238,7 +238,7 @@ export default function EditarMinisterio() {
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="dni" className="font-medium text-slate-700 text-sm">DNI <span className="text-xs text-slate-400 font-normal ml-2">(8 dígitos + letra)</span></label>
+                <label htmlFor="dni" className="font-medium text-slate-700 text-sm">DNI</label>
                 <input id="dni" name="dni" value={form.dni} onChange={handleChange} maxLength={9} placeholder="12345678Z" className="input-glass w-full font-mono tracking-wider uppercase" autoComplete="off" />
                 {form.dni && form.dni.length === 9 && (() => { const check = validarDNIFrontend(form.dni); return check.valid ? (<span className="text-xs text-emerald-600 flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>DNI válido</span>) : (<span className="text-xs text-red-500 flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>{check.error}</span>); })()}
               </div>
@@ -247,7 +247,7 @@ export default function EditarMinisterio() {
             {!isCandidato ? (
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="codigo_numero" className="font-medium text-slate-700 text-sm">Código <span className="text-red-500">*</span> <span className="text-xs text-slate-400 font-normal">(parte numérica editable)</span></label>
+                  <label htmlFor="codigo_numero" className="font-medium text-slate-700 text-sm">Código <span className="text-red-500">*</span></label>
                   <div className="flex items-center gap-0">
                     <span className="inline-flex items-center px-3 h-[42px] rounded-l-xl border border-r-0 border-slate-200 bg-slate-100 font-mono text-base text-slate-700 font-semibold tracking-wider select-none">{codigoZona}</span>
                     <input
