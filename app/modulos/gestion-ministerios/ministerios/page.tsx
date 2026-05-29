@@ -144,45 +144,55 @@ export default function Ministerios() {
         </div>
       </div>
 
-      {/* Filtro de tipo */}
+      {/* Filtro de tipo o contador de ministerios */}
       {!loading && ministerios.length > 0 && (
-        <div className="flex justify-center mb-4 px-3">
-          <div className="flex rounded-xl overflow-hidden border border-slate-200 bg-white">
-            <button
-              type="button"
-              onClick={() => setActiveFilter("TODOS")}
-              className={`px-4 py-2 text-xs font-semibold transition-all ${
-                activeFilter === "TODOS"
-                  ? "bg-slate-800 text-white"
-                  : "text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              Todos ({ministerios.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveFilter("MINISTERIO")}
-              className={`px-4 py-2 text-xs font-semibold transition-all ${
-                activeFilter === "MINISTERIO"
-                  ? "bg-emerald-600 text-white"
-                  : "text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              Ministerios ({countMinisterios})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveFilter("CANDIDATO")}
-              className={`px-4 py-2 text-xs font-semibold transition-all ${
-                activeFilter === "CANDIDATO"
-                  ? "bg-blue-600 text-white"
-                  : "text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              Candidatos ({countCandidatos})
-            </button>
+        countCandidatos > 0 ? (
+          <div className="flex justify-center mb-4 px-3">
+            <div className="flex rounded-xl overflow-hidden border border-slate-200 bg-white">
+              <button
+                type="button"
+                onClick={() => setActiveFilter("TODOS")}
+                className={`px-4 py-2 text-xs font-semibold transition-all ${
+                  activeFilter === "TODOS"
+                    ? "bg-slate-800 text-white"
+                    : "text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                Todos ({ministerios.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveFilter("MINISTERIO")}
+                className={`px-4 py-2 text-xs font-semibold transition-all ${
+                  activeFilter === "MINISTERIO"
+                    ? "bg-emerald-600 text-white"
+                    : "text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                Ministerios ({countMinisterios})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveFilter("CANDIDATO")}
+                className={`px-4 py-2 text-xs font-semibold transition-all ${
+                  activeFilter === "CANDIDATO"
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                Candidatos ({countCandidatos})
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex justify-center mb-4 px-3">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200">
+              <span className="text-xs font-semibold text-slate-600">
+                Ministerios: <span className="text-emerald-600 font-bold">{countMinisterios}</span>
+              </span>
+            </div>
+          </div>
+        )
       )}
 
       {/* Cards de ministerios/candidatos */}

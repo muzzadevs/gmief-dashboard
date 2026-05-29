@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import LoaderPersonalizado from "./LoaderPersonalizado";
 import { FaUsers, FaEdit } from "react-icons/fa";
 import { useRouter } from "next/navigation";
@@ -9,6 +9,8 @@ interface Props {
   busqueda?: string;
 }
 
+type IglesiaStats = Record<number, { ministerios: number; candidatos: number }>;
+
 export default function Iglesias({ busqueda = "" }: Props) {
   const zonaSelected = useZonasStore((s) => s.zonaSelected);
   const subzonaSelected = useZonasStore((s) => s.subzonaSelected);
@@ -17,15 +19,30 @@ export default function Iglesias({ busqueda = "" }: Props) {
   const setIglesiaSelected = useZonasStore((s) => s.setIglesiaSelected);
   const router = useRouter();
   const [loading, setLoading] = React.useState(true);
+  const [stats, setStats] = useState<IglesiaStats>({});
 
   useEffect(() => {
     let isMounted = true;
     if (zonaSelected) {
       setLoading(true);
-      Promise.resolve(
-        fetchIglesias(zonaSelected.id, subzonaSelected?.id || null)
-      ).finally(() => {
-        if (isMounted) setLoading(false);
+      const subzonaId = subzonaSelected?.id || null;
+
+      Promise.all([
+        fetchIglesias(zonaSelected.id, subzonaId),
+        fetch(
+          `/api/iglesias/stats?zonaId=${zonaSelected.id}${subzonaId ? `&subzonaId=${subzonaId}` : ""}`
+        )
+          .then((res) => res.json())
+          .then((json) => {
+            if (json.ok && json.data) return json.data;
+            return {};
+          })
+          .catch(() => ({})),
+      ]).then(([, statsData]) => {
+        if (isMounted) {
+          setStats(statsData);
+          setLoading(false);
+        }
       });
     }
     return () => {
@@ -75,6 +92,11 @@ export default function Iglesias({ busqueda = "" }: Props) {
         const direccionMaps = encodeURIComponent(
           partes.filter((v) => v && v !== "0" && v !== "NULL").join(", ")
         );
+
+        const iglesiaStats = stats[iglesia.id];
+        const countMin = iglesiaStats?.ministerios ?? 0;
+        const countCand = iglesiaStats?.candidatos ?? 0;
+
         return (
           <div
             key={iglesia.id}
@@ -82,8 +104,19 @@ export default function Iglesias({ busqueda = "" }: Props) {
           >
             <div className="flex flex-row items-center gap-4 w-full">
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-base text-slate-800 truncate">
-                  {iglesia.nombre || "sin información"}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-base text-slate-800 truncate">
+                    {iglesia.nombre || "sin información"}
+                  </span>
+                  {/* Badges de ministerios y candidatos */}
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px]">
+                    <span className="font-bold">{countMin}</span> {countMin === 1 ? "Obrero" : "Obreros"}
+                  </span>
+                  {countCand > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px]">
+                      <span className="font-bold">{countCand}</span> {countCand === 1 ? "Candidato" : "Candidatos"}
+                    </span>
+                  )}
                 </div>
                 {haySinInfo ? (
                   <div className="text-slate-500 text-sm leading-snug">

@@ -8,6 +8,7 @@ import ModalAgregarZona from "../../components/ModalAgregarZona";
 import ModalEditarZonas from "../../components/ModalEditarZonas";
 
 type Zona = { id: number; nombre: string; codigo: string };
+type ZonaStats = Record<number, { ministerios: number; candidatos: number }>;
 
 export default function GestionMinisteriosHome() {
   const router = useRouter();
@@ -17,24 +18,32 @@ export default function GestionMinisteriosHome() {
   const [busqueda, setBusqueda] = useState("");
   const [isModalAgregarOpen, setIsModalAgregarOpen] = useState(false);
   const [isModalEditarOpen, setIsModalEditarOpen] = useState(false);
+  const [stats, setStats] = useState<ZonaStats>({});
 
   useEffect(() => {
-    const fetchZonas = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await fetch("/api/zonas");
-        if (!res.ok) throw new Error("Error al cargar zonas");
-        const json = await res.json();
-        if (json.ok && json.data) {
-          setZonas(json.data);
+        const [zonasRes, statsRes] = await Promise.all([
+          fetch("/api/zonas"),
+          fetch("/api/zonas/stats"),
+        ]);
+        const zonasJson = await zonasRes.json();
+        const statsJson = await statsRes.json();
+
+        if (zonasJson.ok && zonasJson.data) {
+          setZonas(zonasJson.data);
+        }
+        if (statsJson.ok && statsJson.data) {
+          setStats(statsJson.data);
         }
       } catch (err) {
-        console.error("Error fetching zonas:", err);
+        console.error("Error fetching data:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchZonas();
+    fetchData();
   }, []);
 
   function quitarTildes(str: string) {
@@ -129,44 +138,61 @@ export default function GestionMinisteriosHome() {
               {zonasFiltradas
                 .slice()
                 .sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }))
-                .map((zona) => (
-                  <div
-                    key={zona.id}
-                    className="glass-card-solid px-5 py-4 flex flex-col animate-fadein"
-                  >
-                    <div className="flex flex-row items-center gap-4 w-full">
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-base text-slate-800 truncate">
-                          {zona.nombre}
-                        </div>
-                        {zona.codigo && (
-                          <div className="text-xs text-slate-500">
-                            Código: <span className="font-mono font-semibold">{zona.codigo}</span>
-                          </div>
-                        )}
-                      </div>
+                .map((zona) => {
+                  const zonaStats = stats[zona.id];
+                  const countMin = zonaStats?.ministerios ?? 0;
+                  const countCand = zonaStats?.candidatos ?? 0;
 
-                      {/* Botón Iglesias */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <button
-                          type="button"
-                          className="btn-primary bg-blue-700 text-white hover:bg-blue-800 shadow-md text-sm"
-                          onClick={() => {
-                            setZonaSelected(zona);
-                            router.push("/modulos/gestion-ministerios/zonas-subzonas");
-                          }}
-                          aria-label={`Ver iglesias de ${zona.nombre}`}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6M3.75 9v.75A2.25 2.25 0 006 12h12a2.25 2.25 0 002.25-2.25V9" />
-                          </svg>
-                          <span className="hidden sm:inline">Iglesias</span>
-                        </button>
+                  return (
+                    <div
+                      key={zona.id}
+                      className="glass-card-solid px-5 py-4 flex flex-col animate-fadein"
+                    >
+                      <div className="flex flex-row items-center gap-4 w-full">
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-base text-slate-800 truncate">
+                              {zona.nombre}
+                            </span>
+                            {/* Badges de ministerios y candidatos */}
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px]">
+                              <span className="font-bold">{countMin}</span> {countMin === 1 ? "Obrero" : "Obreros"}
+                            </span>
+                            {countCand > 0 && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px]">
+                                <span className="font-bold">{countCand}</span> {countCand === 1 ? "Candidato" : "Candidatos"}
+                              </span>
+                            )}
+                          </div>
+                          {zona.codigo && (
+                            <div className="text-xs text-slate-500">
+                              Código: <span className="font-mono font-semibold">{zona.codigo}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Botón Iglesias */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            type="button"
+                            className="btn-primary bg-blue-700 text-white hover:bg-blue-800 shadow-md text-sm"
+                            onClick={() => {
+                              setZonaSelected(zona);
+                              router.push("/modulos/gestion-ministerios/zonas-subzonas");
+                            }}
+                            aria-label={`Ver iglesias de ${zona.nombre}`}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6M3.75 9v.75A2.25 2.25 0 006 12h12a2.25 2.25 0 002.25-2.25V9" />
+                            </svg>
+                            <span className="hidden sm:inline">Iglesias</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           )}
         </div>
