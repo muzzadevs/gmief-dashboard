@@ -94,6 +94,22 @@ export default function Ministerios() {
 
   if (!iglesiaSelected) return null;
 
+  const getDisplayName = (m: Ministerio) =>
+    (m.alias ? m.alias : `${m.nombre} ${m.apellidos || ""}`).trim();
+
+  const compareMinisterioItem = (a: Ministerio, b: Ministerio) => {
+    const tipoOrder = { MINISTERIO: 0, CANDIDATO: 1 } as const;
+    const tipoA = tipoOrder[a.tipo as keyof typeof tipoOrder] ?? 99;
+    const tipoB = tipoOrder[b.tipo as keyof typeof tipoOrder] ?? 99;
+
+    if (tipoA !== tipoB) return tipoA - tipoB;
+
+    return getDisplayName(a).localeCompare(getDisplayName(b), "es", {
+      sensitivity: "base",
+      numeric: true,
+    });
+  };
+
   const filteredMinisterios =
     activeFilter === "TODOS"
       ? ministerios
@@ -209,17 +225,7 @@ export default function Ministerios() {
           </div>
         ) : (
           [...filteredMinisterios]
-            .sort((a, b) => {
-              const titularA = (
-                a.alias ? a.alias : `${a.nombre} ${a.apellidos || ""}`
-              ).toLowerCase();
-              const titularB = (
-                b.alias ? b.alias : `${b.nombre} ${b.apellidos || ""}`
-              ).toLowerCase();
-              if (titularA < titularB) return -1;
-              if (titularA > titularB) return 1;
-              return 0;
-            })
+            .sort(compareMinisterioItem)
             .map((min) => {
               const titulo = min.alias
                 ? min.alias
