@@ -37,6 +37,8 @@ model Iglesia {
   zona_id     Int
   subzona_id  Int?
   cp          Int?
+  latitud     Float?
+  longitud    Float?
   zona        Zona         @relation(fields: [zona_id], references: [id])
   subzona     Subzona?     @relation(fields: [subzona_id], references: [id])
   ministerios Ministerio[]

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { geocodeIglesia, addressFieldsChanged } from "@/lib/geocode";
 
 export async function GET(
   request: NextRequest,
@@ -67,6 +68,48 @@ export async function PUT(
       );
     }
 
+    // Verificar si los campos de dirección cambiaron para re-geocodificar
+    let latitud = existingIglesia.latitud;
+    let longitud = existingIglesia.longitud;
+
+    const newAddress = {
+      direccion: direccion || null,
+      municipio: municipio || null,
+      provincia: provincia || null,
+      cp: cp || null,
+    };
+
+    const oldAddress = {
+      direccion: existingIglesia.direccion,
+      municipio: existingIglesia.municipio,
+      provincia: existingIglesia.provincia,
+      cp: existingIglesia.cp,
+    };
+
+    if (addressFieldsChanged(newAddress, oldAddress)) {
+      // Los campos de dirección cambiaron, re-geocodificar
+      if (municipio && provincia) {
+        try {
+          const coords = await geocodeIglesia(newAddress);
+          if (coords) {
+            latitud = coords.latitud;
+            longitud = coords.longitud;
+          } else {
+            // No se encontró, limpiar coordenadas
+            latitud = null;
+            longitud = null;
+          }
+        } catch (error) {
+          console.error("[PUT /api/iglesias] Error geocodificando:", error);
+          // Mantener las coordenadas actuales si falla
+        }
+      } else {
+        // Se quitaron datos de dirección, limpiar coordenadas
+        latitud = null;
+        longitud = null;
+      }
+    }
+
     await prisma.iglesia.update({
       where: { id },
       data: {
@@ -77,6 +120,8 @@ export async function PUT(
         cp: cp || null,
         zona_id,
         subzona_id: subzona_id || null,
+        latitud,
+        longitud,
       },
     });
 

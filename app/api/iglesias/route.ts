@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { geocodeIglesia } from "@/lib/geocode";
 
 export async function GET(req: NextRequest) {
   const zonaId = req.nextUrl.searchParams.get("zonaId");
@@ -38,6 +39,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Geocodificar si hay datos de dirección suficientes
+    let latitud: number | null = null;
+    let longitud: number | null = null;
+
+    if (municipio && provincia) {
+      try {
+        const coords = await geocodeIglesia({
+          direccion: direccion || null,
+          municipio: municipio || null,
+          provincia: provincia || null,
+          cp: cp || null,
+        });
+        if (coords) {
+          latitud = coords.latitud;
+          longitud = coords.longitud;
+        }
+      } catch (error) {
+        console.error("[POST /api/iglesias] Error geocodificando:", error);
+        // No bloqueamos la creación si falla la geocodificación
+      }
+    }
+
     const iglesia = await prisma.iglesia.create({
       data: {
         nombre,
@@ -47,6 +70,8 @@ export async function POST(req: NextRequest) {
         cp: cp || null,
         zona_id,
         subzona_id: subzona_id || null,
+        latitud,
+        longitud,
       },
     });
 
