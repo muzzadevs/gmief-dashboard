@@ -4,11 +4,14 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
   try {
     const zonas = await prisma.zona.findMany({
+      where: { activo: true },
       select: {
         id: true,
         iglesias: {
+          where: { activo: true },
           select: {
             ministerios: {
+              where: { activo: true },
               select: {
                 tipo: true,
               },

@@ -35,6 +35,42 @@ export async function GET(
   }
 }
 
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: idParam } = await params;
+    const id = parseInt(idParam);
+
+    if (isNaN(id)) {
+      return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+    }
+
+    // Soft delete en cascada: desactivar ministerios de esta iglesia
+    await prisma.ministerio.updateMany({
+      where: { iglesia_id: id, activo: true },
+      data: { activo: false },
+    });
+
+    // Desactivar la iglesia
+    await prisma.iglesia.update({
+      where: { id },
+      data: { activo: false },
+    });
+
+    return NextResponse.json({
+      message: "Iglesia eliminada exitosamente",
+    });
+  } catch (error) {
+    console.error("Error deleting iglesia:", error);
+    return NextResponse.json(
+      { error: "Error interno del servidor" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

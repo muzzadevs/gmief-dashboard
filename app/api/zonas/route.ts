@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
   try {
     const rows = await prisma.zona.findMany({
+      where: { activo: true },
       orderBy: { nombre: "asc" },
     });
 
@@ -74,7 +75,7 @@ export async function POST(request: Request) {
     }
 
     const existingZone = await prisma.zona.findFirst({
-      where: { codigo: normalizedCodigo },
+      where: { codigo: normalizedCodigo, activo: true },
     });
 
     if (existingZone) {
@@ -207,6 +208,7 @@ export async function PUT(request: Request) {
       const existingZone = await prisma.zona.findFirst({
         where: {
           codigo: zona.codigo,
+          activo: true,
           NOT: { id: zona.id },
         },
       });
@@ -248,6 +250,61 @@ export async function PUT(request: Request) {
         ok: false,
         error: "DB_ERROR",
         message: "Error al actualizar zonas",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const body = await request.json();
+    const { id } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { ok: false, error: "MISSING_ID", message: "ID es requerido" },
+        { status: 400 }
+      );
+    }
+
+    // Soft delete: zona + subzonas + iglesias + ministerios en cascada
+    // 1. Desactivar todos los ministerios de las iglesias de esta zona
+    await prisma.ministerio.updateMany({
+      where: { iglesia: { zona_id: id }, activo: true },
+      data: { activo: false },
+    });
+
+    // 2. Desactivar todas las iglesias de esta zona
+    await prisma.iglesia.updateMany({
+      where: { zona_id: id, activo: true },
+      data: { activo: false },
+    });
+
+    // 3. Desactivar todas las subzonas de esta zona
+    await prisma.subzona.updateMany({
+      where: { zona_id: id, activo: true },
+      data: { activo: false },
+    });
+
+    // 4. Desactivar la zona
+    await prisma.zona.update({
+      where: { id },
+      data: { activo: false },
+    });
+
+    return NextResponse.json(
+      { ok: true, message: "Zona eliminada exitosamente" },
+      { status: 200 }
+    );
+  } catch (error: unknown) {
+    console.error("[DELETE /api/zonas] Error:", error);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "DB_ERROR",
+        message: "Error al eliminar zona",
         details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }

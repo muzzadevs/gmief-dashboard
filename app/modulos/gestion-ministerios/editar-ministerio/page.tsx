@@ -5,6 +5,7 @@ import LoaderPersonalizado from "../../../components/LoaderPersonalizado";
 import Combobox from "../../../components/ui/Combobox";
 import Toast, { useToast } from "../../../components/Toast";
 import ImageUpload from "../../../components/ImageUpload";
+import ModalConfirmarEliminar from "../../../components/ModalConfirmarEliminar";
 import { useRouter } from "next/navigation";
 import { useZonasStore } from "@/store/zonasStore";
 import { calcularFase, formatDiasRestantes } from "@/lib/candidatoUtils";
@@ -59,6 +60,8 @@ export default function EditarMinisterio() {
   const [codigoZona, setCodigoZona] = useState<string>("");
   const [codigoNumero, setCodigoNumero] = useState<string>("");
   const [codigoOriginal, setCodigoOriginal] = useState<string>("");
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     if (!iglesiaSelected) {
@@ -140,6 +143,24 @@ export default function EditarMinisterio() {
       const cargos = f.cargos.includes(id) ? f.cargos.filter((c) => c !== id) : [...f.cargos, id];
       return { ...f, cargos };
     });
+  };
+
+  const handleDelete = async () => {
+    if (!form) return;
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(`/api/ministerios/${form.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("No se pudo eliminar");
+      showSuccess(form.tipo === "MINISTERIO" ? "Ministerio eliminado exitosamente" : "Candidato eliminado exitosamente");
+      setTimeout(() => router.push("/modulos/gestion-ministerios/ministerios"), 1500);
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "No se pudo eliminar");
+    } finally {
+      setDeleteLoading(false);
+      setDeleteModalOpen(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -296,12 +317,32 @@ export default function EditarMinisterio() {
               </div>
             )}
 
-            <button type="submit" className={`w-full py-2.5 rounded-xl text-white font-bold text-base shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2 ${isCandidato ? "bg-gradient-to-r from-blue-600 to-blue-500 shadow-blue-600/25 hover:from-blue-700 hover:to-blue-600" : "bg-gradient-to-r from-emerald-600 to-emerald-500 shadow-emerald-600/25 hover:from-emerald-700 hover:to-emerald-600"}`} disabled={loading}>
-              {loading ? "Guardando..." : "Guardar cambios"}
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3 mt-2">
+              <button type="submit" className={`flex-1 py-2.5 rounded-xl text-white font-bold text-base shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed ${isCandidato ? "bg-gradient-to-r from-blue-600 to-blue-500 shadow-blue-600/25 hover:from-blue-700 hover:to-blue-600" : "bg-gradient-to-r from-emerald-600 to-emerald-500 shadow-emerald-600/25 hover:from-emerald-700 hover:to-emerald-600"}`} disabled={loading}>
+                {loading ? "Guardando..." : "Guardar cambios"}
+              </button>
+              <button
+                type="button"
+                className="sm:w-auto py-2.5 px-6 rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white font-bold text-base shadow-lg shadow-red-600/25 hover:from-red-700 hover:to-red-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={loading}
+                onClick={() => setDeleteModalOpen(true)}
+              >
+                Eliminar
+              </button>
+            </div>
           </form>
         </div>
       </main>
+
+      {/* Modal confirmar eliminar ministerio/candidato */}
+      <ModalConfirmarEliminar
+        isOpen={deleteModalOpen}
+        titulo={`¿Eliminar ${isCandidato ? "al candidato" : "al ministerio"} "${form?.nombre} ${form?.apellidos || ""}"?`}
+        mensaje={`Se eliminará este ${isCandidato ? "candidato" : "ministerio"} del sistema. Esta acción no se puede deshacer fácilmente.`}
+        loading={deleteLoading}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteModalOpen(false)}
+      />
     </>
   );
 }

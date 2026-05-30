@@ -184,7 +184,7 @@ export async function PUT(
   return NextResponse.json({ ok: true });
 }
 
-// Eliminar ministerio por id
+// Soft delete ministerio por id
 export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -196,24 +196,10 @@ export async function DELETE(
 
   const numId = Number(id);
 
-  // Eliminar candidato_detalle si existe
-  await prisma.candidatoDetalle.deleteMany({
-    where: { ministerio_id: numId },
-  });
-
-  // Eliminar relaciones en ministerio_cargo
-  await prisma.ministerioCargo.deleteMany({
-    where: { ministerio_id: numId },
-  });
-
-  // Eliminar observaciones
-  await prisma.observacion.deleteMany({
-    where: { ministerio_id: numId },
-  });
-
-  // Eliminar ministerio
-  await prisma.ministerio.delete({
+  // Soft delete: poner activo en false
+  await prisma.ministerio.update({
     where: { id: numId },
+    data: { activo: false },
   });
 
   return NextResponse.json({ success: true });

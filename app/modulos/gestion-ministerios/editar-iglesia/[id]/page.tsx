@@ -4,6 +4,7 @@ import React, { useEffect, useState, ChangeEvent, FormEvent } from "react";
 import LoaderPersonalizado from "../../../../components/LoaderPersonalizado";
 import Toast, { useToast } from "../../../../components/Toast";
 import Combobox from "../../../../components/ui/Combobox";
+import ModalConfirmarEliminar from "../../../../components/ModalConfirmarEliminar";
 import { useRouter } from "next/navigation";
 
 type Zona = { id: number; nombre: string };
@@ -44,6 +45,8 @@ export default function EditarIglesia({ params }: Props) {
   const [loading, setLoading] = useState(false);
   const [loadingSubzonas, setLoadingSubzonas] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const cleanValue = (value: unknown): string =>
     value === null || value === undefined || value === "null"
@@ -148,6 +151,26 @@ export default function EditarIglesia({ params }: Props) {
     }
 
     setForm((f) => ({ ...f, [name]: value }));
+  };
+
+  const handleDelete = async () => {
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(`/api/iglesias/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("No se pudo eliminar la iglesia");
+
+      showSuccess("Iglesia eliminada exitosamente");
+      setTimeout(() => router.push("/modulos/gestion-ministerios/zonas-subzonas"), 1500);
+    } catch (error) {
+      console.error("Error deleting iglesia:", error);
+      showError("No se pudo eliminar la iglesia");
+    } finally {
+      setDeleteLoading(false);
+      setDeleteModalOpen(false);
+    }
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -363,16 +386,36 @@ export default function EditarIglesia({ params }: Props) {
               </div>
             </div>
 
-            <button
-              type="submit"
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold text-base shadow-lg shadow-blue-600/25 hover:from-blue-700 hover:to-blue-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
-              disabled={loading || loadingSubzonas}
-            >
-              {loading ? "Actualizando..." : "Actualizar Iglesia"}
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3 mt-2">
+              <button
+                type="submit"
+                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold text-base shadow-lg shadow-blue-600/25 hover:from-blue-700 hover:to-blue-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={loading || loadingSubzonas}
+              >
+                {loading ? "Actualizando..." : "Actualizar Iglesia"}
+              </button>
+              <button
+                type="button"
+                className="sm:w-auto py-2.5 px-6 rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white font-bold text-base shadow-lg shadow-red-600/25 hover:from-red-700 hover:to-red-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={loading || loadingSubzonas}
+                onClick={() => setDeleteModalOpen(true)}
+              >
+                Eliminar
+              </button>
+            </div>
           </form>
         </div>
       </main>
+
+      {/* Modal confirmar eliminar iglesia */}
+      <ModalConfirmarEliminar
+        isOpen={deleteModalOpen}
+        titulo={`¿Eliminar la iglesia "${iglesia?.nombre}"?`}
+        mensaje="Se eliminarán también todos los ministerios y candidatos asociados a esta iglesia. Esta acción no se puede deshacer fácilmente."
+        loading={deleteLoading}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteModalOpen(false)}
+      />
     </>
   );
 }

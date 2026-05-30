@@ -7,6 +7,7 @@ export async function GET() {
       where: {
         latitud: { not: null },
         longitud: { not: null },
+        activo: true,
       },
       select: {
         id: true,

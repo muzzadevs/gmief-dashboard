@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Toast, { useToast } from "./Toast";
+import ModalConfirmarEliminar from "./ModalConfirmarEliminar";
 
 type Zona = { id: number; nombre: string; codigo: string };
 
@@ -20,6 +21,11 @@ export default function ModalEditarZonas({
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
+  const [deleteModal, setDeleteModal] = useState<{
+    open: boolean;
+    zona: Zona | null;
+  }>({ open: false, zona: null });
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -69,6 +75,35 @@ export default function ModalEditarZonas({
           zona.id === id ? { ...zona, [field]: value } : zona
         )
       );
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteModal.zona) return;
+
+    setDeleteLoading(true);
+    try {
+      const res = await fetch("/api/zonas", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: deleteModal.zona.id }),
+      });
+
+      if (!res.ok) {
+        throw new Error("No se pudo eliminar la zona");
+      }
+
+      showSuccess("Zona eliminada exitosamente");
+      setDeleteModal({ open: false, zona: null });
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+      }, 1500);
+    } catch (error) {
+      console.error("Error deleting zona:", error);
+      showError("No se pudo eliminar la zona");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -188,7 +223,7 @@ export default function ModalEditarZonas({
                 {zonas.map((zona) => (
                   <div
                     key={zona.id}
-                    className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-slate-50 rounded-xl"
+                    className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 p-4 bg-slate-50 rounded-xl items-end"
                   >
                     <div className="flex flex-col gap-1.5">
                       <label className="font-medium text-slate-700 text-sm">
@@ -222,6 +257,18 @@ export default function ModalEditarZonas({
                         maxLength={3}
                       />
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteModal({ open: true, zona })}
+                      className="btn-primary bg-red-600 text-white hover:bg-red-700 shadow-md text-sm h-[42px]"
+                      title={`Eliminar zona ${zona.nombre}`}
+                      disabled={loading}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                      </svg>
+                      <span className="hidden md:inline">Eliminar</span>
+                    </button>
                   </div>
                 ))}
               </form>
@@ -249,6 +296,16 @@ export default function ModalEditarZonas({
           </div>
         </div>
       </div>
+
+      {/* Modal confirmar eliminar zona */}
+      <ModalConfirmarEliminar
+        isOpen={deleteModal.open}
+        titulo={`¿Eliminar la zona "${deleteModal.zona?.nombre}"?`}
+        mensaje="Se eliminarán también todas las subzonas, iglesias y ministerios/candidatos asociados a esta zona. Esta acción no se puede deshacer fácilmente."
+        loading={deleteLoading}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteModal({ open: false, zona: null })}
+      />
     </>
   );
 }

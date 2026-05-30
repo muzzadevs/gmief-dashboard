@@ -7,13 +7,14 @@ export async function GET(req: NextRequest) {
 
   if (zonaId === "ALL") {
     const subzonas = await prisma.subzona.findMany({
+      where: { activo: true },
       orderBy: { nombre: "asc" },
     });
     return NextResponse.json(subzonas);
   }
 
   const subzonas = await prisma.subzona.findMany({
-    where: { zona_id: Number(zonaId) },
+    where: { zona_id: Number(zonaId), activo: true },
     orderBy: { nombre: "asc" },
   });
 
@@ -83,6 +84,47 @@ export async function PUT(req: NextRequest) {
     });
   } catch (error) {
     console.error("Error updating subzonas:", error);
+    return NextResponse.json(
+      { error: "Error interno del servidor" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { id } = await req.json();
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "ID es requerido" },
+        { status: 400 }
+      );
+    }
+
+    // Soft delete en cascada: ministerios de iglesias de esta subzona
+    await prisma.ministerio.updateMany({
+      where: { iglesia: { subzona_id: id }, activo: true },
+      data: { activo: false },
+    });
+
+    // Desactivar iglesias de esta subzona
+    await prisma.iglesia.updateMany({
+      where: { subzona_id: id, activo: true },
+      data: { activo: false },
+    });
+
+    // Desactivar la subzona
+    await prisma.subzona.update({
+      where: { id },
+      data: { activo: false },
+    });
+
+    return NextResponse.json({
+      message: "Subzona eliminada exitosamente",
+    });
+  } catch (error) {
+    console.error("Error deleting subzona:", error);
     return NextResponse.json(
       { error: "Error interno del servidor" },
       { status: 500 }

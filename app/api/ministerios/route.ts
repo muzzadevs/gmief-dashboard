@@ -13,7 +13,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "iglesiaId requerido" }, { status: 400 });
   }
 
-  const where: Record<string, unknown> = { iglesia_id: Number(iglesiaId) };
+  const where: Record<string, unknown> = { iglesia_id: Number(iglesiaId), activo: true };
   if (tipo) {
     where.tipo = tipo;
   }

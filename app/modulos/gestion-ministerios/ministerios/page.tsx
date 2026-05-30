@@ -552,7 +552,7 @@ export default function Ministerios() {
               ?
             </div>
             <div className="text-sm text-slate-500 text-center">
-              Si lo hace se eliminará permanentemente.
+              Se eliminará del sistema. Esta acción no se puede deshacer fácilmente.
             </div>
             <div className="flex gap-3 justify-center mt-2">
               <button

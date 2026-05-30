@@ -15,8 +15,13 @@ export async function GET(req: Request) {
       nombre: true,
       apellidos: true,
       codigo: true,
+      activo: true,
     },
   });
+
+  if (ministerio && !ministerio.activo) {
+    return NextResponse.json(null);
+  }
 
   if (!ministerio) {
     return NextResponse.json(null);
