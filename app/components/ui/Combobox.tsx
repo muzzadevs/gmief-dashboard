@@ -19,6 +19,7 @@ interface ComboboxProps {
   placeholder?: string;
   searchPlaceholder?: string;
   emptyMessage?: string;
+  searchable?: boolean;
   disabled?: boolean;
   className?: string;
   id?: string;
@@ -33,6 +34,7 @@ export default function Combobox({
   placeholder = "Selecciona una opción...",
   searchPlaceholder = "Buscar...",
   emptyMessage = "No se encontraron resultados.",
+  searchable = true,
   disabled = false,
   className,
   id,
@@ -41,6 +43,7 @@ export default function Combobox({
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
+  const listId = React.useId();
 
   const selectedLabel = React.useMemo(() => {
     const found = options.find((opt) => opt.value === value);
@@ -57,6 +60,7 @@ export default function Combobox({
           <button
             type="button"
             role="combobox"
+            aria-controls={listId}
             aria-expanded={open}
             aria-label={ariaLabel}
             id={id}
@@ -102,28 +106,29 @@ export default function Combobox({
             )}
           >
             <CommandPrimitive
-              shouldFilter={true}
+              shouldFilter={searchable}
               filter={(value, search) => {
                 return normalizeSearchText(value).includes(normalizeSearchText(search)) ? 1 : 0;
               }}
               className="flex flex-col"
             >
-              {/* Search input */}
-              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-100">
-                <Search className="h-4 w-4 text-slate-400 shrink-0" />
-                <CommandPrimitive.Input
-                  value={search}
-                  onValueChange={setSearch}
-                  placeholder={searchPlaceholder}
-                  className={cn(
-                    "w-full bg-transparent text-sm text-slate-800",
-                    "outline-none placeholder:text-slate-400"
-                  )}
-                />
-              </div>
+              {searchable && (
+                <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-100">
+                  <Search className="h-4 w-4 text-slate-400 shrink-0" />
+                  <CommandPrimitive.Input
+                    value={search}
+                    onValueChange={setSearch}
+                    placeholder={searchPlaceholder}
+                    className={cn(
+                      "w-full bg-transparent text-sm text-slate-800",
+                      "outline-none placeholder:text-slate-400"
+                    )}
+                  />
+                </div>
+              )}
 
               {/* Options list */}
-              <CommandPrimitive.List className="max-h-[240px] overflow-y-auto overscroll-contain p-1.5">
+              <CommandPrimitive.List id={listId} className="max-h-[240px] overflow-y-auto overscroll-contain p-1.5">
                 <CommandPrimitive.Empty className="py-6 text-center text-sm text-slate-400">
                   {emptyMessage}
                 </CommandPrimitive.Empty>

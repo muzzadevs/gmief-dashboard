@@ -12,6 +12,12 @@ import { calcularFase, formatDiasRestantes } from "@/lib/candidatoUtils";
 
 type Estado = { id: number; nombre: string };
 type Cargo = { id: number; cargo: string };
+type DocType = "DNI" | "NIE";
+
+const DOC_TYPE_OPTIONS = [
+  { value: "DNI", label: "DNI" },
+  { value: "NIE", label: "NIE" },
+] as const;
 
 const DNI_LETTERS = "TRWAGMYFPDXBNJZSQVHLCKE";
 function validarDNIFrontend(dni: string): { valid: boolean; error?: string } {
@@ -27,12 +33,31 @@ function validarDNIFrontend(dni: string): { valid: boolean; error?: string } {
   return { valid: true };
 }
 
+function validarNIEFrontend(nie: string): { valid: boolean; error?: string } {
+  if (!nie) return { valid: true };
+  const trimmed = nie.trim().toUpperCase();
+  if (trimmed.length !== 9) return { valid: false, error: "El NIE debe tener 9 caracteres (1 letra + 7 dígitos + 1 letra)" };
+  const firstLetter = trimmed.charAt(0);
+  const numberPart = trimmed.slice(1, 8);
+  const controlLetter = trimmed.charAt(8);
+  if (!/^[XYZ]$/.test(firstLetter)) return { valid: false, error: "El NIE debe comenzar con X, Y o Z" };
+  if (!/^\d{7}$/.test(numberPart)) return { valid: false, error: "El NIE debe tener 7 dígitos después de la letra inicial" };
+  if (!/^[A-Z]$/.test(controlLetter)) return { valid: false, error: "El último carácter del NIE debe ser una letra" };
+  const prefixMap: Record<string, string> = { X: "0", Y: "1", Z: "2" };
+  const fullNumber = prefixMap[firstLetter] + numberPart;
+  const num = parseInt(fullNumber, 10);
+  const expected = DNI_LETTERS[num % 23];
+  if (controlLetter !== expected) return { valid: false, error: `Letra de control del NIE incorrecta. Para ${trimmed.slice(0, 8)} la letra debe ser «${expected}»` };
+  return { valid: true };
+}
+
 type MinisterioForm = {
   id: number;
   nombre: string;
   apellidos: string;
   alias: string;
   dni: string;
+  nie: string;
   codigo: string | null;
   estado_id: string | number;
   tipo: "MINISTERIO" | "CANDIDATO";
@@ -62,6 +87,7 @@ export default function EditarMinisterio() {
   const [codigoOriginal, setCodigoOriginal] = useState<string>("");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [docType, setDocType] = useState<DocType>("DNI");
 
   useEffect(() => {
     if (!iglesiaSelected) {
@@ -96,6 +122,13 @@ export default function EditarMinisterio() {
         setCodigoOriginal(minData.codigo);
       }
 
+      // Determinar el tipo de documento basado en los datos existentes
+      if (minData.nie) {
+        setDocType("NIE");
+      } else {
+        setDocType("DNI");
+      }
+
       setForm({
         ...minData,
         estado_id: minData.estado_id?.toString() || "",
@@ -109,6 +142,7 @@ export default function EditarMinisterio() {
         apellidos: minData.apellidos || "",
         alias: minData.alias || "",
         dni: minData.dni || "",
+        nie: minData.nie || "",
         aprob: minData.aprob ? String(minData.aprob) : "",
       });
       setHasImagen(!!minData.has_imagen);
@@ -129,6 +163,9 @@ export default function EditarMinisterio() {
     } else if (name === "dni") {
       const cleaned = value.replace(/[^0-9a-zA-Z]/g, "").slice(0, 9);
       setForm((f) => f && { ...f, dni: cleaned.toUpperCase() });
+    } else if (name === "nie") {
+      const cleaned = value.replace(/[^0-9a-zA-Z]/g, "").slice(0, 9);
+      setForm((f) => f && { ...f, nie: cleaned.toUpperCase() });
     } else {
       setForm((f) => f && { ...f, [name]: value });
     }
@@ -143,6 +180,15 @@ export default function EditarMinisterio() {
       const cargos = f.cargos.includes(id) ? f.cargos.filter((c) => c !== id) : [...f.cargos, id];
       return { ...f, cargos };
     });
+  };
+
+  const handleDocTypeChange = (newDocType: DocType) => {
+    setDocType(newDocType);
+    if (newDocType === "DNI") {
+      setForm((f) => f && { ...f, nie: "" });
+    } else {
+      setForm((f) => f && { ...f, dni: "" });
+    }
   };
 
   const handleDelete = async () => {
@@ -168,7 +214,16 @@ export default function EditarMinisterio() {
     if (!form || !iglesiaSelected) return;
     const errores: string[] = [];
     if (!form.nombre.trim()) errores.push("El campo «Nombre» es obligatorio");
-    if (form.dni) { const dniCheck = validarDNIFrontend(form.dni); if (!dniCheck.valid) errores.push(dniCheck.error!); }
+
+    if (docType === "DNI" && form.dni) {
+      const dniCheck = validarDNIFrontend(form.dni);
+      if (!dniCheck.valid) errores.push(dniCheck.error!);
+    }
+    if (docType === "NIE" && form.nie) {
+      const nieCheck = validarNIEFrontend(form.nie);
+      if (!nieCheck.valid) errores.push(nieCheck.error!);
+    }
+
     if (form.tipo === "MINISTERIO") {
       if (!codigoNumero || codigoNumero.length === 0) errores.push("Debe introducir la parte numérica del «Código»");
       if (form.cargos.length === 0) errores.push("Debe seleccionar al menos un «Cargo»");
@@ -184,10 +239,18 @@ export default function EditarMinisterio() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nombre: form.nombre, apellidos: form.apellidos || null, alias: form.alias || null, dni: form.dni || null,
-          codigo: form.tipo === "MINISTERIO" ? `${codigoZona}${codigoNumero.padStart(4, "0")}` : null, estado_id: parseInt(String(form.estado_id), 10),
-          aprob: form.aprob ? parseInt(String(form.aprob), 10) : null, telefono: form.telefono || null, email: form.email || null,
-          iglesia_id: iglesiaSelected.id, tipo: form.tipo,
+          nombre: form.nombre,
+          apellidos: form.apellidos || null,
+          alias: form.alias || null,
+          dni: docType === "DNI" ? (form.dni || null) : null,
+          nie: docType === "NIE" ? (form.nie || null) : null,
+          codigo: form.tipo === "MINISTERIO" ? `${codigoZona}${codigoNumero.padStart(4, "0")}` : null,
+          estado_id: parseInt(String(form.estado_id), 10),
+          aprob: form.aprob ? parseInt(String(form.aprob), 10) : null,
+          telefono: form.telefono || null,
+          email: form.email || null,
+          iglesia_id: iglesiaSelected.id,
+          tipo: form.tipo,
           fecha_inicio: form.tipo === "CANDIDATO" ? form.fecha_inicio : null,
           notas: form.tipo === "CANDIDATO" ? (form.notas || null) : null,
         }),
@@ -214,6 +277,12 @@ export default function EditarMinisterio() {
   const isCandidato = form.tipo === "CANDIDATO";
   const faseInfo = isCandidato && form.fecha_inicio ? calcularFase(form.fecha_inicio) : null;
   const filteredCargos = isCandidato ? cargos.filter((c) => c.id !== 4) : cargos;
+
+  // Valor activo del documento y su validación
+  const docValue = docType === "DNI" ? form.dni : form.nie;
+  const docValidation = docType === "DNI"
+    ? (form.dni && form.dni.length === 9 ? validarDNIFrontend(form.dni) : null)
+    : (form.nie && form.nie.length === 9 ? validarNIEFrontend(form.nie) : null);
 
   return (
     <>
@@ -257,16 +326,55 @@ export default function EditarMinisterio() {
               <div className="flex flex-col gap-1.5"><label htmlFor="alias" className="font-medium text-slate-700 text-sm">Alias</label><input id="alias" name="alias" value={form.alias} onChange={handleChange} className="input-glass w-full" autoComplete="off" /></div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {/* DNI / NIE con selector */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-x-6">
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="dni" className="font-medium text-slate-700 text-sm">DNI</label>
-                <input id="dni" name="dni" value={form.dni} onChange={handleChange} maxLength={9} placeholder="12345678Z" className="input-glass w-full font-mono tracking-wider uppercase" autoComplete="off" />
-                {form.dni && form.dni.length === 9 && (() => { const check = validarDNIFrontend(form.dni); return check.valid ? (<span className="text-xs text-emerald-600 flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>DNI válido</span>) : (<span className="text-xs text-red-500 flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>{check.error}</span>); })()}
+                <label className="font-medium text-slate-700 text-sm">
+                  Documento de identidad
+                  <span className="text-xs text-slate-400 font-normal ml-2">
+                    {docType === "DNI" ? "(8 dígitos + letra)" : "(X/Y/Z + 7 dígitos + letra)"}
+                  </span>
+                </label>
+                <div className="flex items-center gap-2.5">
+                  <Combobox
+                    options={[...DOC_TYPE_OPTIONS]}
+                    value={docType}
+                    onChange={(value) => handleDocTypeChange(value as DocType)}
+                    placeholder="DNI"
+                    searchable={false}
+                    emptyMessage="No hay documentos disponibles."
+                    aria-label="Tipo de documento"
+                    className="w-[88px] shrink-0 px-3 font-semibold text-slate-700"
+                  />
+                  <input
+                    id={docType === "DNI" ? "dni" : "nie"}
+                    name={docType === "DNI" ? "dni" : "nie"}
+                    value={docValue}
+                    onChange={handleChange}
+                    maxLength={9}
+                    placeholder={docType === "DNI" ? "12345678Z" : "X1234567L"}
+                    className="input-glass w-full font-mono tracking-wider uppercase"
+                    autoComplete="off"
+                  />
+                </div>
+                {docValidation && (() => {
+                  return docValidation.valid ? (
+                    <span className="text-xs text-emerald-600 flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      {docType} válido
+                    </span>
+                  ) : (
+                    <span className="text-xs text-red-500 flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+                      {docValidation.error}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
 
             {!isCandidato ? (
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-x-6">
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor="codigo_numero" className="font-medium text-slate-700 text-sm">Código <span className="text-red-500">*</span></label>
                   <div className="flex items-center gap-0">

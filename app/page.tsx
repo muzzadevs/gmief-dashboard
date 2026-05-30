@@ -9,11 +9,9 @@ import Image from "next/image";
 function FloatingPhoto({
   src,
   index,
-  total,
 }: {
   src: string;
   index: number;
-  total: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -103,7 +101,6 @@ export default function Home() {
               key={foto}
               src={foto}
               index={i}
-              total={fotos.length}
             />
           ))}
         </div>
@@ -119,10 +116,15 @@ export default function Home() {
           <div className="glass-card-solid p-8 animate-fadein shadow-2xl">
             {/* Logo / Title */}
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-600/30 mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-white">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6M3.75 9v.75A2.25 2.25 0 006 12h12a2.25 2.25 0 002.25-2.25V9" />
-                </svg>
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-black shadow-lg shadow-black/30 mb-4 overflow-hidden p-2.5">
+                <Image
+                  src="/FCLogoTemporal.png"
+                  alt="Logo de filadelfiaConecta"
+                  width={44}
+                  height={44}
+                  className="h-full w-full object-contain"
+                  priority
+                />
               </div>
               <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
                 filadelfiaConecta

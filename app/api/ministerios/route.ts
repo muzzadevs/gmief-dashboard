@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { encrypt, decrypt } from "@/lib/encryption";
-import { validarDNI } from "@/lib/dniUtils";
+import { validarDNI, validarNIE } from "@/lib/dniUtils";
 import { calcularFase } from "@/lib/candidatoUtils";
 
 export async function GET(req: Request) {
@@ -61,12 +61,23 @@ export async function GET(req: Request) {
       }
     }
 
+    // Desencriptar NIE si existe
+    let nie: string | null = null;
+    if (m.nie_encrypted) {
+      try {
+        nie = decrypt(m.nie_encrypted);
+      } catch {
+        nie = null;
+      }
+    }
+
     return {
       id: m.id,
       nombre: m.nombre,
       apellidos: m.apellidos,
       alias: m.alias,
       dni,
+      nie,
       iglesia_id: m.iglesia_id,
       codigo: m.codigo,
       estado_id: m.estado_id,
@@ -97,6 +108,7 @@ export async function POST(req: Request) {
     apellidos,
     alias,
     dni,
+    nie,
     iglesia_id,
     estado_id,
     aprob,
@@ -128,6 +140,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: dniResult.error }, { status: 400 });
     }
     dniEncrypted = encrypt(dniResult.normalized);
+  }
+
+  // Validar y encriptar NIE si se proporciona
+  let nieEncrypted: string | null = null;
+  if (nie) {
+    const nieResult = validarNIE(nie);
+    if (!nieResult.valid) {
+      return NextResponse.json({ error: nieResult.error }, { status: 400 });
+    }
+    nieEncrypted = encrypt(nieResult.normalized);
   }
 
   // Para candidatos, fecha_inicio es obligatoria
@@ -227,6 +249,7 @@ export async function POST(req: Request) {
       apellidos: apellidos || null,
       alias: alias || null,
       dni_encrypted: dniEncrypted,
+      nie_encrypted: nieEncrypted,
       iglesia_id,
       codigo,
       estado_id,

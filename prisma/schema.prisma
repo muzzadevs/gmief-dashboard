@@ -57,6 +57,7 @@ model Ministerio {
   apellidos String?          @db.VarChar(60)
   alias     String?          @db.VarChar(50)
   dni_encrypted String?      @db.VarChar(255)
+  nie_encrypted String?      @db.VarChar(255)
   iglesia_id Int
   codigo    String?          @unique(map: "codigo") @db.VarChar(7)
   estado_id Int

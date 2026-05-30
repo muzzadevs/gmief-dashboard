@@ -4,6 +4,7 @@ export type Ministerio = {
   apellidos: string;
   alias: string | null;
   dni: string | null; // DNI desencriptado (solo en respuesta API, nunca en BD)
+  nie: string | null; // NIE desencriptado (solo en respuesta API, nunca en BD)
   iglesia_id: number;
   codigo: string | null;
   estado_id: number;

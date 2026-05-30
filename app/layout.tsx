@@ -12,6 +12,11 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "filadelfiaConecta",
   description: "Desarrollado por Kodaly para KDK",
+  icons: {
+    icon: "/faviconFC.ico",
+    shortcut: "/faviconFC.ico",
+    apple: "/faviconFC.ico",
+  },
 };
 
 export default function RootLayout({

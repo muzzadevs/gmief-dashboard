@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { encrypt, decrypt } from "@/lib/encryption";
-import { validarDNI } from "@/lib/dniUtils";
+import { validarDNI, validarNIE } from "@/lib/dniUtils";
 import { calcularFase } from "@/lib/candidatoUtils";
 
 // Obtener un ministerio por id (con cargos y candidato_detalle)
@@ -54,12 +54,24 @@ export async function GET(
     }
   }
 
+  // Desencriptar NIE si existe
+  let nie: string | null = null;
+  if (ministerio.nie_encrypted) {
+    try {
+      nie = decrypt(ministerio.nie_encrypted);
+    } catch {
+      nie = null;
+    }
+  }
+
   return NextResponse.json({
     ...ministerio,
     imagen: undefined, // No enviar el blob binario en el JSON
     has_imagen: ministerio.imagen !== null && ministerio.imagen !== undefined,
     dni,
+    nie,
     dni_encrypted: undefined, // No enviar el dato encriptado al frontend
+    nie_encrypted: undefined, // No enviar el dato encriptado al frontend
     cargos: ministerio.cargos.map((c: { cargo_id: number }) => c.cargo_id).join(",") || null,
     fecha_inicio: ministerio.candidato_detalle?.fecha_inicio
       ? new Date(ministerio.candidato_detalle.fecha_inicio).toISOString().split("T")[0]
@@ -83,6 +95,7 @@ export async function PUT(
     apellidos,
     alias,
     dni,
+    nie,
     iglesia_id,
     codigo,
     estado_id,
@@ -116,6 +129,16 @@ export async function PUT(
     dniEncrypted = encrypt(dniResult.normalized);
   }
 
+  // Validar y encriptar NIE si se proporciona
+  let nieEncrypted: string | null = null;
+  if (nie) {
+    const nieResult = validarNIE(nie);
+    if (!nieResult.valid) {
+      return NextResponse.json({ error: nieResult.error }, { status: 400 });
+    }
+    nieEncrypted = encrypt(nieResult.normalized);
+  }
+
   // Para ministerios, código es obligatorio
   if (tipo === "MINISTERIO" && !codigo) {
     return NextResponse.json(
@@ -146,6 +169,7 @@ export async function PUT(
       apellidos: apellidos || null,
       alias: alias || null,
       dni_encrypted: dniEncrypted,
+      nie_encrypted: nieEncrypted,
       iglesia_id,
       codigo: tipo === "MINISTERIO" ? codigo : null,
       estado_id,
