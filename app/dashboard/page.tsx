@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import LoaderPersonalizado from "../components/LoaderPersonalizado";
+import { searchIncludes } from "@/lib/search";
 
 type Modulo = {
   id: number;
@@ -95,19 +96,10 @@ export default function Dashboard() {
     fetchModulos();
   }, []);
 
-  function quitarTildes(str: string) {
-    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  }
-
   const modulosFiltrados = busqueda.trim().length > 0
     ? modulos.filter((m) =>
-        quitarTildes(m.nombre.toLowerCase()).includes(
-          quitarTildes(busqueda.trim().toLowerCase())
-        ) ||
-        (m.descripcion &&
-          quitarTildes(m.descripcion.toLowerCase()).includes(
-            quitarTildes(busqueda.trim().toLowerCase())
-          ))
+        searchIncludes(m.nombre, busqueda) ||
+        (m.descripcion && searchIncludes(m.descripcion, busqueda))
       )
     : modulos;
 

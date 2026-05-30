@@ -5,6 +5,7 @@ import * as PopoverPrimitive from "@radix-ui/react-popover";
 import { Command as CommandPrimitive } from "cmdk";
 import { Check, ChevronDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { normalizeSearchText } from "@/lib/search";
 
 export interface ComboboxOption {
   value: string;
@@ -102,6 +103,9 @@ export default function Combobox({
           >
             <CommandPrimitive
               shouldFilter={true}
+              filter={(value, search) => {
+                return normalizeSearchText(value).includes(normalizeSearchText(search)) ? 1 : 0;
+              }}
               className="flex flex-col"
             >
               {/* Search input */}

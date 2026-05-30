@@ -4,6 +4,7 @@ import { FaUsers, FaEdit } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import type { Iglesia } from "@/types/subzonas";
 import { useZonasStore } from "@/store/zonasStore";
+import { searchStartsWith } from "@/lib/search";
 
 interface Props {
   busqueda?: string;
@@ -52,16 +53,10 @@ export default function Iglesias({ busqueda = "" }: Props) {
 
   if (!zonaSelected) return null;
 
-  function quitarTildes(str: string) {
-    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  }
-
   const iglesiasFiltradas = (
     busqueda.trim().length > 0
       ? iglesias.filter((ig: Iglesia) =>
-          quitarTildes(ig.nombre.toLowerCase()).startsWith(
-            quitarTildes(busqueda.trim().toLowerCase())
-          )
+          searchStartsWith(ig.nombre, busqueda)
         )
       : iglesias
   )

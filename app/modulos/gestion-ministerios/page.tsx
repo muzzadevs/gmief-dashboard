@@ -6,6 +6,7 @@ import { useZonasStore } from "@/store/zonasStore";
 import LoaderPersonalizado from "../../components/LoaderPersonalizado";
 import ModalAgregarZona from "../../components/ModalAgregarZona";
 import ModalEditarZonas from "../../components/ModalEditarZonas";
+import { searchIncludes } from "@/lib/search";
 
 type Zona = { id: number; nombre: string; codigo: string };
 type ZonaStats = Record<number, { ministerios: number; candidatos: number }>;
@@ -46,17 +47,9 @@ export default function GestionMinisteriosHome() {
     fetchData();
   }, []);
 
-  function quitarTildes(str: string) {
-    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  }
-
   const zonasFiltradas =
     busqueda.trim().length > 0
-      ? zonas.filter((z) =>
-          quitarTildes(z.nombre.toLowerCase()).includes(
-            quitarTildes(busqueda.trim().toLowerCase())
-          )
-        )
+      ? zonas.filter((z) => searchIncludes(z.nombre, busqueda))
       : zonas;
 
   return (

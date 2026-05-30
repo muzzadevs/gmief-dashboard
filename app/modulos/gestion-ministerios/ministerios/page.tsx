@@ -204,7 +204,7 @@ export default function Ministerios() {
           <div className="flex justify-center mb-4 px-3">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200">
               <span className="text-xs font-semibold text-slate-600">
-                Ministerios: <span className="text-emerald-600 font-bold">{countMinisterios}</span>
+                Obreros: <span className="text-emerald-600 font-bold">{countMinisterios}</span>
               </span>
             </div>
           </div>
