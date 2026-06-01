@@ -9,12 +9,37 @@ import type { Ministerio, Cargo } from "@/types/ministerios";
 import { calcularFase, formatDiasRestantes } from "@/lib/candidatoUtils";
 import Toast, { useToast } from "../../../components/Toast";
 
+type PastorInfo = {
+  id: number;
+  iglesia_id: number;
+  ministerio_id: number;
+  ministerio: {
+    id: number;
+    nombre: string;
+    apellidos: string | null;
+    alias: string | null;
+    telefono: string | null;
+    iglesia_id: number;
+    iglesia_nombre: string;
+    iglesia_zona: string;
+    iglesia_zona_codigo: string;
+  };
+  iglesia: {
+    id: number;
+    nombre: string;
+    zona_nombre: string;
+    zona_codigo: string;
+  };
+};
+
 export default function Ministerios() {
   const router = useRouter();
   const iglesiaSelected = useZonasStore((s) => s.iglesiaSelected);
   const setMinisterioEditId = useZonasStore((s) => s.setMinisterioEditId);
   const [ministerios, setMinisterios] = useState<Ministerio[]>([]);
   const [cargos, setCargos] = useState<Cargo[]>([]);
+  const [pastorInfo, setPastorInfo] = useState<PastorInfo | null>(null);
+  const [pastorModalOpen, setPastorModalOpen] = useState(false);
   const [avatarModal, setAvatarModal] = useState<{
     open: boolean;
     letra: string | null;
@@ -44,17 +69,20 @@ export default function Ministerios() {
     }
     const fetchData = async () => {
       setLoading(true);
-      const [minRes, carRes] = await Promise.all([
+      const [minRes, carRes, pastorRes] = await Promise.all([
         fetch(`/api/ministerios?iglesiaId=${iglesiaSelected.id}`),
         fetch(`/api/cargos`),
+        fetch(`/api/pastores?iglesiaId=${iglesiaSelected.id}`),
       ]);
-      const [minData, carData] = await Promise.all([
+      const [minData, carData, pastorData] = await Promise.all([
         minRes.json(),
         carRes.json(),
+        pastorRes.json(),
       ]);
       if (isMounted) {
         setMinisterios(minData);
         setCargos(carData);
+        setPastorInfo(pastorData);
         setImgTimestamp(Date.now());
         setLoading(false);
       }
@@ -118,6 +146,11 @@ export default function Ministerios() {
   const countMinisterios = ministerios.filter((m) => m.tipo === "MINISTERIO").length;
   const countCandidatos = ministerios.filter((m) => m.tipo === "CANDIDATO").length;
 
+  // Pastor display name
+  const pastorDisplayName = pastorInfo?.ministerio
+    ? (pastorInfo.ministerio.alias || `${pastorInfo.ministerio.nombre} ${pastorInfo.ministerio.apellidos || ""}`.trim())
+    : null;
+
   return (
     <main className="min-h-screen flex flex-col">
       <Toast
@@ -141,10 +174,24 @@ export default function Ministerios() {
             </svg>
             Volver
           </button>
-          <div className="flex flex-row items-center gap-3 w-full">
+          <div className="flex flex-row items-center gap-3 w-full flex-wrap">
             <span className="font-semibold text-lg text-slate-800 truncate">
               Iglesia {iglesiaSelected.nombre}
             </span>
+            {/* Pastor badge */}
+            {pastorInfo && pastorDisplayName && (
+              <button
+                type="button"
+                onClick={() => setPastorModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-semibold hover:bg-purple-200 transition-colors cursor-pointer"
+                title={`Pastor: ${pastorInfo.ministerio.nombre} ${pastorInfo.ministerio.apellidos || ""}`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                </svg>
+                Pastor actual: {pastorDisplayName}
+              </button>
+            )}
             <button
               type="button"
               className="btn-primary bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 ml-auto sm:ml-2"
@@ -662,6 +709,81 @@ export default function Ministerios() {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal info pastor */}
+      {pastorModalOpen && pastorInfo && pastorInfo.ministerio && (
+        <div
+          className="fixed inset-0 z-[2100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setPastorModalOpen(false)}
+        >
+          <div
+            className="glass-card-solid p-8 max-w-sm w-full flex flex-col gap-5 animate-fadein"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8 text-purple-600">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                </svg>
+              </div>
+              <div className="text-lg font-bold text-slate-800 mb-1">
+                Pastor de {iglesiaSelected.nombre}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Nombre completo</p>
+                <p className="font-bold text-slate-800">
+                  {pastorInfo.ministerio.nombre} {pastorInfo.ministerio.apellidos || ""}
+                </p>
+                {pastorInfo.ministerio.alias && (
+                  <p className="text-sm text-slate-500">Alias: {pastorInfo.ministerio.alias}</p>
+                )}
+              </div>
+
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Iglesia de pertenencia</p>
+                <p className="font-semibold text-slate-800">
+                  [{pastorInfo.ministerio.iglesia_zona_codigo}] {pastorInfo.ministerio.iglesia_nombre}
+                </p>
+              </div>
+
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Zona</p>
+                <p className="font-semibold text-slate-800">
+                  {pastorInfo.ministerio.iglesia_zona}
+                </p>
+              </div>
+
+              {pastorInfo.ministerio.telefono && (
+                <a
+                  href={`tel:${pastorInfo.ministerio.telefono}`}
+                  className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-emerald-600">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15l2.25-2.25a1.5 1.5 0 0 0 0-2.121l-3.75-3.75a1.5 1.5 0 0 0-2.121 0l-1.125 1.125a12.042 12.042 0 0 1-5.25-5.25l1.125-1.125a1.5 1.5 0 0 0 0-2.121l-3.75-3.75a1.5 1.5 0 0 0-2.121 0L2.25 6.75z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs text-emerald-600 font-medium">Llamar</p>
+                    <p className="font-bold text-emerald-800">{pastorInfo.ministerio.telefono}</p>
+                  </div>
+                </a>
+              )}
+            </div>
+
+            <button
+              type="button"
+              className="btn-primary bg-slate-800 text-white hover:bg-slate-900 shadow-md w-full mt-2"
+              onClick={() => setPastorModalOpen(false)}
+            >
+              Cerrar
+            </button>
           </div>
         </div>
       )}

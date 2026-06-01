@@ -45,6 +45,7 @@ model Iglesia {
   zona        Zona         @relation(fields: [zona_id], references: [id])
   subzona     Subzona?     @relation(fields: [subzona_id], references: [id])
   ministerios Ministerio[]
+  pastor      PastorIglesia?
 
   @@index([zona_id])
   @@index([subzona_id])
@@ -72,6 +73,7 @@ model Ministerio {
   cargos    MinisterioCargo[]
   observaciones Observacion[]
   candidato_detalle CandidatoDetalle?
+  pastor_iglesia PastorIglesia?
 
   @@index([iglesia_id])
   @@index([estado_id])
@@ -126,6 +128,16 @@ model CandidatoDetalle {
   ministerio              Ministerio @relation(fields: [ministerio_id], references: [id], onDelete: Cascade)
 
   @@map("candidato_detalle")
+}
+
+model PastorIglesia {
+  id            Int        @id @default(autoincrement())
+  iglesia_id    Int        @unique
+  ministerio_id Int        @unique
+  iglesia       Iglesia    @relation(fields: [iglesia_id], references: [id])
+  ministerio    Ministerio @relation(fields: [ministerio_id], references: [id])
+
+  @@map("pastores_iglesia")
 }
 
 model Modulo {

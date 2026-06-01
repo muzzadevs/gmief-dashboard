@@ -13,11 +13,20 @@ import { calcularFase, formatDiasRestantes } from "@/lib/candidatoUtils";
 type Estado = { id: number; nombre: string };
 type Cargo = { id: number; cargo: string };
 type DocType = "DNI" | "NIE";
+type IglesiaTodas = {
+  id: number;
+  nombre: string;
+  zona_id: number;
+  zona_nombre: string;
+  zona_codigo: string;
+};
 
 const DOC_TYPE_OPTIONS = [
   { value: "DNI", label: "DNI" },
   { value: "NIE", label: "NIE" },
 ] as const;
+
+const PASTOR_CARGO_ID = 1;
 
 const DNI_LETTERS = "TRWAGMYFPDXBNJZSQVHLCKE";
 function validarDNIFrontend(dni: string): { valid: boolean; error?: string } {
@@ -58,6 +67,7 @@ type MinisterioForm = {
   alias: string;
   dni: string;
   nie: string;
+  iglesia_id: string;
   codigo: string | null;
   estado_id: string | number;
   tipo: "MINISTERIO" | "CANDIDATO";
@@ -77,6 +87,7 @@ export default function EditarMinisterio() {
   const { toast, showSuccess, showError, hideToast } = useToast();
   const [estados, setEstados] = useState<Estado[]>([]);
   const [cargos, setCargos] = useState<Cargo[]>([]);
+  const [todasIglesias, setTodasIglesias] = useState<IglesiaTodas[]>([]);
   const [form, setForm] = useState<MinisterioForm | null>(null);
   const [loading, setLoading] = useState(false);
   const [imagenFile, setImagenFile] = useState<File | null>(null);
@@ -89,6 +100,22 @@ export default function EditarMinisterio() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [docType, setDocType] = useState<DocType>("DNI");
 
+  // Pastor state
+  const [pastorIglesiaId, setPastorIglesiaId] = useState<string>("");
+  const [originalPastorIglesiaId, setOriginalPastorIglesiaId] = useState<string>("");
+  const [hadPastorCargo, setHadPastorCargo] = useState(false);
+  const [pastorConfirmModal, setPastorConfirmModal] = useState<{
+    open: boolean;
+    iglesiaId: number;
+    iglesiaNombre: string;
+    pastorActual: {
+      display_name: string;
+      iglesia_nombre: string;
+      zona_nombre: string;
+    } | null;
+  }>({ open: false, iglesiaId: 0, iglesiaNombre: "", pastorActual: null });
+  const [pastorConfirmed, setPastorConfirmed] = useState(false);
+
   useEffect(() => {
     if (!iglesiaSelected) {
       router.push("/modulos/gestion-ministerios/zonas-subzonas");
@@ -100,40 +127,44 @@ export default function EditarMinisterio() {
       return;
     }
     const fetchData = async () => {
-      const [estRes, carRes, minRes] = await Promise.all([
+      const [estRes, carRes, minRes, igRes] = await Promise.all([
         fetch(`/api/estados`),
         fetch(`/api/cargos`),
         fetch(`/api/ministerios/${id}`),
+        fetch(`/api/iglesias/todas`),
       ]);
       setEstados(await estRes.json());
       setCargos(await carRes.json());
       const minData = await minRes.json();
+      const iglesiasData = await igRes.json();
+      setTodasIglesias(iglesiasData);
 
-      // Obtener el código de zona de la iglesia para separar prefijo y parte numérica
-      const zonaRes = await fetch(`/api/ministerios/next-codigo?iglesiaId=${iglesiaSelected.id}`);
+      // Obtener el código de zona de la iglesia del ministerio
+      const zonaRes = await fetch(`/api/ministerios/next-codigo?iglesiaId=${minData.iglesia_id}`);
       const zonaData = await zonaRes.json();
       const zonaCodigo = zonaData.codigoZona || "";
       setCodigoZona(zonaCodigo);
 
-      // Separar la parte numérica del código
       if (minData.codigo && zonaCodigo) {
         const numPart = minData.codigo.slice(zonaCodigo.length);
         setCodigoNumero(numPart);
         setCodigoOriginal(minData.codigo);
       }
 
-      // Determinar el tipo de documento basado en los datos existentes
       if (minData.nie) {
         setDocType("NIE");
       } else {
         setDocType("DNI");
       }
 
+      const cargoIds = minData.cargos ? minData.cargos.split(",").map(Number) : minData.tipo === "MINISTERIO" ? [4] : [];
+
       setForm({
         ...minData,
+        iglesia_id: String(minData.iglesia_id),
         estado_id: minData.estado_id?.toString() || "",
         tipo: minData.tipo || "MINISTERIO",
-        cargos: minData.cargos ? minData.cargos.split(",").map(Number) : minData.tipo === "MINISTERIO" ? [4] : [],
+        cargos: cargoIds,
         fecha_inicio: minData.fecha_inicio || "",
         fecha_candidato_nacional: minData.fecha_candidato_nacional || "",
         notas: minData.notas || "",
@@ -146,9 +177,41 @@ export default function EditarMinisterio() {
         aprob: minData.aprob ? String(minData.aprob) : "",
       });
       setHasImagen(!!minData.has_imagen);
+
+      // Check if this ministerio has pastor cargo and is pastor of an iglesia
+      const hasPastor = cargoIds.includes(PASTOR_CARGO_ID);
+      setHadPastorCargo(hasPastor);
+      if (hasPastor) {
+        try {
+          const pastorRes = await fetch(`/api/pastores?ministerioId=${id}`);
+          const pastorData = await pastorRes.json();
+          if (pastorData && pastorData.iglesia_id) {
+            setPastorIglesiaId(String(pastorData.iglesia_id));
+            setOriginalPastorIglesiaId(String(pastorData.iglesia_id));
+            setPastorConfirmed(true);
+          }
+        } catch {
+          // ignore
+        }
+      }
     };
     fetchData();
   }, [iglesiaSelected, router, ministerioEditId]);
+
+  // When iglesia changes in form, re-fetch codigo
+  const handleIglesiaChange = async (val: string) => {
+    if (!form) return;
+    setForm((f) => f && { ...f, iglesia_id: val });
+    if (val) {
+      try {
+        const codRes = await fetch(`/api/ministerios/next-codigo?iglesiaId=${val}`);
+        const codData = await codRes.json();
+        if (codData.codigoZona) setCodigoZona(codData.codigoZona);
+      } catch {
+        // ignore
+      }
+    }
+  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -180,6 +243,12 @@ export default function EditarMinisterio() {
       const cargos = f.cargos.includes(id) ? f.cargos.filter((c) => c !== id) : [...f.cargos, id];
       return { ...f, cargos };
     });
+
+    // If pastor cargo is being removed, clear pastor iglesia
+    if (id === PASTOR_CARGO_ID && form.cargos.includes(PASTOR_CARGO_ID)) {
+      setPastorIglesiaId("");
+      setPastorConfirmed(false);
+    }
   };
 
   const handleDocTypeChange = (newDocType: DocType) => {
@@ -191,6 +260,48 @@ export default function EditarMinisterio() {
     }
   };
 
+  // Handle pastor iglesia selection
+  const handlePastorIglesiaChange = async (val: string) => {
+    if (!val) {
+      setPastorIglesiaId("");
+      setPastorConfirmed(false);
+      return;
+    }
+
+    // If it's the same as original, just set it
+    if (val === originalPastorIglesiaId) {
+      setPastorIglesiaId(val);
+      setPastorConfirmed(true);
+      return;
+    }
+
+    // Check if iglesia already has a pastor
+    try {
+      const res = await fetch(`/api/pastores/check?iglesiaId=${val}`);
+      const data = await res.json();
+
+      if (data.has_pastor && data.pastor.ministerio_id !== form?.id) {
+        const iglesiaInfo = todasIglesias.find((ig) => ig.id === Number(val));
+        setPastorConfirmModal({
+          open: true,
+          iglesiaId: Number(val),
+          iglesiaNombre: iglesiaInfo ? `[${iglesiaInfo.zona_codigo}] ${iglesiaInfo.nombre}` : "",
+          pastorActual: {
+            display_name: data.pastor.display_name,
+            iglesia_nombre: data.pastor.iglesia_nombre,
+            zona_nombre: data.pastor.zona_nombre,
+          },
+        });
+      } else {
+        setPastorIglesiaId(val);
+        setPastorConfirmed(true);
+      }
+    } catch {
+      setPastorIglesiaId(val);
+      setPastorConfirmed(true);
+    }
+  };
+
   const handleDelete = async () => {
     if (!form) return;
     setDeleteLoading(true);
@@ -199,6 +310,16 @@ export default function EditarMinisterio() {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("No se pudo eliminar");
+
+      // Also remove pastor assignment if had one
+      if (hadPastorCargo) {
+        await fetch("/api/pastores", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ministerio_id: form.id }),
+        });
+      }
+
       showSuccess(form.tipo === "MINISTERIO" ? "Ministerio eliminado exitosamente" : "Candidato eliminado exitosamente");
       setTimeout(() => router.push("/modulos/gestion-ministerios/ministerios"), 1500);
     } catch (err) {
@@ -211,7 +332,7 @@ export default function EditarMinisterio() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!form || !iglesiaSelected) return;
+    if (!form) return;
     const errores: string[] = [];
     if (!form.nombre.trim()) errores.push("El campo «Nombre» es obligatorio");
 
@@ -224,17 +345,27 @@ export default function EditarMinisterio() {
       if (!nieCheck.valid) errores.push(nieCheck.error!);
     }
 
+    if (!form.iglesia_id) errores.push("Debe seleccionar una «Iglesia»");
+
     if (form.tipo === "MINISTERIO") {
       if (!codigoNumero || codigoNumero.length === 0) errores.push("Debe introducir la parte numérica del «Código»");
       if (form.cargos.length === 0) errores.push("Debe seleccionar al menos un «Cargo»");
     }
     if (form.tipo === "CANDIDATO") { if (!form.fecha_inicio) errores.push("La «Fecha de inicio» es obligatoria para candidatos"); }
     if (!form.estado_id) errores.push("Debe seleccionar un «Estado»");
+
+    // Validate pastor iglesia if pastor cargo is selected
+    if (form.cargos.includes(PASTOR_CARGO_ID) && !pastorIglesiaId) {
+      errores.push("Debe seleccionar la iglesia donde va a pastorear");
+    }
+
     if (form.email) { const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; if (!emailRegex.test(form.email)) errores.push("El «Email» introducido no tiene un formato válido"); }
     if (errores.length > 0) { showError(errores.join("\n")); return; }
 
     setLoading(true);
     try {
+      const iglesiaId = parseInt(form.iglesia_id, 10);
+
       const res = await fetch(`/api/ministerios/${form.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -249,7 +380,7 @@ export default function EditarMinisterio() {
           aprob: form.aprob ? parseInt(String(form.aprob), 10) : null,
           telefono: form.telefono || null,
           email: form.email || null,
-          iglesia_id: iglesiaSelected.id,
+          iglesia_id: iglesiaId,
           tipo: form.tipo,
           fecha_inicio: form.tipo === "CANDIDATO" ? form.fecha_inicio : null,
           notas: form.tipo === "CANDIDATO" ? (form.notas || null) : null,
@@ -259,6 +390,28 @@ export default function EditarMinisterio() {
       await fetch(`/api/ministerio_cargo/${form.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cargos: form.cargos }) });
       if (imagenFile) { const formData = new FormData(); formData.append("imagen", imagenFile); await fetch(`/api/ministerios/${form.id}/imagen`, { method: "POST", body: formData }); }
       else if (imagenRemoved && hasImagen) { await fetch(`/api/ministerios/${form.id}/imagen`, { method: "DELETE" }); }
+
+      // Handle pastor assignment
+      const hasPastorCargoNow = form.cargos.includes(PASTOR_CARGO_ID);
+      if (hasPastorCargoNow && pastorIglesiaId) {
+        // Assign or update pastor
+        await fetch("/api/pastores", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            iglesia_id: parseInt(pastorIglesiaId, 10),
+            ministerio_id: form.id,
+          }),
+        });
+      } else if (!hasPastorCargoNow && hadPastorCargo) {
+        // Remove pastor assignment
+        await fetch("/api/pastores", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ministerio_id: form.id }),
+        });
+      }
+
       showSuccess(form.tipo === "MINISTERIO" ? "Ministerio actualizado exitosamente" : "Candidato actualizado exitosamente");
       setLoading(false);
       setTimeout(() => { router.push("/modulos/gestion-ministerios/ministerios"); }, 1500);
@@ -274,11 +427,20 @@ export default function EditarMinisterio() {
 
   const estadoOptions = estados.map((e) => ({ value: String(e.id), label: e.nombre }));
   const yearOptions = years.map((y) => ({ value: String(y), label: String(y) }));
+  const iglesiaOptions = todasIglesias.map((ig) => ({
+    value: String(ig.id),
+    label: `[${ig.zona_codigo}] ${ig.nombre}`,
+  }));
+  const pastorIglesiaOptions = todasIglesias.map((ig) => ({
+    value: String(ig.id),
+    label: `[${ig.zona_codigo}] ${ig.nombre}`,
+  }));
+
   const isCandidato = form.tipo === "CANDIDATO";
   const faseInfo = isCandidato && form.fecha_inicio ? calcularFase(form.fecha_inicio) : null;
   const filteredCargos = isCandidato ? cargos.filter((c) => c.id !== 4) : cargos;
+  const hasPastorCargo = form.cargos.includes(PASTOR_CARGO_ID);
 
-  // Valor activo del documento y su validación
   const docValue = docType === "DNI" ? form.dni : form.nie;
   const docValidation = docType === "DNI"
     ? (form.dni && form.dni.length === 9 ? validarDNIFrontend(form.dni) : null)
@@ -324,6 +486,25 @@ export default function EditarMinisterio() {
               <div className="flex flex-col gap-1.5"><label htmlFor="nombre" className="font-medium text-slate-700 text-sm">Nombre <span className="text-red-500">*</span></label><input id="nombre" name="nombre" value={form.nombre} onChange={handleChange} className="input-glass w-full" autoComplete="off" /></div>
               <div className="flex flex-col gap-1.5"><label htmlFor="apellidos" className="font-medium text-slate-700 text-sm">Apellidos</label><input id="apellidos" name="apellidos" value={form.apellidos} onChange={handleChange} className="input-glass w-full" autoComplete="off" /></div>
               <div className="flex flex-col gap-1.5"><label htmlFor="alias" className="font-medium text-slate-700 text-sm">Alias</label><input id="alias" name="alias" value={form.alias} onChange={handleChange} className="input-glass w-full" autoComplete="off" /></div>
+            </div>
+
+            {/* Iglesia */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="iglesia_id" className="font-medium text-slate-700 text-sm">
+                  Iglesia <span className="text-red-500">*</span>
+                </label>
+                <Combobox
+                  id="iglesia_id"
+                  name="iglesia_id"
+                  options={iglesiaOptions}
+                  value={form.iglesia_id}
+                  onChange={handleIglesiaChange}
+                  placeholder="Selecciona iglesia"
+                  searchPlaceholder="Buscar iglesia..."
+                  emptyMessage="No se encontraron iglesias."
+                />
+              </div>
             </div>
 
             {/* DNI / NIE con selector */}
@@ -425,6 +606,34 @@ export default function EditarMinisterio() {
               </div>
             )}
 
+            {/* Pastor iglesia selector */}
+            {hasPastorCargo && (
+              <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                <div className="flex flex-col gap-2">
+                  <label className="font-semibold text-purple-800 text-sm flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6M3.75 9v.75A2.25 2.25 0 006 12h12a2.25 2.25 0 002.25-2.25V9" />
+                    </svg>
+                    ¿De qué iglesia es pastor? <span className="text-red-500">*</span>
+                  </label>
+                  <Combobox
+                    options={pastorIglesiaOptions}
+                    value={pastorIglesiaId}
+                    onChange={handlePastorIglesiaChange}
+                    placeholder="Selecciona la iglesia"
+                    searchPlaceholder="Buscar iglesia..."
+                    emptyMessage="No se encontraron iglesias."
+                  />
+                  {pastorIglesiaId && pastorConfirmed && (
+                    <span className="text-xs text-emerald-600 flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      Iglesia seleccionada
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-3 mt-2">
               <button type="submit" className={`flex-1 py-2.5 rounded-xl text-white font-bold text-base shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed ${isCandidato ? "bg-gradient-to-r from-blue-600 to-blue-500 shadow-blue-600/25 hover:from-blue-700 hover:to-blue-600" : "bg-gradient-to-r from-emerald-600 to-emerald-500 shadow-emerald-600/25 hover:from-emerald-700 hover:to-emerald-600"}`} disabled={loading}>
                 {loading ? "Guardando..." : "Guardar cambios"}
@@ -451,6 +660,66 @@ export default function EditarMinisterio() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteModalOpen(false)}
       />
+
+      {/* Modal confirmar cambio de pastor */}
+      {pastorConfirmModal.open && pastorConfirmModal.pastorActual && (
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => {
+            setPastorConfirmModal({ open: false, iglesiaId: 0, iglesiaNombre: "", pastorActual: null });
+          }}
+        >
+          <div
+            className="glass-card-solid p-8 max-w-md w-full flex flex-col gap-6 animate-fadein"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8 text-amber-600">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+              </div>
+              <div className="text-lg font-semibold text-slate-800 mb-2">
+                Iglesia con pastor asignado
+              </div>
+              <p className="text-sm text-slate-600">
+                El pastor actual de <span className="font-bold text-slate-800">{pastorConfirmModal.iglesiaNombre}</span> es:
+              </p>
+              <div className="mt-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                <p className="font-bold text-slate-800">{pastorConfirmModal.pastorActual.display_name}</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Zona {pastorConfirmModal.pastorActual.zona_nombre} · De la iglesia {pastorConfirmModal.pastorActual.iglesia_nombre}
+                </p>
+              </div>
+              <p className="text-sm text-slate-600 mt-3">
+                ¿Quiere nombrar a <span className="font-bold text-purple-700">{form?.alias || `${form?.nombre} ${form?.apellidos}`.trim() || "este ministerio"}</span> como nuevo pastor?
+              </p>
+            </div>
+            <div className="flex gap-3 justify-center">
+              <button
+                type="button"
+                className="btn-primary bg-slate-800 text-white hover:bg-slate-900 shadow-md"
+                onClick={() => {
+                  setPastorConfirmModal({ open: false, iglesiaId: 0, iglesiaNombre: "", pastorActual: null });
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn-primary bg-purple-600 text-white hover:bg-purple-700 shadow-md"
+                onClick={() => {
+                  setPastorIglesiaId(String(pastorConfirmModal.iglesiaId));
+                  setPastorConfirmed(true);
+                  setPastorConfirmModal({ open: false, iglesiaId: 0, iglesiaNombre: "", pastorActual: null });
+                }}
+              >
+                Aceptar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
