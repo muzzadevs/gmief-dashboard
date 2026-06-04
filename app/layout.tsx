@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
+import SecretAdminTrigger from "./components/SecretAdminTrigger";
 
 const poppins = Poppins({
   weight: ["400", "500", "600", "700"],
@@ -35,6 +36,7 @@ export default function RootLayout({
         className={`${poppins.variable} antialiased min-h-screen min-h-dvh w-full`}
       >
         {children}
+        <SecretAdminTrigger />
       </body>
     </html>
   );
