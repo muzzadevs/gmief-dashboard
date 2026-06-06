@@ -4,7 +4,7 @@ import { useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import LoginTemporal from "./components/LoginTemporal";
+import FloatingPhotos from "./components/FloatingPhotos";
 
 export default function Home() {
   const router = useRouter();
@@ -32,8 +32,8 @@ export default function Home() {
 
   return (
     <main className="min-h-dvh relative overflow-hidden">
-      {/* Temporary alternate login background */}
-      <LoginTemporal />
+      {/* Floating photos background */}
+      <FloatingPhotos />
 
       {/* Login form */}
       <div className="relative z-10 min-h-dvh grid place-items-center px-4">
