@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import SecretAdminTrigger from "./components/SecretAdminTrigger";
 
@@ -36,7 +37,9 @@ export default function RootLayout({
         className={`${poppins.variable} antialiased min-h-screen min-h-dvh w-full`}
       >
         {children}
-        <SecretAdminTrigger />
+        <Suspense fallback={null}>
+          <SecretAdminTrigger />
+        </Suspense>
       </body>
     </html>
   );
