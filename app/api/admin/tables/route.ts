@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ADMIN_TOKEN } from "@/store/adminStore";
-import { TABLE_DEFINITIONS } from "@/lib/adminTableDefs";
+import { getAdminTableDefinitions } from "@/lib/adminDynamicTables";
 
 export async function GET(request: Request) {
   // Verify admin token
@@ -12,8 +12,9 @@ export async function GET(request: Request) {
     );
   }
 
-  const tables = Object.entries(TABLE_DEFINITIONS).map(([key, def]) => ({
-    key,
+  const tableDefinitions = await getAdminTableDefinitions();
+  const tables = tableDefinitions.map((def) => ({
+    key: def.key,
     label: def.label,
     model: def.model,
     columnCount: def.columns.length,

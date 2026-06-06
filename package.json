@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@fontsource/poppins": "^5.2.7",
-    "@next/font": "^14.2.15",
     "@prisma/adapter-mariadb": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@radix-ui/react-popover": "^1.1.15",
@@ -27,6 +26,7 @@
     "react-image-crop": "^11.0.10",
     "react-leaflet": "^5.0.0",
     "tailwind-merge": "^3.5.0",
+    "three": "^0.184.0",
     "zustand": "^5.0.8"
   },
   "devDependencies": {

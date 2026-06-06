@@ -24,6 +24,7 @@ interface ComboboxProps {
   className?: string;
   id?: string;
   name?: string;
+  theme?: "light" | "dark";
   "aria-label"?: string;
 }
 
@@ -39,6 +40,7 @@ export default function Combobox({
   className,
   id,
   name,
+  theme = "light",
   "aria-label": ariaLabel,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
@@ -67,24 +69,39 @@ export default function Combobox({
             disabled={disabled}
             className={cn(
               "flex w-full items-center justify-between",
-              "bg-[rgba(255,255,255,0.95)] border border-[rgba(203,213,225,0.6)]",
-              "rounded-xl px-4 py-2.5 text-[0.9375rem] text-slate-900",
-              "shadow-[0_1px_3px_rgba(0,0,0,0.04)]",
+              "rounded-xl px-4 py-2.5 text-[0.9375rem]",
               "outline-none transition-all duration-200",
-              "hover:border-slate-400 hover:shadow-[0_2px_6px_rgba(0,0,0,0.06)]",
-              "focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)]",
-              "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[rgba(203,213,225,0.6)]",
+              theme === "dark"
+                ? [
+                    "bg-slate-800/80 border border-slate-700/60 text-slate-200",
+                    "hover:border-slate-600",
+                    "focus:border-slate-500 focus:shadow-[0_0_0_3px_rgba(100,116,139,0.2)]",
+                    "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-slate-700/60",
+                  ]
+                : [
+                    "bg-[rgba(255,255,255,0.95)] border border-[rgba(203,213,225,0.6)] text-slate-900",
+                    "shadow-[0_1px_3px_rgba(0,0,0,0.04)]",
+                    "hover:border-slate-400 hover:shadow-[0_2px_6px_rgba(0,0,0,0.06)]",
+                    "focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)]",
+                    "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[rgba(203,213,225,0.6)]",
+                  ],
               "cursor-pointer",
               className
             )}
           >
-            <span className={cn("truncate", !selectedLabel && "text-slate-400")}>
+            <span
+              className={cn(
+                "truncate",
+                !selectedLabel && (theme === "dark" ? "text-slate-500" : "text-slate-400")
+              )}
+            >
               {selectedLabel || placeholder}
             </span>
             <ChevronDown
               className={cn(
-                "ml-2 h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200",
-                open && "rotate-180 text-blue-500"
+                "ml-2 h-4 w-4 shrink-0 transition-transform duration-200",
+                theme === "dark" ? "text-slate-500" : "text-slate-500",
+                open && (theme === "dark" ? "rotate-180 text-slate-300" : "rotate-180 text-blue-500")
               )}
             />
           </button>
@@ -96,10 +113,18 @@ export default function Combobox({
             sideOffset={6}
             className={cn(
               "z-[9999] w-[var(--radix-popover-trigger-width)]",
-              "bg-white/95 backdrop-blur-xl",
-              "border border-slate-200/80 rounded-xl",
-              "shadow-[0_12px_40px_rgba(0,0,0,0.12)]",
-              "overflow-hidden",
+              "rounded-xl overflow-hidden",
+              theme === "dark"
+                ? [
+                    "bg-slate-800/95 backdrop-blur-xl",
+                    "border border-slate-700/70",
+                    "shadow-[0_12px_40px_rgba(2,6,23,0.55)]",
+                  ]
+                : [
+                    "bg-white/95 backdrop-blur-xl",
+                    "border border-slate-200/80",
+                    "shadow-[0_12px_40px_rgba(0,0,0,0.12)]",
+                  ],
               "animate-in fade-in-0 zoom-in-95 slide-in-from-top-2",
               "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=closed]:slide-out-to-top-2",
               "duration-200"
@@ -113,15 +138,22 @@ export default function Combobox({
               className="flex flex-col"
             >
               {searchable && (
-                <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-100">
-                  <Search className="h-4 w-4 text-slate-400 shrink-0" />
+                <div
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2.5 border-b",
+                    theme === "dark" ? "border-slate-700/70" : "border-slate-100"
+                  )}
+                >
+                  <Search className={cn("h-4 w-4 shrink-0", theme === "dark" ? "text-slate-500" : "text-slate-400")} />
                   <CommandPrimitive.Input
                     value={search}
                     onValueChange={setSearch}
                     placeholder={searchPlaceholder}
                     className={cn(
-                      "w-full bg-transparent text-sm text-slate-800",
-                      "outline-none placeholder:text-slate-400"
+                      "w-full bg-transparent text-sm outline-none",
+                      theme === "dark"
+                        ? "text-slate-200 placeholder:text-slate-500"
+                        : "text-slate-800 placeholder:text-slate-400"
                     )}
                   />
                 </div>
@@ -129,7 +161,7 @@ export default function Combobox({
 
               {/* Options list */}
               <CommandPrimitive.List id={listId} className="max-h-[240px] overflow-y-auto overscroll-contain p-1.5">
-                <CommandPrimitive.Empty className="py-6 text-center text-sm text-slate-400">
+                <CommandPrimitive.Empty className={cn("py-6 text-center text-sm", theme === "dark" ? "text-slate-500" : "text-slate-400")}>
                   {emptyMessage}
                 </CommandPrimitive.Empty>
 
@@ -145,17 +177,28 @@ export default function Combobox({
                     className={cn(
                       "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm cursor-pointer",
                       "transition-colors duration-150",
-                      "text-slate-700",
-                      "data-[selected=true]:bg-blue-50 data-[selected=true]:text-blue-700",
-                      "hover:bg-slate-50",
-                      option.value === value && "bg-blue-50/70 text-blue-700 font-medium"
+                      theme === "dark"
+                        ? [
+                            "text-slate-300",
+                            "data-[selected=true]:bg-slate-700 data-[selected=true]:text-slate-100",
+                            "hover:bg-slate-700/70",
+                            option.value === value && "bg-slate-700 text-slate-100 font-medium",
+                          ]
+                        : [
+                            "text-slate-700",
+                            "data-[selected=true]:bg-blue-50 data-[selected=true]:text-blue-700",
+                            "hover:bg-slate-50",
+                            option.value === value && "bg-blue-50/70 text-blue-700 font-medium",
+                          ]
                     )}
                   >
                     <Check
                       className={cn(
                         "h-4 w-4 shrink-0 transition-opacity",
                         option.value === value
-                          ? "opacity-100 text-blue-600"
+                          ? theme === "dark"
+                            ? "opacity-100 text-slate-200"
+                            : "opacity-100 text-blue-600"
                           : "opacity-0"
                       )}
                     />

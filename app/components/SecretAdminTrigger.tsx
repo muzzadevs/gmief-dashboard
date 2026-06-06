@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useAdminStore } from "@/store/adminStore";
 
@@ -31,7 +31,10 @@ function isMobileOrTablet(): boolean {
 
 export default function SecretAdminTrigger() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const unlock = useAdminStore((s) => s.unlock);
+  const setReturnPath = useAdminStore((s) => s.setReturnPath);
 
   const [showModal, setShowModal] = useState(false);
   const [showMobileMsg, setShowMobileMsg] = useState(false);
@@ -89,6 +92,9 @@ export default function SecretAdminTrigger() {
       if (password === SECRET_PASSWORD) {
         setIsLoading(true);
         setUnlockSuccess(true);
+        const query = searchParams.toString();
+        const currentRoute = `${pathname}${query ? `?${query}` : ""}`;
+        setReturnPath(currentRoute);
         unlock();
         setTimeout(() => {
           setShowModal(false);
@@ -102,7 +108,7 @@ export default function SecretAdminTrigger() {
         setPassword("");
       }
     },
-    [password, unlock, router]
+    [password, pathname, searchParams, setReturnPath, unlock, router]
   );
 
   const handleClose = useCallback(() => {

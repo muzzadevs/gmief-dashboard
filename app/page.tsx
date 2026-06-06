@@ -1,55 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-
-// Floating photo component
-function FloatingPhoto({
-  src,
-  index,
-}: {
-  src: string;
-  index: number;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  // Generate deterministic but varied positions/animations per photo
-  const size = 180 + (index * 37) % 120; // 180-300px
-  const startX = ((index * 31 + 17) % 90) + 5; // 5-95%
-  const startY = ((index * 47 + 23) % 80) + 10; // 10-90%
-  const duration = 25 + (index * 13) % 20; // 25-45s
-  const delay = (index * 3) % 10; // 0-10s
-  const rotation = ((index * 19) % 30) - 15; // -15 to 15 deg
-
-  return (
-    <div
-      ref={ref}
-      className="absolute pointer-events-none select-none"
-      style={{
-        width: `${size}px`,
-        height: `${size}px`,
-        left: `${startX}%`,
-        top: `${startY}%`,
-        opacity: 0,
-        transform: `rotate(${rotation}deg) scale(0.9)`,
-        animation: `floatPhoto ${duration}s ease-in-out ${delay}s infinite`,
-      }}
-    >
-      <div className="w-full h-full rounded-2xl overflow-hidden shadow-2xl ring-2 ring-white/20 rotate-3">
-        <Image
-          src={src}
-          alt=""
-          fill
-          className="object-cover grayscale"
-          sizes={`${size}px`}
-          unoptimized
-        />
-      </div>
-    </div>
-  );
-}
+import LoginTemporal from "./components/LoginTemporal";
 
 export default function Home() {
   const router = useRouter();
@@ -57,23 +12,7 @@ export default function Home() {
   const [pass, setPass] = useState("");
   const [error, setError] = useState("");
   const [showPass, setShowPass] = useState(false);
-  const [fotos, setFotos] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    const fetchFotos = async () => {
-      try {
-        const res = await fetch("/api/login-fotos");
-        const json = await res.json();
-        if (json.ok && json.data) {
-          setFotos(json.data);
-        }
-      } catch (err) {
-        console.error("Error fetching login fotos:", err);
-      }
-    };
-    fetchFotos();
-  }, []);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -92,25 +31,12 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen min-h-dvh relative overflow-hidden">
-      {/* Floating photos background */}
-      {fotos.length > 0 && (
-        <div className="absolute inset-0 z-0 overflow-hidden">
-          {fotos.map((foto, i) => (
-            <FloatingPhoto
-              key={foto}
-              src={foto}
-              index={i}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Overlay gradient */}
-      <div className="absolute inset-0 z-[1] bg-gradient-to-br from-blue-900/60 via-blue-800/40 to-indigo-900/60 backdrop-blur-[2px]" />
+    <main className="min-h-dvh relative overflow-hidden">
+      {/* Temporary alternate login background */}
+      <LoginTemporal />
 
       {/* Login form */}
-      <div className="relative z-10 min-h-screen min-h-dvh grid place-items-center px-4">
+      <div className="relative z-10 min-h-dvh grid place-items-center px-4">
         <div className="w-full max-w-sm">
           {/* Glass card */}
           <div className="glass-card-solid p-8 animate-fadein shadow-2xl">
@@ -263,37 +189,6 @@ export default function Home() {
         </a>
       </span>
 
-      {/* CSS animations for floating photos */}
-      <style jsx>{`
-        @keyframes floatPhoto {
-          0% {
-            opacity: 0;
-            transform: rotate(var(--rotation, 0deg)) scale(0.8) translateY(20px);
-          }
-          5% {
-            opacity: 0.35;
-          }
-          25% {
-            opacity: 0.45;
-            transform: rotate(calc(var(--rotation, 0deg) + 3deg)) scale(1) translateY(-15px) translateX(10px);
-          }
-          50% {
-            opacity: 1;
-            transform: rotate(calc(var(--rotation, 0deg) - 2deg)) scale(0.95) translateY(10px) translateX(-8px);
-          }
-          75% {
-            opacity: 0.45;
-            transform: rotate(calc(var(--rotation, 0deg) + 1deg)) scale(1.02) translateY(-20px) translateX(5px);
-          }
-          95% {
-            opacity: 0.35;
-          }
-          100% {
-            opacity: 0;
-            transform: rotate(var(--rotation, 0deg)) scale(0.8) translateY(20px);
-          }
-        }
-      `}</style>
     </main>
   );
 }

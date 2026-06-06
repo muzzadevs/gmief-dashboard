@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import type { LatLngTuple } from "leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import MapSearchBar from "./MapSearchBar";
 
 type IglesiaMapa = {
   id: number;
@@ -43,10 +44,45 @@ interface SpainMapProps {
   onLoadingChange?: (loading: boolean) => void;
 }
 
+// Inner component to handle flying to selected church and opening popup
+function FlyToHandler({
+  selectedIglesia,
+  markerRefs,
+}: {
+  selectedIglesia: IglesiaMapa | null;
+  markerRefs: React.MutableRefObject<Record<number, L.Marker>>;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (selectedIglesia) {
+      map.flyTo(
+        [selectedIglesia.latitud, selectedIglesia.longitud],
+        16,
+        { duration: 1.2 }
+      );
+
+      // Open popup after fly animation completes
+      const timer = setTimeout(() => {
+        const marker = markerRefs.current[selectedIglesia.id];
+        if (marker) {
+          marker.openPopup();
+        }
+      }, 1300);
+
+      return () => clearTimeout(timer);
+    }
+  }, [selectedIglesia, map, markerRefs]);
+
+  return null;
+}
+
 export default function SpainMap({ onLoadingChange }: SpainMapProps) {
   const [iglesias, setIglesias] = useState<IglesiaMapa[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedIglesia, setSelectedIglesia] = useState<IglesiaMapa | null>(null);
+  const markerRefs = useRef<Record<number, L.Marker>>({});
 
   const center: LatLngTuple = [40.463667, -3.74922];
 
@@ -75,6 +111,10 @@ export default function SpainMap({ onLoadingChange }: SpainMapProps) {
   useEffect(() => {
     fetchIglesias();
   }, [fetchIglesias]);
+
+  const handleSearchSelect = useCallback((iglesia: IglesiaMapa) => {
+    setSelectedIglesia(iglesia);
+  }, []);
 
   if (error) {
     return (
@@ -113,6 +153,11 @@ export default function SpainMap({ onLoadingChange }: SpainMapProps) {
         </div>
       )}
 
+      {/* Floating search bar */}
+      {!loading && iglesias.length > 0 && (
+        <MapSearchBar iglesias={iglesias} onSelect={handleSearchSelect} />
+      )}
+
       <MapContainer
         center={center}
         zoom={6}
@@ -131,6 +176,12 @@ export default function SpainMap({ onLoadingChange }: SpainMapProps) {
           attribution="&copy; OpenStreetMap contributors &copy; CARTO"
         />
 
+        {/* Fly to handler */}
+        <FlyToHandler
+          selectedIglesia={selectedIglesia}
+          markerRefs={markerRefs}
+        />
+
         {/* Marcadores de iglesias desde BDD */}
         {!loading &&
           iglesias.map((iglesia) => {
@@ -140,6 +191,11 @@ export default function SpainMap({ onLoadingChange }: SpainMapProps) {
                 key={iglesia.id}
                 position={[iglesia.latitud, iglesia.longitud]}
                 icon={markerIcon}
+                ref={(ref) => {
+                  if (ref) {
+                    markerRefs.current[iglesia.id] = ref;
+                  }
+                }}
               >
                 <Popup>
                   <div className="text-sm">
