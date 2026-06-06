@@ -104,10 +104,10 @@ export default function MapSearchBar({ iglesias, onSelect }: MapSearchBarProps) 
   return (
     <div
       ref={containerRef}
-      className="fixed top-3 left-1/2 -translate-x-1/2 z-[1001] w-[calc(100%-6.5rem)] sm:w-[400px] md:w-[460px]"
+      className="fixed top-3 left-20 right-6 z-[1001] w-auto sm:left-20 "
     >
       {/* Search Input */}
-      <div className="relative">
+      <div className="relative h-12">
         <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
           <Search className="w-4 h-4 text-slate-400" />
         </div>
@@ -122,7 +122,7 @@ export default function MapSearchBar({ iglesias, onSelect }: MapSearchBarProps) 
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder="Buscar iglesia..."
-          className="w-full pl-10 pr-9 py-2.5 bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 outline-none shadow-lg shadow-black/10 transition-all duration-200 focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15),0_8px_24px_rgba(0,0,0,0.12)]"
+          className="h-12 w-full pl-10 pr-9 bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 outline-none shadow-lg shadow-black/10 transition-all duration-200 focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15),0_8px_24px_rgba(0,0,0,0.12)]"
           autoComplete="off"
         />
         {query.length > 0 && (
