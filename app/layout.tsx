@@ -3,6 +3,7 @@ import { Poppins } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
 import SecretAdminTrigger from "./components/SecretAdminTrigger";
+import PageTransition from "./components/PageTransition";
 
 const poppins = Poppins({
   weight: ["400", "500", "600", "700"],
@@ -36,7 +37,9 @@ export default function RootLayout({
       <body
         className={`${poppins.variable} antialiased min-h-screen min-h-dvh w-full`}
       >
-        {children}
+        <PageTransition>
+          {children}
+        </PageTransition>
         <Suspense fallback={null}>
           <SecretAdminTrigger />
         </Suspense>
