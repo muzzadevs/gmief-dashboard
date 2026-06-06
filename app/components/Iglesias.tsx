@@ -61,9 +61,11 @@ export default function Iglesias({ busqueda = "" }: Props) {
       : iglesias
   )
     .slice()
-    .sort((a, b) =>
-      a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
-    );
+    .sort((a, b) => {
+      // Inactivos al final
+      if (a.activo !== b.activo) return a.activo ? -1 : 1;
+      return a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" });
+    });
 
   if (loading) {
     return <LoaderPersonalizado>Cargando iglesias...</LoaderPersonalizado>;
@@ -92,37 +94,52 @@ export default function Iglesias({ busqueda = "" }: Props) {
         const countMin = iglesiaStats?.ministerios ?? 0;
         const countCand = iglesiaStats?.candidatos ?? 0;
 
+        const isInactive = !iglesia.activo;
+
         return (
           <div
             key={iglesia.id}
-            className="glass-card-solid px-5 py-4 flex flex-col animate-fadein"
+            className={`glass-card-solid px-5 py-4 flex flex-col animate-fadein ${
+              isInactive ? "opacity-50 grayscale" : ""
+            }`}
           >
             <div className="flex flex-row items-center gap-4 w-full">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-base text-slate-800 truncate">
+                  <span className={`font-semibold text-base truncate ${isInactive ? "text-slate-400" : "text-slate-800"}`}>
                     {iglesia.nombre || "sin información"}
                   </span>
-                  {/* Badges de ministerios y candidatos */}
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px]">
-                    <span className="font-bold">{countMin}</span> {countMin === 1 ? "Obrero" : "Obreros"}
-                  </span>
-                  {countCand > 0 && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px]">
-                      <span className="font-bold">{countCand}</span> {countCand === 1 ? "Candidato" : "Candidatos"}
+                  {isInactive && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-[11px] font-bold">
+                      Inactivo
                     </span>
+                  )}
+                  {/* Badges de ministerios y candidatos */}
+                  {!isInactive && (
+                    <>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px]">
+                        <span className="font-bold">{countMin}</span> {countMin === 1 ? "Obrero" : "Obreros"}
+                      </span>
+                      {countCand > 0 && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px]">
+                          <span className="font-bold">{countCand}</span> {countCand === 1 ? "Candidato" : "Candidatos"}
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
                 {haySinInfo ? (
-                  <div className="text-slate-500 text-sm leading-snug">
+                  <div className={`text-sm leading-snug ${isInactive ? "text-slate-400" : "text-slate-500"}`}>
                     Sin información
                   </div>
                 ) : (
                   <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${direccionMaps}`}
+                    href={isInactive ? undefined : `https://www.google.com/maps/search/?api=1&query=${direccionMaps}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 no-underline text-sm leading-snug transition flex items-center gap-1.5 cursor-pointer hover:underline truncate"
+                    className={`no-underline text-sm leading-snug transition flex items-center gap-1.5 truncate ${
+                      isInactive ? "text-slate-400 pointer-events-none" : "text-blue-600 cursor-pointer hover:underline"
+                    }`}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -130,7 +147,7 @@ export default function Iglesias({ busqueda = "" }: Props) {
                       viewBox="0 0 24 24"
                       strokeWidth={1.5}
                       stroke="currentColor"
-                      className="w-4 h-4 text-blue-600 flex-shrink-0"
+                      className={`w-4 h-4 flex-shrink-0 ${isInactive ? "text-slate-400" : "text-blue-600"}`}
                     >
                       <path
                         strokeLinecap="round"
@@ -146,8 +163,14 @@ export default function Iglesias({ busqueda = "" }: Props) {
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   type="button"
-                  className="btn-primary bg-amber-500 text-white hover:bg-amber-600 shadow-md text-sm"
+                  className={`btn-primary shadow-md text-sm ${
+                    isInactive
+                      ? "bg-slate-400 text-white cursor-not-allowed"
+                      : "bg-amber-500 text-white hover:bg-amber-600"
+                  }`}
+                  disabled={isInactive}
                   onClick={() => {
+                    if (isInactive) return;
                     router.push(`/modulos/gestion-ministerios/editar-iglesia/${iglesia.id}`);
                   }}
                   aria-label="Editar iglesia"
@@ -157,8 +180,14 @@ export default function Iglesias({ busqueda = "" }: Props) {
                 </button>
                 <button
                   type="button"
-                  className="btn-primary bg-blue-700 text-white hover:bg-blue-800 shadow-md text-sm"
+                  className={`btn-primary shadow-md text-sm ${
+                    isInactive
+                      ? "bg-slate-400 text-white cursor-not-allowed"
+                      : "bg-blue-700 text-white hover:bg-blue-800"
+                  }`}
+                  disabled={isInactive}
                   onClick={() => {
+                    if (isInactive) return;
                     setIglesiaSelected(iglesia);
                     router.push("/modulos/gestion-ministerios/ministerios");
                   }}

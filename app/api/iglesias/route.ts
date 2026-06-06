@@ -12,7 +12,6 @@ export async function GET(req: NextRequest) {
       where: {
         zona_id: Number(zonaId),
         subzona_id: Number(subzonaId),
-        activo: true,
       },
       orderBy: { nombre: "asc" },
     });
@@ -22,7 +21,6 @@ export async function GET(req: NextRequest) {
   const iglesias = await prisma.iglesia.findMany({
     where: {
       zona_id: Number(zonaId),
-      activo: true,
     },
     orderBy: { nombre: "asc" },
   });

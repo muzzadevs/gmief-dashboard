@@ -8,7 +8,7 @@ import ModalAgregarZona from "../../components/ModalAgregarZona";
 import ModalEditarZonas from "../../components/ModalEditarZonas";
 import { searchIncludes } from "@/lib/search";
 
-type Zona = { id: number; nombre: string; codigo: string };
+type Zona = { id: number; nombre: string; codigo: string; activo: boolean };
 type ZonaStats = Record<number, { ministerios: number; candidatos: number }>;
 
 export default function GestionMinisteriosHome() {
@@ -130,36 +130,53 @@ export default function GestionMinisteriosHome() {
             <div className="flex flex-col gap-3">
               {zonasFiltradas
                 .slice()
-                .sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }))
+                .sort((a, b) => {
+                  // Inactivos al final
+                  if (a.activo !== b.activo) return a.activo ? -1 : 1;
+                  return a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" });
+                })
                 .map((zona) => {
                   const zonaStats = stats[zona.id];
                   const countMin = zonaStats?.ministerios ?? 0;
                   const countCand = zonaStats?.candidatos ?? 0;
 
+                  const isInactive = !zona.activo;
+
                   return (
                     <div
                       key={zona.id}
-                      className="glass-card-solid px-5 py-4 flex flex-col animate-fadein"
+                      className={`glass-card-solid px-5 py-4 flex flex-col animate-fadein ${
+                        isInactive ? "opacity-50 grayscale" : ""
+                      }`}
                     >
                       <div className="flex flex-row items-center gap-4 w-full">
                         {/* Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-base text-slate-800 truncate">
+                            <span className={`font-semibold text-base truncate ${isInactive ? "text-slate-400" : "text-slate-800"}`}>
                               {zona.nombre}
                             </span>
-                            {/* Badges de ministerios y candidatos */}
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px]">
-                              <span className="font-bold">{countMin}</span> {countMin === 1 ? "Obrero" : "Obreros"}
-                            </span>
-                            {countCand > 0 && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px]">
-                                <span className="font-bold">{countCand}</span> {countCand === 1 ? "Candidato" : "Candidatos"}
+                            {isInactive && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-[11px] font-bold">
+                                Inactivo
                               </span>
+                            )}
+                            {/* Badges de ministerios y candidatos */}
+                            {!isInactive && (
+                              <>
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px]">
+                                  <span className="font-bold">{countMin}</span> {countMin === 1 ? "Obrero" : "Obreros"}
+                                </span>
+                                {countCand > 0 && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px]">
+                                    <span className="font-bold">{countCand}</span> {countCand === 1 ? "Candidato" : "Candidatos"}
+                                  </span>
+                                )}
+                              </>
                             )}
                           </div>
                           {zona.codigo && (
-                            <div className="text-xs text-slate-500">
+                            <div className={`text-xs ${isInactive ? "text-slate-400" : "text-slate-500"}`}>
                               Código: <span className="font-mono font-semibold">{zona.codigo}</span>
                             </div>
                           )}
@@ -169,8 +186,14 @@ export default function GestionMinisteriosHome() {
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <button
                             type="button"
-                            className="btn-primary bg-blue-700 text-white hover:bg-blue-800 shadow-md text-sm"
+                            className={`btn-primary shadow-md text-sm ${
+                              isInactive
+                                ? "bg-slate-400 text-white cursor-not-allowed"
+                                : "bg-blue-700 text-white hover:bg-blue-800"
+                            }`}
+                            disabled={isInactive}
                             onClick={() => {
+                              if (isInactive) return;
                               setZonaSelected(zona);
                               router.push("/modulos/gestion-ministerios/zonas-subzonas");
                             }}

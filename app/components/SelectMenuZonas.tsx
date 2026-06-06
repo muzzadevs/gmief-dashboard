@@ -41,7 +41,9 @@ export default function SelectMenuZonas() {
     ? [{ value: "", label: "Cargando zonas..." }]
     : error
     ? [{ value: "", label: "Error cargando zonas" }]
-    : zonas.map((z) => ({ value: String(z.id), label: z.nombre }));
+    : zonas
+        .filter((z) => z.activo)
+        .map((z) => ({ value: String(z.id), label: z.nombre }));
 
   return (
     <Combobox

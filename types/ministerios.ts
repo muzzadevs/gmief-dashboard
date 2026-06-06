@@ -15,6 +15,7 @@ export type Ministerio = {
   estado_nombre: string;
   has_imagen: boolean;
   cargos: string | null; // ids separados por coma
+  activo: boolean;
   // Campos de candidato (solo si tipo = CANDIDATO)
   fecha_inicio: string | null;
   fecha_candidato_nacional: string | null;

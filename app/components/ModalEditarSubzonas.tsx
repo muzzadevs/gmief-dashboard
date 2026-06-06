@@ -6,7 +6,7 @@ import Combobox from "./ui/Combobox";
 import ModalConfirmarEliminar from "./ModalConfirmarEliminar";
 
 type Zona = { id: number; nombre: string };
-type Subzona = { id: number; nombre: string; zona_id: number };
+type Subzona = { id: number; nombre: string; zona_id: number; activo: boolean };
 
 interface ModalEditarSubzonasProps {
   isOpen: boolean;
@@ -176,7 +176,7 @@ export default function ModalEditarSubzonas({
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-3">
-                {subzonas.map((subzona) => (
+                {subzonas.filter((s) => s.activo).map((subzona) => (
                   <div
                     key={subzona.id}
                     className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 p-4 bg-slate-50 rounded-xl items-end"

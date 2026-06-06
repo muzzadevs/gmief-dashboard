@@ -5,11 +5,11 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
   try {
     const iglesias = await prisma.iglesia.findMany({
-      where: { activo: true },
       select: {
         id: true,
         nombre: true,
         zona_id: true,
+        activo: true,
         zona: {
           select: {
             nombre: true,
@@ -24,6 +24,7 @@ export async function GET() {
       id: ig.id,
       nombre: ig.nombre,
       zona_id: ig.zona_id,
+      activo: ig.activo,
       zona_nombre: ig.zona.nombre,
       zona_codigo: ig.zona.codigo.toUpperCase(),
     }));

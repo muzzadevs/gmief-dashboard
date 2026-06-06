@@ -126,6 +126,9 @@ export default function Ministerios() {
     (m.alias ? m.alias : `${m.nombre} ${m.apellidos || ""}`).trim();
 
   const compareMinisterioItem = (a: Ministerio, b: Ministerio) => {
+    // Inactivos al final
+    if (a.activo !== b.activo) return a.activo ? -1 : 1;
+
     const tipoOrder = { MINISTERIO: 0, CANDIDATO: 1 } as const;
     const tipoA = tipoOrder[a.tipo as keyof typeof tipoOrder] ?? 99;
     const tipoB = tipoOrder[b.tipo as keyof typeof tipoOrder] ?? 99;
@@ -299,12 +302,14 @@ export default function Ministerios() {
                 ? "from-blue-500 to-purple-600"
                 : "from-blue-500 to-blue-700";
 
+              const isInactive = !min.activo;
+
               return (
                 <div
                   key={min.id}
                   className={`glass-card-solid px-5 py-4 flex flex-col gap-2 animate-fadein ${
-                    isCandidato ? "border-l-4 border-l-blue-400" : ""
-                  }`}
+                    isCandidato && !isInactive ? "border-l-4 border-l-blue-400" : ""
+                  } ${isInactive ? "opacity-50 grayscale" : ""}`}
                 >
                   <div className="flex flex-col items-center text-center gap-4 sm:flex-row sm:items-center sm:text-left sm:gap-4 w-full">
                     {/* Avatar y nombre */}
@@ -313,14 +318,16 @@ export default function Ministerios() {
                         type="button"
                         className={`w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br ${avatarGradient} flex items-center justify-center text-xl font-bold text-white shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition-transform hover:scale-105`}
                         title="Ver avatar"
-                        onClick={() =>
+                        disabled={isInactive}
+                        onClick={() => {
+                          if (isInactive) return;
                           setAvatarModal({
                             open: true,
                             letra: titulo[0],
                             ministerioId: min.has_imagen ? min.id : null,
-                          })
-                        }
-                        style={{ cursor: "zoom-in" }}
+                          });
+                        }}
+                        style={{ cursor: isInactive ? "default" : "zoom-in" }}
                       >
                         {min.has_imagen ? (
                           <Image
@@ -337,10 +344,15 @@ export default function Ministerios() {
                       </button>
                       <div className="flex flex-col items-center sm:items-start flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-base text-slate-800 truncate">
+                          <span className={`font-semibold text-base truncate ${isInactive ? "text-slate-400" : "text-slate-800"}`}>
                             {titulo}
                           </span>
-                          {isCandidato && (
+                          {isInactive && (
+                            <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-[10px] font-bold uppercase tracking-wider">
+                              Inactivo
+                            </span>
+                          )}
+                          {isCandidato && !isInactive && (
                             <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-wider">
                               Candidato
                             </span>
@@ -366,48 +378,50 @@ export default function Ministerios() {
                         <span className="text-xs text-slate-400 italic">Sin código</span>
                       )}
                       {/* Botones solo en sm+ */}
-                      <div className="hidden sm:flex flex-row gap-2 w-full sm:w-auto justify-end items-end">
-                        {isCandidato && faseInfo?.fase === "APTO_OBRERO" && (
+                      {!isInactive && (
+                        <div className="hidden sm:flex flex-row gap-2 w-full sm:w-auto justify-end items-end">
+                          {isCandidato && faseInfo?.fase === "APTO_OBRERO" && (
+                            <button
+                              type="button"
+                              className="btn-primary bg-emerald-600 text-white hover:bg-emerald-700 shadow-md text-sm"
+                              title="Aprobar como obrero"
+                              onClick={() => setAprobarModal({ open: true, ministerio: min })}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Aprobar
+                            </button>
+                          )}
                           <button
                             type="button"
-                            className="btn-primary bg-emerald-600 text-white hover:bg-emerald-700 shadow-md text-sm"
-                            title="Aprobar como obrero"
-                            onClick={() => setAprobarModal({ open: true, ministerio: min })}
+                            className="btn-primary bg-amber-500 text-white hover:bg-amber-600 shadow-md text-sm"
+                            title="Editar"
+                            onClick={() => {
+                              setMinisterioEditId(min.id);
+                              router.push("/modulos/gestion-ministerios/editar-ministerio");
+                            }}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487a2.1 2.1 0 1 1 2.97 2.97L7.5 19.79l-4 1 1-4 12.362-12.303z" />
                             </svg>
-                            Aprobar
+                            Editar
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          className="btn-primary bg-amber-500 text-white hover:bg-amber-600 shadow-md text-sm"
-                          title="Editar"
-                          onClick={() => {
-                            setMinisterioEditId(min.id);
-                            router.push("/modulos/gestion-ministerios/editar-ministerio");
-                          }}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487a2.1 2.1 0 1 1 2.97 2.97L7.5 19.79l-4 1 1-4 12.362-12.303z" />
-                          </svg>
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-primary bg-red-600 text-white hover:bg-red-700 shadow-md text-sm"
-                          title="Eliminar"
-                          onClick={() =>
-                            setDeleteModal({ open: true, ministerio: min })
-                          }
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                          Eliminar
-                        </button>
-                      </div>
+                          <button
+                            type="button"
+                            className="btn-primary bg-red-600 text-white hover:bg-red-700 shadow-md text-sm"
+                            title="Eliminar"
+                            onClick={() =>
+                              setDeleteModal({ open: true, ministerio: min })
+                            }
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Eliminar
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -500,6 +514,7 @@ export default function Ministerios() {
                   </div>
 
                   {/* Botones en móvil */}
+                  {!isInactive && (
                   <div className="flex sm:hidden flex-row gap-2 w-full mt-2">
                     {isCandidato && faseInfo?.fase === "APTO_OBRERO" && (
                       <button
@@ -542,6 +557,7 @@ export default function Ministerios() {
                       Eliminar
                     </button>
                   </div>
+                  )}
                 </div>
               );
             })

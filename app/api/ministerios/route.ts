@@ -13,7 +13,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "iglesiaId requerido" }, { status: 400 });
   }
 
-  const where: Record<string, unknown> = { iglesia_id: Number(iglesiaId), activo: true };
+  const where: Record<string, unknown> = { iglesia_id: Number(iglesiaId) };
   if (tipo) {
     where.tipo = tipo;
   }
@@ -94,6 +94,7 @@ export async function GET(req: Request) {
       fecha_candidato_nacional: m.candidato_detalle?.fecha_candidato_nacional
         ? new Date(m.candidato_detalle.fecha_candidato_nacional).toISOString().split("T")[0]
         : null,
+      activo: m.activo,
       notas: m.candidato_detalle?.notas || null,
     };
   });

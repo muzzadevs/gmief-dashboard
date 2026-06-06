@@ -2,6 +2,7 @@ export type Subzona = {
   id: number;
   nombre: string;
   zona_id: number;
+  activo: boolean;
 };
 
 export type Iglesia = {
@@ -13,4 +14,5 @@ export type Iglesia = {
   zona_id: number;
   subzona_id: number | null;
   cp: number | null;
+  activo: boolean;
 };

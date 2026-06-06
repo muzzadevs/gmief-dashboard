@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Toast, { useToast } from "./Toast";
 import ModalConfirmarEliminar from "./ModalConfirmarEliminar";
 
-type Zona = { id: number; nombre: string; codigo: string };
+type Zona = { id: number; nombre: string; codigo: string; activo: boolean };
 
 interface ModalEditarZonasProps {
   isOpen: boolean;
@@ -220,7 +220,7 @@ export default function ModalEditarZonas({
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-3">
-                {zonas.map((zona) => (
+                {zonas.filter((z) => z.activo).map((zona) => (
                   <div
                     key={zona.id}
                     className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 p-4 bg-slate-50 rounded-xl items-end"

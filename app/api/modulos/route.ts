@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
   try {
     const modulos = await prisma.modulo.findMany({
-      where: { activo: true },
       orderBy: { orden: "asc" },
     });
 

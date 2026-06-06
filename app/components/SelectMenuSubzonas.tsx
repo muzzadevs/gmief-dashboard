@@ -22,10 +22,12 @@ export default function SelectMenuSubzonas() {
 
   const options = [
     { value: "todas", label: "Todas las subzonas" },
-    ...subzonas.map((subzona: Subzona) => ({
-      value: String(subzona.id),
-      label: subzona.nombre,
-    })),
+    ...subzonas
+      .filter((subzona: Subzona) => subzona.activo)
+      .map((subzona: Subzona) => ({
+        value: String(subzona.id),
+        label: subzona.nombre,
+      })),
   ];
 
   return (

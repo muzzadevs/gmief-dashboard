@@ -7,14 +7,13 @@ export async function GET(req: NextRequest) {
 
   if (zonaId === "ALL") {
     const subzonas = await prisma.subzona.findMany({
-      where: { activo: true },
       orderBy: { nombre: "asc" },
     });
     return NextResponse.json(subzonas);
   }
 
   const subzonas = await prisma.subzona.findMany({
-    where: { zona_id: Number(zonaId), activo: true },
+    where: { zona_id: Number(zonaId) },
     orderBy: { nombre: "asc" },
   });
 

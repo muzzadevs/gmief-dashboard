@@ -15,7 +15,6 @@ export async function GET(req: NextRequest) {
       where.subzona_id = Number(subzonaId);
     }
 
-    where.activo = true;
     const iglesias = await prisma.iglesia.findMany({
       where,
       select: {
