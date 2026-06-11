@@ -74,6 +74,7 @@ model Ministerio {
   observaciones Observacion[]
   candidato_detalle CandidatoDetalle?
   pastor_iglesia PastorIglesia?
+  solicitud_items SolicitudCredencialItem[]
 
   @@index([iglesia_id])
   @@index([estado_id])
@@ -150,4 +151,28 @@ model Modulo {
   orden       Int      @default(0)
 
   @@map("modulos")
+}
+
+model SolicitudCredencial {
+  id          Int      @id @default(autoincrement())
+  fecha       DateTime @default(now())
+  estado      String   @default("PENDIENTE") @db.VarChar(20) // PENDIENTE, EN_PROCESO, COMPLETADA
+  notas       String?  @db.VarChar(500)
+  items       SolicitudCredencialItem[]
+
+  @@map("solicitudes_credencial")
+}
+
+model SolicitudCredencialItem {
+  id              Int      @id @default(autoincrement())
+  solicitud_id    Int
+  ministerio_id   Int
+  expedida        Boolean  @default(false)
+  fecha_expedicion DateTime?
+  solicitud       SolicitudCredencial @relation(fields: [solicitud_id], references: [id], onDelete: Cascade)
+  ministerio      Ministerio          @relation(fields: [ministerio_id], references: [id])
+
+  @@index([solicitud_id])
+  @@index([ministerio_id])
+  @@map("solicitud_credencial_items")
 }
