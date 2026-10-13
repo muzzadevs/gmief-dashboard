@@ -36,9 +36,7 @@ export async function GET(
   return new Response(buffer, {
     headers: {
       "Content-Type": contentType,
-      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-      "Pragma": "no-cache",
-      "Expires": "0",
+      "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
     },
   });
 }

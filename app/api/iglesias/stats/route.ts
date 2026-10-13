@@ -10,39 +10,45 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const where: Record<string, unknown> = { zona_id: Number(zonaId) };
+    const iglesiaWhere: Record<string, unknown> = { zona_id: Number(zonaId) };
     if (subzonaId) {
-      where.subzona_id = Number(subzonaId);
+      iglesiaWhere.subzona_id = Number(subzonaId);
     }
 
-    const iglesias = await prisma.iglesia.findMany({
-      where,
-      select: {
-        id: true,
-        ministerios: {
-          where: { activo: true },
-          select: {
-            tipo: true,
-          },
+    // Query ligera: solo traer tipo y iglesia_id para contar
+    const [iglesiaIds, ministerios] = await Promise.all([
+      prisma.iglesia.findMany({
+        where: iglesiaWhere,
+        select: { id: true },
+      }),
+      prisma.ministerio.findMany({
+        where: {
+          activo: true,
+          iglesia: iglesiaWhere,
         },
-      },
-    });
+        select: {
+          tipo: true,
+          iglesia_id: true,
+        },
+      }),
+    ]);
 
     const stats: Record<number, { ministerios: number; candidatos: number }> = {};
 
-    for (const iglesia of iglesias) {
-      let ministerios = 0;
-      let candidatos = 0;
+    // Inicializar todas las iglesias (incluso las que no tienen ministerios)
+    for (const ig of iglesiaIds) {
+      stats[ig.id] = { ministerios: 0, candidatos: 0 };
+    }
 
-      for (const min of iglesia.ministerios) {
-        if (min.tipo === "CANDIDATO") {
-          candidatos++;
-        } else {
-          ministerios++;
-        }
+    for (const min of ministerios) {
+      if (!stats[min.iglesia_id]) {
+        stats[min.iglesia_id] = { ministerios: 0, candidatos: 0 };
       }
-
-      stats[iglesia.id] = { ministerios, candidatos };
+      if (min.tipo === "CANDIDATO") {
+        stats[min.iglesia_id].candidatos++;
+      } else {
+        stats[min.iglesia_id].ministerios++;
+      }
     }
 
     return NextResponse.json({ ok: true, data: stats });

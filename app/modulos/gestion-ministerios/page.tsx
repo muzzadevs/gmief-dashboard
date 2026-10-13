@@ -218,8 +218,20 @@ export default function GestionMinisteriosHome() {
       <ModalAgregarZona
         isOpen={isModalAgregarOpen}
         onClose={() => setIsModalAgregarOpen(false)}
-        onSuccess={() => {
-          window.location.reload();
+        onSuccess={async () => {
+          // Refetch en vez de reload completo de la página
+          try {
+            const [zonasRes, statsRes] = await Promise.all([
+              fetch("/api/zonas"),
+              fetch("/api/zonas/stats"),
+            ]);
+            const zonasJson = await zonasRes.json();
+            const statsJson = await statsRes.json();
+            if (zonasJson.ok && zonasJson.data) setZonas(zonasJson.data);
+            if (statsJson.ok && statsJson.data) setStats(statsJson.data);
+          } catch (err) {
+            console.error("Error refetching data:", err);
+          }
         }}
       />
 
@@ -227,8 +239,20 @@ export default function GestionMinisteriosHome() {
       <ModalEditarZonas
         isOpen={isModalEditarOpen}
         onClose={() => setIsModalEditarOpen(false)}
-        onSuccess={() => {
-          window.location.reload();
+        onSuccess={async () => {
+          // Refetch en vez de reload completo de la página
+          try {
+            const [zonasRes, statsRes] = await Promise.all([
+              fetch("/api/zonas"),
+              fetch("/api/zonas/stats"),
+            ]);
+            const zonasJson = await zonasRes.json();
+            const statsJson = await statsRes.json();
+            if (zonasJson.ok && zonasJson.data) setZonas(zonasJson.data);
+            if (statsJson.ok && statsJson.data) setStats(statsJson.data);
+          } catch (err) {
+            console.error("Error refetching data:", err);
+          }
         }}
       />
     </main>

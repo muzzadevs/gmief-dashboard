@@ -105,8 +105,16 @@ export default function ZonasSubZonas() {
       <ModalEditarSubzonas
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={() => {
-          window.location.reload();
+        onSuccess={async () => {
+          // Refetch subzonas e iglesias en vez de reload completo
+          const zonaSelected = useZonasStore.getState().zonaSelected;
+          if (zonaSelected) {
+            const subzonaSelected = useZonasStore.getState().subzonaSelected;
+            await Promise.all([
+              useZonasStore.getState().fetchSubzonas(zonaSelected.id),
+              useZonasStore.getState().fetchIglesias(zonaSelected.id, subzonaSelected?.id),
+            ]);
+          }
         }}
       />
     </main>

@@ -18,16 +18,26 @@ export async function GET(req: Request) {
     where.tipo = tipo;
   }
 
-  const ministerios = await prisma.ministerio.findMany({
-    where,
-    include: {
-      estado: { select: { nombre: true } },
-      cargos: { select: { cargo_id: true } },
-      candidato_detalle: {
-        select: { fecha_inicio: true, fecha_candidato_nacional: true, notas: true },
+  const [ministerios, ministeriosConImagen] = await Promise.all([
+    prisma.ministerio.findMany({
+      where,
+      omit: { imagen: true },
+      include: {
+        estado: { select: { nombre: true } },
+        cargos: { select: { cargo_id: true } },
+        candidato_detalle: {
+          select: { fecha_inicio: true, fecha_candidato_nacional: true, notas: true },
+        },
       },
-    },
-  });
+    }),
+    // Sub-consulta ligera: solo IDs de ministerios que tienen imagen
+    prisma.ministerio.findMany({
+      where: { ...where, imagen: { not: null } },
+      select: { id: true },
+    }),
+  ]);
+
+  const imagenIds = new Set(ministeriosConImagen.map((m) => m.id));
 
   // Auto-detectar y persistir fecha_candidato_nacional
   for (const m of ministerios) {
@@ -86,7 +96,7 @@ export async function GET(req: Request) {
       telefono: m.telefono,
       email: m.email,
       estado_nombre: m.estado.nombre,
-      has_imagen: m.imagen !== null && m.imagen !== undefined,
+      has_imagen: imagenIds.has(m.id),
       cargos: m.cargos.map((c) => c.cargo_id).join(",") || null,
       fecha_inicio: m.candidato_detalle?.fecha_inicio
         ? new Date(m.candidato_detalle.fecha_inicio).toISOString().split("T")[0]

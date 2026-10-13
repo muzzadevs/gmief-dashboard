@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { cached, CACHE_TTL } from "@/lib/cache";
 
 export async function GET() {
   try {
-    const iglesias = await prisma.iglesia.findMany({
+    const iglesias = await cached("iglesias:mapa", CACHE_TTL.FREQUENT, () => prisma.iglesia.findMany({
       where: {
         latitud: { not: null },
         longitud: { not: null },
@@ -30,7 +31,7 @@ export async function GET() {
         },
       },
       orderBy: { nombre: "asc" },
-    });
+    }));
 
     return NextResponse.json({ ok: true, data: iglesias });
   } catch (error: unknown) {

@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { cached, invalidateCachePrefix, CACHE_TTL } from "@/lib/cache";
 
 export async function GET() {
   try {
-    const rows = await prisma.zona.findMany({
-      orderBy: { nombre: "asc" },
-    });
+    const rows = await cached("zonas:all", CACHE_TTL.FREQUENT, () =>
+      prisma.zona.findMany({ orderBy: { nombre: "asc" } })
+    );
 
     return NextResponse.json({ ok: true, data: rows }, { status: 200 });
   } catch (error: unknown) {
@@ -94,6 +95,9 @@ export async function POST(request: Request) {
         codigo: normalizedCodigo,
       },
     });
+
+    // Invalidar caché de zonas y stats
+    invalidateCachePrefix("zonas:");
 
     return NextResponse.json(
       {
@@ -235,6 +239,9 @@ export async function PUT(request: Request) {
       });
     }
 
+    // Invalidar caché de zonas
+    invalidateCachePrefix("zonas:");
+
     return NextResponse.json(
       {
         ok: true,
@@ -292,6 +299,9 @@ export async function DELETE(request: Request) {
       where: { id },
       data: { activo: false },
     });
+
+    // Invalidar caché de zonas y stats
+    invalidateCachePrefix("zonas:");
 
     return NextResponse.json(
       { ok: true, message: "Zona eliminada exitosamente" },

@@ -15,6 +15,7 @@ export async function GET(
         items: {
           include: {
             ministerio: {
+              omit: { imagen: true },
               include: {
                 iglesia: {
                   include: {
@@ -39,6 +40,14 @@ export async function GET(
         { status: 404 }
       );
     }
+
+    // Obtener IDs de ministerios que tienen imagen (sin traer el blob)
+    const ministerioIds = solicitud.items.map((item) => item.ministerio_id);
+    const ministeriosConImagen = await prisma.ministerio.findMany({
+      where: { id: { in: ministerioIds }, imagen: { not: null } },
+      select: { id: true },
+    });
+    const imagenIds = new Set(ministeriosConImagen.map((m) => m.id));
 
     const result = {
       id: solicitud.id,
@@ -70,7 +79,7 @@ export async function GET(
             codigo: m.codigo,
             dni,
             nie,
-            has_imagen: m.imagen !== null && m.imagen !== undefined,
+            has_imagen: imagenIds.has(m.id),
             iglesia_nombre: m.iglesia.nombre,
             zona_nombre: m.iglesia.zona.nombre,
             zona_codigo: m.iglesia.zona.codigo.toUpperCase(),

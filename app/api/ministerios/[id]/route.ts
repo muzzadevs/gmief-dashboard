@@ -12,21 +12,28 @@ export async function GET(
   const { id } = await params;
   if (!id) return NextResponse.json({ error: "id requerido" }, { status: 400 });
 
-  const ministerio = await prisma.ministerio.findUnique({
-    where: { id: Number(id) },
-    include: {
-      cargos: { select: { cargo_id: true } },
-      candidato_detalle: {
-        select: { fecha_inicio: true, fecha_candidato_nacional: true, notas: true },
+  const [ministerio, imagenCheck] = await Promise.all([
+    prisma.ministerio.findUnique({
+      where: { id: Number(id) },
+      omit: { imagen: true },
+      include: {
+        cargos: { select: { cargo_id: true } },
+        candidato_detalle: {
+          select: { fecha_inicio: true, fecha_candidato_nacional: true, notas: true },
+        },
       },
-    },
-  });
+    }),
+    // Consulta ligera: solo verifica existencia de imagen sin traer el blob completo
+    prisma.ministerio.count({
+      where: { id: Number(id), imagen: { not: null } },
+    }).then((count) => count > 0),
+  ]);
 
   if (!ministerio) {
     return NextResponse.json({ error: "No encontrado" }, { status: 404 });
   }
 
-  // Auto-detectar y persistir fecha_candidato_nacional
+  // Auto-detectar y persistir fecha_candidato_nacional (fire-and-forget, no bloquea la respuesta)
   if (
     ministerio.tipo === "CANDIDATO" &&
     ministerio.candidato_detalle?.fecha_inicio &&
@@ -36,10 +43,11 @@ export async function GET(
     if (fase.fase === "CANDIDATO_NACIONAL" || fase.fase === "APTO_OBRERO") {
       const fechaHoy = new Date();
       fechaHoy.setHours(0, 0, 0, 0);
-      await prisma.candidatoDetalle.update({
+      // Fire-and-forget: no bloqueamos la respuesta
+      prisma.candidatoDetalle.update({
         where: { ministerio_id: ministerio.id },
         data: { fecha_candidato_nacional: fechaHoy },
-      });
+      }).catch((err) => console.error("[GET /api/ministerios/[id]] Error auto-persist:", err));
       ministerio.candidato_detalle.fecha_candidato_nacional = fechaHoy;
     }
   }
@@ -66,8 +74,7 @@ export async function GET(
 
   return NextResponse.json({
     ...ministerio,
-    imagen: undefined, // No enviar el blob binario en el JSON
-    has_imagen: ministerio.imagen !== null && ministerio.imagen !== undefined,
+    has_imagen: imagenCheck,
     dni,
     nie,
     dni_encrypted: undefined, // No enviar el dato encriptado al frontend

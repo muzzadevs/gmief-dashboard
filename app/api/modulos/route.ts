@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { cached, CACHE_TTL } from "@/lib/cache";
 
 export async function GET() {
   try {
-    const modulos = await prisma.modulo.findMany({
-      orderBy: { orden: "asc" },
-    });
+    const modulos = await cached("modulos:all", CACHE_TTL.MODERATE, () =>
+      prisma.modulo.findMany({ orderBy: { orden: "asc" } })
+    );
 
     return NextResponse.json({ ok: true, data: modulos }, { status: 200 });
   } catch (error: unknown) {
