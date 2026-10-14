@@ -456,22 +456,63 @@ export default function Ministerios() {
                   {/* Stepper del proceso del candidato */}
                   {isCandidato && faseInfo && (
                     <div className="mt-2 rounded-xl bg-slate-50/80 px-3 py-3">
-                      <div className="grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-4">
-                        {etapasStepper.map((etapa, index) => {
-                          const styleByFase = {
-                            ENSAYISTA: { dot: "bg-amber-500", text: "text-amber-700" },
-                            CANDIDATO_LOCAL: { dot: "bg-blue-500", text: "text-blue-700" },
-                            CANDIDATO_NACIONAL: { dot: "bg-purple-500", text: "text-purple-700" },
-                            APTO_OBRERO: { dot: "bg-emerald-500", text: "text-emerald-700" },
+                      <div className="relative mx-1 mb-4 h-4">
+                        <div className="absolute left-0 right-0 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-slate-200" />
+                        {etapasStepper.slice(0, 3).map((etapa, index) => {
+                          if (etapa.fase === "APTO_OBRERO") return null;
+                          const siguienteEtapa = etapasStepper[index + 1];
+                          const anchoTramo = siguienteEtapa.posicion - etapa.posicion;
+                          const estilosTramo = {
+                            ENSAYISTA: "bg-amber-500",
+                            CANDIDATO_LOCAL: "bg-blue-500",
+                            CANDIDATO_NACIONAL: "bg-purple-500",
                           } as const;
-                          const faseStyle = styleByFase[etapa.fase];
+
+                          return (
+                            <span
+                              key={etapa.fase}
+                              className={`absolute top-1/2 h-0.5 -translate-y-1/2 transition-all duration-500 ${estilosTramo[etapa.fase]}`}
+                              style={{
+                                left: `${etapa.posicion}%`,
+                                width: `${anchoTramo * etapa.progreso / 100}%`,
+                              }}
+                            />
+                          );
+                        })}
+                        {etapasStepper.map((etapa) => {
+                          const styleByFase = {
+                            ENSAYISTA: "bg-amber-500",
+                            CANDIDATO_LOCAL: "bg-blue-500",
+                            CANDIDATO_NACIONAL: "bg-purple-500",
+                            APTO_OBRERO: "bg-emerald-500",
+                          } as const;
                           const dotColor = etapa.estado === "completada"
                             ? "bg-emerald-500"
                             : etapa.estado === "actual"
-                              ? faseStyle.dot
+                              ? styleByFase[etapa.fase]
                               : "bg-slate-200";
+
+                          return (
+                            <span
+                              key={etapa.fase}
+                              aria-label={`${etapa.label}: ${etapa.estado}`}
+                              className={`absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-slate-50 ${dotColor}`}
+                              style={{ left: `${etapa.posicion}%` }}
+                              title={etapa.label}
+                            />
+                          );
+                        })}
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-4">
+                        {etapasStepper.map((etapa) => {
+                          const styleByFase = {
+                            ENSAYISTA: { text: "text-amber-700" },
+                            CANDIDATO_LOCAL: { text: "text-blue-700" },
+                            CANDIDATO_NACIONAL: { text: "text-purple-700" },
+                            APTO_OBRERO: { text: "text-emerald-700" },
+                          } as const;
                           const textColor = etapa.estado === "actual"
-                            ? faseStyle.text
+                            ? styleByFase[etapa.fase].text
                             : etapa.estado === "completada"
                               ? "text-slate-600"
                               : "text-slate-400";
@@ -487,12 +528,6 @@ export default function Ministerios() {
 
                           return (
                             <div key={etapa.fase} className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${dotColor}`} />
-                                {index < etapasStepper.length - 1 && (
-                                  <span className="hidden h-px flex-1 bg-slate-200 sm:block" />
-                                )}
-                              </div>
                               <p className={`mt-1 text-[11px] font-semibold leading-tight ${textColor}`}>
                                 {etapa.label}
                               </p>

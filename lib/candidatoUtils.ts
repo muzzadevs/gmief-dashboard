@@ -39,6 +39,8 @@ export interface EtapaStepperCandidato {
   estado: "completada" | "actual" | "pendiente";
   diasRestantes: number;
   duracionDias: number | null;
+  posicion: number;
+  progreso: number;
 }
 
 function fechaUTC(fecha: string | Date): string {
@@ -183,6 +185,14 @@ export function calcularStepperCandidato(
         ? etapa.fin - diffDias
         : Math.max(0, etapa.inicio - diffDias),
       duracionDias: etapa.fin === null ? null : etapa.fin - etapa.inicio,
+      posicion: (etapa.inicio / NACIONAL_DIAS) * 100,
+      progreso: etapa.fin === null
+        ? 0
+        : estado === "completada"
+          ? 100
+          : estado === "actual"
+            ? Math.min(100, Math.max(0, ((diffDias - etapa.inicio) / (etapa.fin - etapa.inicio)) * 100))
+            : 0,
     };
   });
 }
