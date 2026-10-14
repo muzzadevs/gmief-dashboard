@@ -182,6 +182,7 @@ export default function Ministerios() {
                 backgroundPosition: "center",
                 backgroundRepeat: "no-repeat",
                 backgroundSize: "28px 28px",
+                filter: "invert(1)",
               }}
             />
             <button
