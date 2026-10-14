@@ -75,11 +75,25 @@ model Ministerio {
   candidato_detalle CandidatoDetalle?
   pastor_iglesia PastorIglesia?
   solicitud_items SolicitudCredencialItem[]
+  historico MinisterioHistorico[]
 
   @@index([iglesia_id])
   @@index([estado_id])
   @@index([tipo])
   @@map("ministerios")
+}
+
+model MinisterioHistorico {
+  id              Int        @id @default(autoincrement())
+  ministerio_id   Int
+  campo           String     @db.VarChar(50)
+  valor_anterior  String?    @db.VarChar(255)
+  valor_nuevo     String?    @db.VarChar(255)
+  fecha           DateTime   @default(now()) @db.DateTime(3)
+  ministerio      Ministerio @relation(fields: [ministerio_id], references: [id], onDelete: Cascade)
+
+  @@index([ministerio_id, fecha])
+  @@map("ministerios_historico")
 }
 
 model Cargo {

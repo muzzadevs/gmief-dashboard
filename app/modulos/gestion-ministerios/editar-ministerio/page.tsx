@@ -13,6 +13,13 @@ import { calcularFase, formatDiasRestantes } from "@/lib/candidatoUtils";
 type Estado = { id: number; nombre: string };
 type Cargo = { id: number; cargo: string };
 type DocType = "DNI" | "NIE";
+type MinisterioHistorico = {
+  id: number;
+  campo: string;
+  valor_anterior: string | null;
+  valor_nuevo: string | null;
+  fecha: string;
+};
 type IglesiaTodas = {
   id: number;
   nombre: string;
@@ -98,6 +105,10 @@ export default function EditarMinisterio() {
   const [codigoOriginal, setCodigoOriginal] = useState<string>("");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [historicoModalOpen, setHistoricoModalOpen] = useState(false);
+  const [historicoLoading, setHistoricoLoading] = useState(false);
+  const [historicoError, setHistoricoError] = useState("");
+  const [historico, setHistorico] = useState<MinisterioHistorico[]>([]);
   const [docType, setDocType] = useState<DocType>("DNI");
 
   // Pastor state
@@ -330,6 +341,25 @@ export default function EditarMinisterio() {
     }
   };
 
+  const handleOpenHistorico = async () => {
+    if (!form) return;
+    setHistoricoModalOpen(true);
+    setHistoricoLoading(true);
+    setHistoricoError("");
+    try {
+      const response = await fetch(`/api/ministerios/${form.id}/historico`);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "No se pudo obtener el histórico");
+      }
+      setHistorico(data);
+    } catch (error) {
+      setHistoricoError(error instanceof Error ? error.message : "No se pudo obtener el histórico");
+    } finally {
+      setHistoricoLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!form) return;
@@ -456,10 +486,20 @@ export default function EditarMinisterio() {
               <h2 className="text-2xl font-bold text-slate-800 tracking-tight text-center sm:text-left">Editar {isCandidato ? "Candidato" : "Ministerio"}</h2>
               {isCandidato && (<span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider">Candidato</span>)}
             </div>
-            <button type="button" className="btn-primary bg-slate-800 text-white hover:bg-slate-900 shadow-lg shadow-slate-800/20" onClick={() => router.push("/modulos/gestion-ministerios/ministerios")} aria-label="Volver" disabled={loading}>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
-              Volver
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="btn-primary bg-amber-500 text-white hover:bg-amber-600 shadow-lg shadow-amber-500/20"
+                onClick={handleOpenHistorico}
+                disabled={loading}
+              >
+                HISTÓRICO
+              </button>
+              <button type="button" className="btn-primary bg-slate-800 text-white hover:bg-slate-900 shadow-lg shadow-slate-800/20" onClick={() => router.push("/modulos/gestion-ministerios/ministerios")} aria-label="Volver" disabled={loading}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+                Volver
+              </button>
+            </div>
           </div>
 
           {isCandidato && faseInfo && (
@@ -650,6 +690,63 @@ export default function EditarMinisterio() {
           </form>
         </div>
       </main>
+
+      {historicoModalOpen && (
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setHistoricoModalOpen(false)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="historico-title"
+            className="glass-card-solid w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col animate-fadein"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <header className="flex items-center justify-between gap-4 p-5 border-b border-slate-200">
+              <div>
+                <h3 id="historico-title" className="text-xl font-bold text-slate-800">Histórico del ministerio</h3>
+                <p className="text-sm text-slate-500">{form.nombre} {form.apellidos}</p>
+              </div>
+              <button
+                type="button"
+                className="rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-100"
+                onClick={() => setHistoricoModalOpen(false)}
+                aria-label="Cerrar histórico"
+              >
+                Cerrar
+              </button>
+            </header>
+            <div className="overflow-y-auto p-5">
+              {historicoLoading ? (
+                <p className="py-8 text-center text-slate-500">Cargando histórico...</p>
+              ) : historicoError ? (
+                <p role="alert" className="py-8 text-center text-red-600">{historicoError}</p>
+              ) : historico.length === 0 ? (
+                <p className="py-8 text-center text-slate-500">Este ministerio todavía no tiene cambios de código registrados.</p>
+              ) : (
+                <ol className="space-y-3">
+                  {historico.map((cambio) => (
+                    <li key={cambio.id} className="rounded-xl border border-slate-200 bg-white/80 p-4">
+                      <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+                        <span className="font-semibold text-slate-800">{cambio.campo}</span>
+                        <time className="text-xs text-slate-500">
+                          {new Date(cambio.fecha).toLocaleString("es-ES")}
+                        </time>
+                      </div>
+                      <p className="mt-2 flex flex-wrap items-center gap-2 font-mono text-sm">
+                        <span className="rounded bg-red-50 px-2 py-1 text-red-700">{cambio.valor_anterior ?? "Sin código"}</span>
+                        <span aria-hidden="true" className="text-slate-400">→</span>
+                        <span className="rounded bg-emerald-50 px-2 py-1 text-emerald-700">{cambio.valor_nuevo ?? "Sin código"}</span>
+                      </p>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* Modal confirmar eliminar ministerio/candidato */}
       <ModalConfirmarEliminar

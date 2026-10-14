@@ -137,16 +137,24 @@ export async function PUT(request: Request) {
       );
     }
 
-    const normalizedZonas = [];
+    const normalizedZonas: { id: number; nombre: string; codigo: string }[] = [];
     const codigosSet = new Set<string>();
 
     for (const zona of zonas) {
-      if (!zona.id || !zona.nombre || !zona.codigo) {
+      const zonaId = Number(zona.id);
+      if (
+        !Number.isInteger(zonaId) ||
+        zonaId <= 0 ||
+        typeof zona.nombre !== "string" ||
+        !zona.nombre.trim() ||
+        typeof zona.codigo !== "string" ||
+        !zona.codigo.trim()
+      ) {
         return NextResponse.json(
           {
             ok: false,
             error: "MISSING_FIELDS",
-            message: "Todas las zonas deben tener id, nombre y código",
+            message: "Todas las zonas deben tener un id, nombre y código válidos",
           },
           { status: 400 }
         );
@@ -200,7 +208,7 @@ export async function PUT(request: Request) {
       codigosSet.add(normalizedCodigo);
 
       normalizedZonas.push({
-        id: zona.id,
+        id: zonaId,
         nombre: zona.nombre.trim(),
         codigo: normalizedCodigo,
       });
@@ -228,16 +236,57 @@ export async function PUT(request: Request) {
       }
     }
 
-    // Actualizar cada zona
-    for (const zona of normalizedZonas) {
-      await prisma.zona.update({
-        where: { id: zona.id },
-        data: {
-          nombre: zona.nombre,
-          codigo: zona.codigo,
-        },
-      });
-    }
+    // Actualizar zonas, códigos ministeriales y su histórico atómicamente.
+    await prisma.$transaction(async (tx) => {
+      for (const zona of normalizedZonas) {
+        const zonaActual = await tx.zona.findUnique({
+          where: { id: zona.id },
+          select: { codigo: true },
+        });
+
+        if (!zonaActual) {
+          throw new Error(`No se encontró la zona con id ${zona.id}`);
+        }
+
+        if (zonaActual.codigo !== zona.codigo) {
+          const ministerios = await tx.ministerio.findMany({
+            where: { iglesia: { zona_id: zona.id } },
+            select: { id: true, codigo: true },
+          });
+
+          for (const ministerio of ministerios) {
+            if (!ministerio.codigo) continue;
+
+            const sufijo = ministerio.codigo.startsWith(zonaActual.codigo)
+              ? ministerio.codigo.slice(zonaActual.codigo.length)
+              : ministerio.codigo.slice(-4);
+            const codigoNuevo = `${zona.codigo}${sufijo}`;
+            if (codigoNuevo === ministerio.codigo) continue;
+
+            await tx.ministerio.update({
+              where: { id: ministerio.id },
+              data: { codigo: codigoNuevo },
+            });
+            await tx.ministerioHistorico.create({
+              data: {
+                ministerio_id: ministerio.id,
+                campo: "Código",
+                valor_anterior: ministerio.codigo,
+                valor_nuevo: codigoNuevo,
+              },
+            });
+          }
+        }
+
+        await tx.zona.update({
+          where: { id: zona.id },
+          data: {
+            nombre: zona.nombre,
+            codigo: zona.codigo,
+          },
+        });
+      }
+    });
 
     // Invalidar caché de zonas
     invalidateCachePrefix("zonas:");

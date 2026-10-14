@@ -169,22 +169,44 @@ export async function PUT(
     }
   }
 
-  await prisma.ministerio.update({
-    where: { id: Number(id) },
-    data: {
-      nombre,
-      apellidos: apellidos || null,
-      alias: alias || null,
-      dni_encrypted: dniEncrypted,
-      nie_encrypted: nieEncrypted,
-      iglesia_id,
-      codigo: tipo === "MINISTERIO" ? codigo : null,
-      estado_id,
-      tipo: tipo || "MINISTERIO",
-      aprob: aprob || null,
-      telefono: telefono || null,
-      email: email || null,
-    },
+  const codigoNuevo = tipo === "MINISTERIO" ? codigo : null;
+  await prisma.$transaction(async (tx) => {
+    const ministerioActual = await tx.ministerio.findUnique({
+      where: { id: Number(id) },
+      select: { codigo: true },
+    });
+    if (!ministerioActual) {
+      throw new Error(`No se encontró el ministerio con id ${id}`);
+    }
+
+    await tx.ministerio.update({
+      where: { id: Number(id) },
+      data: {
+        nombre,
+        apellidos: apellidos || null,
+        alias: alias || null,
+        dni_encrypted: dniEncrypted,
+        nie_encrypted: nieEncrypted,
+        iglesia_id,
+        codigo: codigoNuevo,
+        estado_id,
+        tipo: tipo || "MINISTERIO",
+        aprob: aprob || null,
+        telefono: telefono || null,
+        email: email || null,
+      },
+    });
+
+    if (ministerioActual.codigo !== codigoNuevo) {
+      await tx.ministerioHistorico.create({
+        data: {
+          ministerio_id: Number(id),
+          campo: "Código",
+          valor_anterior: ministerioActual.codigo,
+          valor_nuevo: codigoNuevo,
+        },
+      });
+    }
   });
 
   // Si es candidato, actualizar o crear candidato_detalle
