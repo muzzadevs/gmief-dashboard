@@ -173,11 +173,30 @@ export async function PUT(
   await prisma.$transaction(async (tx) => {
     const ministerioActual = await tx.ministerio.findUnique({
       where: { id: Number(id) },
-      select: { codigo: true },
+      select: {
+        codigo: true,
+        iglesia_id: true,
+        iglesia: {
+          select: {
+            nombre: true,
+            zona: { select: { codigo: true } },
+          },
+        },
+      },
     });
     if (!ministerioActual) {
       throw new Error(`No se encontró el ministerio con id ${id}`);
     }
+
+    const iglesiaNueva = ministerioActual.iglesia_id !== Number(iglesia_id)
+      ? await tx.iglesia.findUnique({
+          where: { id: Number(iglesia_id) },
+          select: {
+            nombre: true,
+            zona: { select: { codigo: true } },
+          },
+        })
+      : null;
 
     await tx.ministerio.update({
       where: { id: Number(id) },
@@ -204,6 +223,17 @@ export async function PUT(
           campo: "Código",
           valor_anterior: ministerioActual.codigo,
           valor_nuevo: codigoNuevo,
+        },
+      });
+    }
+
+    if (iglesiaNueva) {
+      await tx.ministerioHistorico.create({
+        data: {
+          ministerio_id: Number(id),
+          campo: "Cambio de iglesia",
+          valor_anterior: `[${ministerioActual.iglesia.zona.codigo.toUpperCase()}] ${ministerioActual.iglesia.nombre}`,
+          valor_nuevo: `[${iglesiaNueva.zona.codigo.toUpperCase()}] ${iglesiaNueva.nombre}`,
         },
       });
     }

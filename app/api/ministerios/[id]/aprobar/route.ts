@@ -75,32 +75,41 @@ export async function POST(
   const currentYear = new Date().getFullYear();
 
   // Actualizar: tipo → MINISTERIO, asignar código y año de aprobación
-  await prisma.ministerio.update({
-    where: { id: numId },
-    data: {
-      tipo: "MINISTERIO",
-      codigo,
-      aprob: currentYear,
-    },
-  });
-
-  // Asignar cargo de Obrero (id=4) si no lo tiene ya
-  const existingCargo = await prisma.ministerioCargo.findFirst({
-    where: { ministerio_id: numId, cargo_id: 4 },
-  });
-
-  if (!existingCargo) {
-    await prisma.ministerioCargo.create({
+  await prisma.$transaction(async (tx) => {
+    await tx.ministerio.update({
+      where: { id: numId },
       data: {
-        ministerio_id: numId,
-        cargo_id: 4,
+        tipo: "MINISTERIO",
+        codigo,
+        aprob: currentYear,
       },
     });
-  }
 
-  // Eliminar candidato_detalle
-  await prisma.candidatoDetalle.deleteMany({
-    where: { ministerio_id: numId },
+    const existingCargo = await tx.ministerioCargo.findFirst({
+      where: { ministerio_id: numId, cargo_id: 4 },
+    });
+
+    if (!existingCargo) {
+      await tx.ministerioCargo.create({
+        data: {
+          ministerio_id: numId,
+          cargo_id: 4,
+        },
+      });
+    }
+
+    await tx.ministerioHistorico.create({
+      data: {
+        ministerio_id: numId,
+        campo: "Paso de candidato a obrero",
+        valor_anterior: "Candidato",
+        valor_nuevo: "Obrero",
+      },
+    });
+
+    await tx.candidatoDetalle.deleteMany({
+      where: { ministerio_id: numId },
+    });
   });
 
   return NextResponse.json({

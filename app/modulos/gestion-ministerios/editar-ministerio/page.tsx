@@ -109,6 +109,7 @@ export default function EditarMinisterio() {
   const [historicoLoading, setHistoricoLoading] = useState(false);
   const [historicoError, setHistoricoError] = useState("");
   const [historico, setHistorico] = useState<MinisterioHistorico[]>([]);
+  const [historicoSavingId, setHistoricoSavingId] = useState<number | null>(null);
   const [docType, setDocType] = useState<DocType>("DNI");
 
   // Pastor state
@@ -360,6 +361,43 @@ export default function EditarMinisterio() {
     }
   };
 
+  const handleSaveHistoricoFecha = async (
+    event: React.FormEvent<HTMLFormElement>,
+    historicoId: number
+  ) => {
+    event.preventDefault();
+    if (!form) return;
+
+    const fecha = String(new FormData(event.currentTarget).get("fecha") || "");
+    if (!fecha) {
+      showError("Selecciona una fecha para guardar el evento");
+      return;
+    }
+
+    setHistoricoSavingId(historicoId);
+    try {
+      const response = await fetch(`/api/ministerios/${form.id}/historico`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: historicoId, fecha }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "No se pudo actualizar la fecha");
+      }
+      setHistorico((actual) =>
+        actual
+          .map((cambio) => (cambio.id === historicoId ? data : cambio))
+          .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+      );
+      showSuccess("Fecha del evento actualizada");
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "No se pudo actualizar la fecha");
+    } finally {
+      setHistoricoSavingId(null);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!form) return;
@@ -425,7 +463,7 @@ export default function EditarMinisterio() {
       const hasPastorCargoNow = form.cargos.includes(PASTOR_CARGO_ID);
       if (hasPastorCargoNow && pastorIglesiaId) {
         // Assign or update pastor
-        await fetch("/api/pastores", {
+        const pastorRes = await fetch("/api/pastores", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -433,13 +471,21 @@ export default function EditarMinisterio() {
             ministerio_id: form.id,
           }),
         });
+        if (!pastorRes.ok) {
+          const errorData = await pastorRes.json();
+          throw new Error(errorData.error || "No se pudo actualizar el nombramiento de pastor");
+        }
       } else if (!hasPastorCargoNow && hadPastorCargo) {
         // Remove pastor assignment
-        await fetch("/api/pastores", {
+        const pastorRes = await fetch("/api/pastores", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ministerio_id: form.id }),
         });
+        if (!pastorRes.ok) {
+          const errorData = await pastorRes.json();
+          throw new Error(errorData.error || "No se pudo cerrar el nombramiento de pastor");
+        }
       }
 
       showSuccess(form.tipo === "MINISTERIO" ? "Ministerio actualizado exitosamente" : "Candidato actualizado exitosamente");
@@ -723,7 +769,7 @@ export default function EditarMinisterio() {
               ) : historicoError ? (
                 <p role="alert" className="py-8 text-center text-red-600">{historicoError}</p>
               ) : historico.length === 0 ? (
-                <p className="py-8 text-center text-slate-500">Este ministerio todavía no tiene cambios de código registrados.</p>
+                <p className="py-8 text-center text-slate-500">Este ministerio todavía no tiene eventos registrados.</p>
               ) : (
                 <ol className="space-y-3">
                   {historico.map((cambio) => (
@@ -731,14 +777,36 @@ export default function EditarMinisterio() {
                       <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
                         <span className="font-semibold text-slate-800">{cambio.campo}</span>
                         <time className="text-xs text-slate-500">
-                          {new Date(cambio.fecha).toLocaleString("es-ES")}
+                          Fecha: {new Date(`${cambio.fecha.slice(0, 10)}T12:00:00`).toLocaleDateString("es-ES")}
                         </time>
                       </div>
-                      <p className="mt-2 flex flex-wrap items-center gap-2 font-mono text-sm">
-                        <span className="rounded bg-red-50 px-2 py-1 text-red-700">{cambio.valor_anterior ?? "Sin código"}</span>
+                      <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                        <span className="rounded bg-slate-100 px-2 py-1 text-slate-700">{cambio.valor_anterior ?? "Sin dato"}</span>
                         <span aria-hidden="true" className="text-slate-400">→</span>
-                        <span className="rounded bg-emerald-50 px-2 py-1 text-emerald-700">{cambio.valor_nuevo ?? "Sin código"}</span>
+                        <span className="rounded bg-emerald-50 px-2 py-1 text-emerald-800">{cambio.valor_nuevo ?? "Sin dato"}</span>
                       </p>
+                      <form
+                        className="mt-4 flex flex-wrap items-end gap-3 border-t border-slate-100 pt-3"
+                        onSubmit={(event) => handleSaveHistoricoFecha(event, cambio.id)}
+                      >
+                        <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                          Fecha del evento
+                          <input
+                            type="date"
+                            name="fecha"
+                            defaultValue={cambio.fecha.slice(0, 10)}
+                            required
+                            className="input-glass"
+                          />
+                        </label>
+                        <button
+                          type="submit"
+                          disabled={historicoSavingId !== null}
+                          className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-60"
+                        >
+                          {historicoSavingId === cambio.id ? "Guardando..." : "Guardar fecha"}
+                        </button>
+                      </form>
                     </li>
                   ))}
                 </ol>

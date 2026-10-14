@@ -125,38 +125,98 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Buscar pastor previo de la iglesia (si lo tenía) para quitarle el cargo
-    const previousPastor = await prisma.pastorIglesia.findUnique({
-      where: { iglesia_id },
-      select: { ministerio_id: true },
-    });
+    const pastor = await prisma.$transaction(async (tx) => {
+      const [iglesiaNueva, asignacionesAnteriores] = await Promise.all([
+        tx.iglesia.findUnique({
+          where: { id: Number(iglesia_id) },
+          select: {
+            nombre: true,
+            zona: { select: { codigo: true } },
+          },
+        }),
+        tx.pastorIglesia.findMany({
+          where: {
+            OR: [
+              { ministerio_id: Number(ministerio_id) },
+              { iglesia_id: Number(iglesia_id) },
+            ],
+          },
+          include: {
+            iglesia: {
+              select: {
+                nombre: true,
+                zona: { select: { codigo: true } },
+              },
+            },
+          },
+        }),
+      ]);
 
-    // Eliminar asignación previa del ministerio como pastor (si la tenía)
-    await prisma.pastorIglesia.deleteMany({
-      where: { ministerio_id },
-    });
+      if (!iglesiaNueva) {
+        throw new Error(`No se encontró la iglesia con id ${iglesia_id}`);
+      }
 
-    // Eliminar pastor previo de la iglesia (si lo tenía)
-    await prisma.pastorIglesia.deleteMany({
-      where: { iglesia_id },
-    });
+      const asignacionActual = asignacionesAnteriores.find(
+        (asignacion) =>
+          asignacion.ministerio_id === Number(ministerio_id) &&
+          asignacion.iglesia_id === Number(iglesia_id)
+      );
 
-    // Quitar el cargo de Pastor (id=1) al ministerio sustituido
-    if (previousPastor && previousPastor.ministerio_id !== ministerio_id) {
-      await prisma.ministerioCargo.deleteMany({
+      for (const asignacion of asignacionesAnteriores) {
+        if (asignacion.id === asignacionActual?.id) continue;
+
+        await tx.ministerioHistorico.create({
+          data: {
+            ministerio_id: asignacion.ministerio_id,
+            campo: "Fin como pastor",
+            valor_anterior: `Pastor de [${asignacion.iglesia.zona.codigo.toUpperCase()}] ${asignacion.iglesia.nombre}`,
+            valor_nuevo: `Fin del nombramiento en [${asignacion.iglesia.zona.codigo.toUpperCase()}] ${asignacion.iglesia.nombre}`,
+          },
+        });
+      }
+
+      await tx.pastorIglesia.deleteMany({
         where: {
-          ministerio_id: previousPastor.ministerio_id,
-          cargo_id: 1, // Pastor
+          OR: [
+            { ministerio_id: Number(ministerio_id) },
+            { iglesia_id: Number(iglesia_id) },
+          ],
         },
       });
-    }
 
-    // Crear nueva asignación
-    const pastor = await prisma.pastorIglesia.create({
-      data: {
-        iglesia_id,
-        ministerio_id,
-      },
+      for (const asignacion of asignacionesAnteriores) {
+        if (
+          asignacion.ministerio_id !== Number(ministerio_id) &&
+          asignacion.iglesia_id === Number(iglesia_id)
+        ) {
+          await tx.ministerioCargo.deleteMany({
+            where: {
+              ministerio_id: asignacion.ministerio_id,
+              cargo_id: 1,
+            },
+          });
+        }
+      }
+
+      const nuevaAsignacion = await tx.pastorIglesia.create({
+        data: {
+          iglesia_id: Number(iglesia_id),
+          ministerio_id: Number(ministerio_id),
+        },
+      });
+
+      if (!asignacionActual) {
+        await tx.ministerioHistorico.create({
+          data: {
+            ministerio_id: Number(ministerio_id),
+            campo: "Inicio como pastor",
+            valor_anterior: "Sin nombramiento",
+            valor_nuevo: `Pastor de [${iglesiaNueva.zona.codigo.toUpperCase()}] ${iglesiaNueva.nombre}`,
+          },
+        });
+      }
+
+      return nuevaAsignacion;
     });
 
     return NextResponse.json({ ok: true, id: pastor.id });
@@ -172,15 +232,65 @@ export async function DELETE(req: NextRequest) {
     const { iglesia_id, ministerio_id } = await req.json();
 
     if (ministerio_id) {
-      await prisma.pastorIglesia.deleteMany({
-        where: { ministerio_id },
+      await prisma.$transaction(async (tx) => {
+        const asignaciones = await tx.pastorIglesia.findMany({
+          where: { ministerio_id: Number(ministerio_id) },
+          include: {
+            iglesia: {
+              select: {
+                nombre: true,
+                zona: { select: { codigo: true } },
+              },
+            },
+          },
+        });
+
+        for (const asignacion of asignaciones) {
+          await tx.ministerioHistorico.create({
+            data: {
+              ministerio_id: Number(ministerio_id),
+              campo: "Fin como pastor",
+              valor_anterior: `Pastor de [${asignacion.iglesia.zona.codigo.toUpperCase()}] ${asignacion.iglesia.nombre}`,
+              valor_nuevo: `Fin del nombramiento en [${asignacion.iglesia.zona.codigo.toUpperCase()}] ${asignacion.iglesia.nombre}`,
+            },
+          });
+        }
+
+        await tx.pastorIglesia.deleteMany({
+          where: { ministerio_id: Number(ministerio_id) },
+        });
       });
       return NextResponse.json({ ok: true });
     }
 
     if (iglesia_id) {
-      await prisma.pastorIglesia.deleteMany({
-        where: { iglesia_id },
+      await prisma.$transaction(async (tx) => {
+        const asignacion = await tx.pastorIglesia.findUnique({
+          where: { iglesia_id: Number(iglesia_id) },
+          include: {
+            iglesia: {
+              select: {
+                nombre: true,
+                zona: { select: { codigo: true } },
+              },
+            },
+          },
+        });
+
+        if (asignacion) {
+          await tx.ministerioHistorico.create({
+            data: {
+              ministerio_id: asignacion.ministerio_id,
+              campo: "Fin como pastor",
+              valor_anterior: `Pastor de [${asignacion.iglesia.zona.codigo.toUpperCase()}] ${asignacion.iglesia.nombre}`,
+              valor_nuevo: `Fin del nombramiento en [${asignacion.iglesia.zona.codigo.toUpperCase()}] ${asignacion.iglesia.nombre}`,
+            },
+          });
+        }
+
+        await tx.pastorIglesia.deleteMany({
+          where: { iglesia_id: Number(iglesia_id) },
+        });
       });
       return NextResponse.json({ ok: true });
     }
