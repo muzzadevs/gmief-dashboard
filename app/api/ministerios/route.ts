@@ -113,6 +113,18 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  try {
+    return await createMinisterio(req);
+  } catch (error) {
+    console.error("[POST /api/ministerios] Error:", error);
+    return NextResponse.json(
+      { error: "Error interno al guardar el ministerio. Inténtelo de nuevo." },
+      { status: 500 }
+    );
+  }
+}
+
+async function createMinisterio(req: Request) {
   const data = await req.json();
   const {
     nombre,

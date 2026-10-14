@@ -353,12 +353,37 @@ export default function AgregarMinisterio() {
         body: JSON.stringify(bodyData),
       });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || `No se pudo crear el ${activeTab === "MINISTERIO" ? "ministerio" : "candidato"}`);
+      let responseData: unknown;
+      try {
+        responseData = await res.json();
+      } catch {
+        throw new Error(
+          res.ok
+            ? "El servidor devolvió una respuesta no válida al crear el ministerio"
+            : `No se pudo crear el ${activeTab === "MINISTERIO" ? "ministerio" : "candidato"} (HTTP ${res.status})`
+        );
       }
 
-      const { id: ministerio_id } = await res.json();
+      if (!res.ok) {
+        const errorMessage =
+          typeof responseData === "object" &&
+          responseData !== null &&
+          "error" in responseData &&
+          typeof responseData.error === "string"
+            ? responseData.error
+            : `No se pudo crear el ${activeTab === "MINISTERIO" ? "ministerio" : "candidato"} (HTTP ${res.status})`;
+        throw new Error(errorMessage);
+      }
+
+      if (
+        typeof responseData !== "object" ||
+        responseData === null ||
+        !("id" in responseData) ||
+        typeof responseData.id !== "number"
+      ) {
+        throw new Error("El servidor no devolvió el identificador del ministerio creado");
+      }
+      const ministerio_id = responseData.id;
 
       if (imagenFile) {
         const formData = new FormData();
