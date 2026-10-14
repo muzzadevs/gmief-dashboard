@@ -2,7 +2,15 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { encrypt, decrypt } from "@/lib/encryption";
 import { validarDNI, validarNIE } from "@/lib/dniUtils";
-import { calcularFase } from "@/lib/candidatoUtils";
+import {
+  calcularFechasCandidatoAlcanzadas,
+  calcularFechasCandidato,
+  FASES_CANDIDATO,
+  obtenerFechaHoy,
+  type FaseFechaCandidato,
+} from "@/lib/candidatoUtils";
+import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
+import { buscarDniDuplicado } from "@/lib/ministerioDni";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -26,7 +34,12 @@ export async function GET(req: Request) {
         estado: { select: { nombre: true } },
         cargos: { select: { cargo_id: true } },
         candidato_detalle: {
-          select: { fecha_inicio: true, fecha_candidato_nacional: true, notas: true },
+          select: {
+            fecha_inicio: true,
+            fecha_candidato_local: true,
+            fecha_candidato_nacional: true,
+            notas: true,
+          },
         },
       },
     }),
@@ -39,25 +52,39 @@ export async function GET(req: Request) {
 
   const imagenIds = new Set(ministeriosConImagen.map((m) => m.id));
 
-  // Auto-detectar y persistir fecha_candidato_nacional
-  for (const m of ministerios) {
-    if (
-      m.tipo === "CANDIDATO" &&
-      m.candidato_detalle?.fecha_inicio &&
-      !m.candidato_detalle.fecha_candidato_nacional
-    ) {
-      const fase = calcularFase(m.candidato_detalle.fecha_inicio);
-      if (fase.fase === "CANDIDATO_NACIONAL" || fase.fase === "APTO_OBRERO") {
-        const fechaHoy = new Date();
-        fechaHoy.setHours(0, 0, 0, 0);
-        await prisma.candidatoDetalle.update({
-          where: { ministerio_id: m.id },
-          data: { fecha_candidato_nacional: fechaHoy },
-        });
-        m.candidato_detalle.fecha_candidato_nacional = fechaHoy;
-      }
+  const hoy = obtenerFechaHoy();
+  await Promise.all(ministerios.map(async (m) => {
+    if (m.tipo !== "CANDIDATO" || !m.candidato_detalle?.fecha_inicio) return;
+    const fechas = calcularFechasCandidatoAlcanzadas(m.candidato_detalle.fecha_inicio, hoy);
+    const data: {
+      fecha_candidato_local?: Date;
+      fecha_candidato_nacional?: Date;
+    } = {};
+
+    if (fechas.fecha_candidato_local && !m.candidato_detalle.fecha_candidato_local) {
+      data.fecha_candidato_local = new Date(`${fechas.fecha_candidato_local}T00:00:00.000Z`);
     }
-  }
+    if (fechas.fecha_candidato_nacional && !m.candidato_detalle.fecha_candidato_nacional) {
+      data.fecha_candidato_nacional = new Date(`${fechas.fecha_candidato_nacional}T00:00:00.000Z`);
+    }
+    if (Object.keys(data).length) {
+      await prisma.candidatoDetalle.updateMany({
+        where: {
+          ministerio_id: m.id,
+          fecha_inicio: m.candidato_detalle.fecha_inicio,
+        },
+        data,
+      });
+    }
+    if (m.candidato_detalle.fecha_candidato_local || data.fecha_candidato_local) {
+      m.candidato_detalle.fecha_candidato_local =
+        m.candidato_detalle.fecha_candidato_local ?? data.fecha_candidato_local!;
+    }
+    if (m.candidato_detalle.fecha_candidato_nacional || data.fecha_candidato_nacional) {
+      m.candidato_detalle.fecha_candidato_nacional =
+        m.candidato_detalle.fecha_candidato_nacional ?? data.fecha_candidato_nacional!;
+    }
+  }));
 
   // Transformar para mantener la misma estructura de respuesta
   const result = ministerios.map((m) => {
@@ -95,11 +122,18 @@ export async function GET(req: Request) {
       aprob: m.aprob,
       telefono: m.telefono,
       email: m.email,
+      fecha_nacimiento: m.fecha_nacimiento
+        ? new Date(m.fecha_nacimiento).toISOString().split("T")[0]
+        : null,
+      direccion_particular: m.direccion_particular,
       estado_nombre: m.estado.nombre,
       has_imagen: imagenIds.has(m.id),
       cargos: m.cargos.map((c) => c.cargo_id).join(",") || null,
       fecha_inicio: m.candidato_detalle?.fecha_inicio
         ? new Date(m.candidato_detalle.fecha_inicio).toISOString().split("T")[0]
+        : null,
+      fecha_candidato_local: m.candidato_detalle?.fecha_candidato_local
+        ? new Date(m.candidato_detalle.fecha_candidato_local).toISOString().split("T")[0]
         : null,
       fecha_candidato_nacional: m.candidato_detalle?.fecha_candidato_nacional
         ? new Date(m.candidato_detalle.fecha_candidato_nacional).toISOString().split("T")[0]
@@ -137,10 +171,14 @@ async function createMinisterio(req: Request) {
     aprob,
     telefono,
     email,
+    fecha_nacimiento,
+    direccion_particular,
     codigo_manual,
     tipo = "MINISTERIO",
     // Campos de candidato
     fecha_inicio,
+    fase_referencia,
+    fecha_referencia,
     notas,
   } = data;
 
@@ -157,12 +195,32 @@ async function createMinisterio(req: Request) {
 
   // Validar y encriptar DNI si se proporciona
   let dniEncrypted: string | null = null;
+  let dniNormalizado: string | null = null;
   if (dni) {
     const dniResult = validarDNI(dni);
     if (!dniResult.valid) {
       return NextResponse.json({ error: dniResult.error }, { status: 400 });
     }
-    dniEncrypted = encrypt(dniResult.normalized);
+    dniNormalizado = dniResult.normalized;
+    dniEncrypted = encrypt(dniNormalizado);
+  }
+
+  if (dniNormalizado) {
+    try {
+      const ministerioExistente = await buscarDniDuplicado(dniNormalizado);
+      if (ministerioExistente !== null) {
+        return NextResponse.json(
+          { error: "Ya existe una persona registrada con ese DNI" },
+          { status: 409 }
+        );
+      }
+    } catch (error) {
+      console.error("[POST /api/ministerios] Error al comprobar DNI duplicado:", error);
+      return NextResponse.json(
+        { error: "No se pudo comprobar si el DNI ya está registrado" },
+        { status: 500 }
+      );
+    }
   }
 
   // Validar y encriptar NIE si se proporciona
@@ -175,10 +233,43 @@ async function createMinisterio(req: Request) {
     nieEncrypted = encrypt(nieResult.normalized);
   }
 
-  // Para candidatos, fecha_inicio es obligatoria
-  if (tipo === "CANDIDATO" && !fecha_inicio) {
+  let fechasCandidato: ReturnType<typeof calcularFechasCandidato> | null = null;
+  if (tipo === "CANDIDATO") {
+    const fase = fase_referencia ?? "ENSAYISTA";
+    const fecha = fecha_referencia ?? fecha_inicio;
+    if (
+      typeof fecha !== "string" ||
+      typeof fase !== "string" ||
+      !(FASES_CANDIDATO as readonly string[]).includes(fase)
+    ) {
+      return NextResponse.json(
+        { error: "Debe indicar una fecha válida y la etapa a la que corresponde" },
+        { status: 400 }
+      );
+    }
+    try {
+      fechasCandidato = calcularFechasCandidato(fecha, fase as FaseFechaCandidato);
+    } catch {
+      return NextResponse.json({ error: "La fecha de inicio no es válida" }, { status: 400 });
+    }
+    if (fechasCandidato.fecha_inicio > obtenerFechaHoy()) {
+      return NextResponse.json(
+        { error: "La fecha calculada de inicio como Ensayista no puede estar en el futuro" },
+        { status: 400 }
+      );
+    }
+  }
+
+  const fechaNacimiento = fecha_nacimiento ? new Date(fecha_nacimiento) : null;
+  if (fechaNacimiento && Number.isNaN(fechaNacimiento.getTime())) {
     return NextResponse.json(
-      { error: "La fecha de inicio es obligatoria para candidatos" },
+      { error: "La fecha de nacimiento no es válida" },
+      { status: 400 }
+    );
+  }
+  if (direccion_particular && direccion_particular.length > 255) {
+    return NextResponse.json(
+      { error: "La dirección particular no puede superar los 255 caracteres" },
       { status: 400 }
     );
   }
@@ -215,6 +306,12 @@ async function createMinisterio(req: Request) {
           { status: 400 }
         );
       }
+      if (Number(numPart) === 0) {
+        return NextResponse.json(
+          { error: "El número incremental del código debe empezar en 0001" },
+          { status: 400 }
+        );
+      }
 
       codigo = `${codigoZona}${numPart.padStart(4, "0")}`;
 
@@ -241,58 +338,60 @@ async function createMinisterio(req: Request) {
         orderBy: { codigo: "desc" },
       });
 
-      let nextNumber = 0;
-      if (ministeriosConCodigo.length > 0) {
-        const numbers = ministeriosConCodigo
-          .map((m) => {
-            const numPart = m.codigo!.slice(codigoZona.length);
-            const parsed = parseInt(numPart, 10);
-            return isNaN(parsed) ? -1 : parsed;
-          })
-          .filter((n) => n >= 0);
-        if (numbers.length > 0) {
-          nextNumber = Math.max(...numbers) + 1;
-        }
-      }
-
-      if (nextNumber > 9999) {
+      codigo = generarCodigoSiguiente(
+        codigoZona,
+        ministeriosConCodigo.map((ministerio) => ministerio.codigo)
+      );
+      if (!codigo) {
         return NextResponse.json(
           { error: "Se ha alcanzado el límite máximo de códigos para esta zona (9999)" },
           { status: 409 }
         );
       }
-
-      codigo = `${codigoZona}${String(nextNumber).padStart(4, "0")}`;
     }
   }
 
-  const ministerio = await prisma.ministerio.create({
-    data: {
-      nombre,
-      apellidos: apellidos || null,
-      alias: alias || null,
-      dni_encrypted: dniEncrypted,
-      nie_encrypted: nieEncrypted,
-      iglesia_id,
-      codigo,
-      estado_id,
-      tipo,
-      aprob: aprob || null,
-      telefono: telefono || null,
-      email: email || null,
-    },
-  });
-
-  // Si es candidato, crear el detalle
-  if (tipo === "CANDIDATO") {
-    await prisma.candidatoDetalle.create({
+  const fechasAlcanzadas = fechasCandidato
+    ? calcularFechasCandidatoAlcanzadas(fechasCandidato.fecha_inicio)
+    : null;
+  const ministerio = await prisma.$transaction(async (tx) => {
+    const nuevoMinisterio = await tx.ministerio.create({
       data: {
-        ministerio_id: ministerio.id,
-        fecha_inicio: new Date(fecha_inicio),
-        notas: notas || null,
+        nombre,
+        apellidos: apellidos || null,
+        alias: alias || null,
+        dni_encrypted: dniEncrypted,
+        nie_encrypted: nieEncrypted,
+        iglesia_id,
+        codigo,
+        estado_id,
+        tipo,
+        aprob: aprob || null,
+        telefono: telefono || null,
+        email: email || null,
+        fecha_nacimiento: fechaNacimiento,
+        direccion_particular: direccion_particular || null,
       },
     });
-  }
+
+    if (fechasCandidato && fechasAlcanzadas) {
+      await tx.candidatoDetalle.create({
+        data: {
+          ministerio_id: nuevoMinisterio.id,
+          fecha_inicio: new Date(`${fechasCandidato.fecha_inicio}T00:00:00.000Z`),
+          fecha_candidato_local: fechasAlcanzadas.fecha_candidato_local
+            ? new Date(`${fechasAlcanzadas.fecha_candidato_local}T00:00:00.000Z`)
+            : null,
+          fecha_candidato_nacional: fechasAlcanzadas.fecha_candidato_nacional
+            ? new Date(`${fechasAlcanzadas.fecha_candidato_nacional}T00:00:00.000Z`)
+            : null,
+          notas: notas || null,
+        },
+      });
+    }
+
+    return nuevoMinisterio;
+  });
 
   return NextResponse.json({ id: ministerio.id, codigo });
 }

@@ -5,10 +5,16 @@ import LoaderPersonalizado from "../../../components/LoaderPersonalizado";
 import Combobox from "../../../components/ui/Combobox";
 import Toast, { useToast } from "../../../components/Toast";
 import ImageUpload from "../../../components/ImageUpload";
+import CandidatoFechas from "@/components/CandidatoFechas";
 import ModalConfirmarEliminar from "../../../components/ModalConfirmarEliminar";
 import { useRouter } from "next/navigation";
 import { useZonasStore } from "@/store/zonasStore";
-import { calcularFase, formatDiasRestantes } from "@/lib/candidatoUtils";
+import {
+  calcularFase,
+  calcularFechasCandidato,
+  formatDiasRestantes,
+  type FaseFechaCandidato,
+} from "@/lib/candidatoUtils";
 
 type Estado = { id: number; nombre: string };
 type Cargo = { id: number; cargo: string };
@@ -81,9 +87,14 @@ type MinisterioForm = {
   aprob: string;
   telefono: string;
   email: string;
+  fecha_nacimiento: string;
+  direccion_particular: string;
   cargos: number[];
   fecha_inicio: string;
+  fecha_candidato_local: string;
   fecha_candidato_nacional: string;
+  fase_referencia: FaseFechaCandidato;
+  fecha_referencia: string;
   notas: string;
 };
 
@@ -170,6 +181,23 @@ export default function EditarMinisterio() {
       }
 
       const cargoIds = minData.cargos ? minData.cargos.split(",").map(Number) : minData.tipo === "MINISTERIO" ? [4] : [];
+      const faseActual = minData.fecha_inicio
+        ? calcularFase(minData.fecha_inicio).fase
+        : "ENSAYISTA";
+      const faseReferencia: FaseFechaCandidato =
+        faseActual === "ENSAYISTA" || faseActual === "CANDIDATO_LOCAL"
+          ? faseActual
+          : "CANDIDATO_NACIONAL";
+      const fechasEtapa = minData.fecha_inicio
+        ? calcularFechasCandidato(minData.fecha_inicio, "ENSAYISTA")
+        : null;
+      const fechaReferencia = !fechasEtapa
+        ? ""
+        : faseReferencia === "ENSAYISTA"
+          ? fechasEtapa.fecha_inicio
+          : faseReferencia === "CANDIDATO_LOCAL"
+            ? fechasEtapa.fecha_candidato_local
+            : fechasEtapa.fecha_candidato_nacional;
 
       setForm({
         ...minData,
@@ -178,10 +206,15 @@ export default function EditarMinisterio() {
         tipo: minData.tipo || "MINISTERIO",
         cargos: cargoIds,
         fecha_inicio: minData.fecha_inicio || "",
+        fecha_candidato_local: minData.fecha_candidato_local || "",
         fecha_candidato_nacional: minData.fecha_candidato_nacional || "",
+        fase_referencia: faseReferencia,
+        fecha_referencia: fechaReferencia,
         notas: minData.notas || "",
         telefono: minData.telefono || "",
         email: minData.email || "",
+        fecha_nacimiento: minData.fecha_nacimiento || "",
+        direccion_particular: minData.direccion_particular || "",
         apellidos: minData.apellidos || "",
         alias: minData.alias || "",
         dni: minData.dni || "",
@@ -218,7 +251,12 @@ export default function EditarMinisterio() {
       try {
         const codRes = await fetch(`/api/ministerios/next-codigo?iglesiaId=${val}`);
         const codData = await codRes.json();
-        if (codData.codigoZona) setCodigoZona(codData.codigoZona);
+        if (codData.codigoZona) {
+          if (codData.codigoZona !== codigoZona && codData.codigo) {
+            setCodigoNumero(codData.codigo.slice(codData.codigoZona.length));
+          }
+          setCodigoZona(codData.codigoZona);
+        }
       } catch {
         // ignore
       }
@@ -244,6 +282,25 @@ export default function EditarMinisterio() {
     } else {
       setForm((f) => f && { ...f, [name]: value });
     }
+  };
+
+  const handleFaseReferenciaChange = (fase: FaseFechaCandidato) => {
+    setForm((actual) => {
+      if (!actual) return actual;
+      if (!actual.fecha_referencia) {
+        return { ...actual, fase_referencia: fase };
+      }
+      const fechas = calcularFechasCandidato(
+        actual.fecha_referencia,
+        actual.fase_referencia
+      );
+      const fecha_referencia = fase === "ENSAYISTA"
+        ? fechas.fecha_inicio
+        : fase === "CANDIDATO_LOCAL"
+          ? fechas.fecha_candidato_local
+          : fechas.fecha_candidato_nacional;
+      return { ...actual, fase_referencia: fase, fecha_referencia };
+    });
   };
 
   const handleCargoChange = (id: number) => {
@@ -417,9 +474,14 @@ export default function EditarMinisterio() {
 
     if (form.tipo === "MINISTERIO") {
       if (!codigoNumero || codigoNumero.length === 0) errores.push("Debe introducir la parte numérica del «Código»");
+      else if (`${codigoZona}${codigoNumero.padStart(4, "0")}` !== codigoOriginal && Number(codigoNumero) === 0) {
+        errores.push("El número incremental del código debe empezar en 0001");
+      }
       if (form.cargos.length === 0) errores.push("Debe seleccionar al menos un «Cargo»");
     }
-    if (form.tipo === "CANDIDATO") { if (!form.fecha_inicio) errores.push("La «Fecha de inicio» es obligatoria para candidatos"); }
+    if (form.tipo === "CANDIDATO" && !form.fecha_referencia) {
+      errores.push("La fecha de inicio es obligatoria para candidatos");
+    }
     if (!form.estado_id) errores.push("Debe seleccionar un «Estado»");
 
     // Validate pastor iglesia if pastor cargo is selected
@@ -448,9 +510,12 @@ export default function EditarMinisterio() {
           aprob: form.aprob ? parseInt(String(form.aprob), 10) : null,
           telefono: form.telefono || null,
           email: form.email || null,
+          fecha_nacimiento: form.fecha_nacimiento || null,
+          direccion_particular: form.direccion_particular || null,
           iglesia_id: iglesiaId,
           tipo: form.tipo,
-          fecha_inicio: form.tipo === "CANDIDATO" ? form.fecha_inicio : null,
+          fase_referencia: form.tipo === "CANDIDATO" ? form.fase_referencia : null,
+          fecha_referencia: form.tipo === "CANDIDATO" ? form.fecha_referencia : null,
           notas: form.tipo === "CANDIDATO" ? (form.notas || null) : null,
         }),
       });
@@ -647,6 +712,17 @@ export default function EditarMinisterio() {
               </div>
             </div>
 
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="fecha_nacimiento" className="font-medium text-slate-700 text-sm">Fecha de nacimiento</label>
+                <input id="fecha_nacimiento" name="fecha_nacimiento" type="date" value={form.fecha_nacimiento} onChange={handleChange} className="input-glass w-full" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="direccion_particular" className="font-medium text-slate-700 text-sm">Dirección particular</label>
+                <input id="direccion_particular" name="direccion_particular" value={form.direccion_particular} onChange={handleChange} maxLength={255} className="input-glass w-full" autoComplete="street-address" />
+              </div>
+            </div>
+
             {!isCandidato ? (
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-x-6">
                 <div className="flex flex-col gap-1.5">
@@ -663,7 +739,7 @@ export default function EditarMinisterio() {
                       }}
                       inputMode="numeric"
                       maxLength={4}
-                      placeholder="0000"
+                      placeholder="0001"
                       className="input-glass w-full rounded-l-none font-mono text-base font-semibold tracking-wider"
                       autoComplete="off"
                     />
@@ -681,9 +757,14 @@ export default function EditarMinisterio() {
             ) : (
               <>
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                  <div className="flex flex-col gap-1.5"><label htmlFor="fecha_inicio" className="font-medium text-slate-700 text-sm">Fecha de inicio <span className="text-red-500">*</span> <span className="text-xs text-slate-400 font-normal ml-2">(desde cuándo es candidato)</span></label><input id="fecha_inicio" name="fecha_inicio" type="date" value={form.fecha_inicio} onChange={handleChange} className="input-glass w-full" /></div>
                   <div className="flex flex-col gap-1.5"><label htmlFor="estado_id" className="font-medium text-slate-700 text-sm">Estado <span className="text-red-500">*</span></label><Combobox id="estado_id" name="estado_id" options={estadoOptions} value={String(form.estado_id)} onChange={(val) => setForm((f) => f && { ...f, estado_id: val })} placeholder="Selecciona estado" searchPlaceholder="Buscar estado..." emptyMessage="No se encontraron estados." /></div>
                 </div>
+                <CandidatoFechas
+                  faseReferencia={form.fase_referencia}
+                  fechaReferencia={form.fecha_referencia}
+                  onFaseChange={handleFaseReferenciaChange}
+                  onFechaChange={(fecha) => setForm((f) => f && ({ ...f, fecha_referencia: fecha }))}
+                />
                 <div className="flex flex-col gap-1.5"><label htmlFor="notas" className="font-medium text-slate-700 text-sm">Notas adicionales</label><textarea id="notas" name="notas" value={form.notas} onChange={handleChange} className="input-glass w-full min-h-[80px] resize-y" placeholder="Observaciones sobre el candidato..." /></div>
               </>
             )}

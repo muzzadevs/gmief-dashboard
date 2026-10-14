@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
 
 // Genera el siguiente código de ministerio para una iglesia dada.
 // Formato: {codigo_zona}{número_autoincremental_4_dígitos}
-// Ejemplo: Si la zona tiene código "ABC", el primer ministerio será "ABC0000", luego "ABC0001", etc.
+// El primer número disponible es 0001; 0000 se conserva para registros existentes.
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const iglesiaId = searchParams.get("iglesiaId");
@@ -44,39 +45,19 @@ export async function GET(req: Request) {
     select: {
       codigo: true,
     },
-    orderBy: {
-      codigo: "desc",
-    },
   });
 
   // 3. Encontrar el siguiente número autoincremental
-  let nextNumber = 0;
-
-  if (ministeriosConCodigo.length > 0) {
-    // Extraer las partes numéricas de los códigos existentes
-    const numbers = ministeriosConCodigo
-      .map((m) => {
-        if (!m.codigo) return -1;
-        const numPart = m.codigo.slice(codigoZona.length);
-        const parsed = parseInt(numPart, 10);
-        return isNaN(parsed) ? -1 : parsed;
-      })
-      .filter((n) => n >= 0);
-
-    if (numbers.length > 0) {
-      nextNumber = Math.max(...numbers) + 1;
-    }
-  }
-
-  if (nextNumber > 9999) {
+  const codigo = generarCodigoSiguiente(
+    codigoZona,
+    ministeriosConCodigo.map((ministerio) => ministerio.codigo)
+  );
+  if (!codigo) {
     return NextResponse.json(
       { error: "Se ha alcanzado el límite máximo de códigos para esta zona (9999)" },
       { status: 409 }
     );
   }
-
-  // 4. Generar el código con el número en formato de 4 dígitos
-  const codigo = `${codigoZona}${String(nextNumber).padStart(4, "0")}`;
 
   return NextResponse.json({ codigo, codigoZona });
 }

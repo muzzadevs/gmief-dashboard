@@ -66,6 +66,8 @@ model Ministerio {
   aprob     Int?
   telefono  String?          @db.VarChar(15)
   email     String?          @db.VarChar(255)
+  fecha_nacimiento DateTime? @db.Date
+  direccion_particular String? @db.VarChar(255)
   imagen    Bytes?           @db.LongBlob
   activo    Boolean          @default(true)
   iglesia   Iglesia          @relation(fields: [iglesia_id], references: [id])
@@ -138,6 +140,7 @@ model CandidatoDetalle {
   id                      Int        @id @default(autoincrement())
   ministerio_id           Int        @unique
   fecha_inicio            DateTime   @db.Date
+  fecha_candidato_local   DateTime?  @db.Date
   fecha_candidato_nacional DateTime? @db.Date
   notas                   String?    @db.VarChar(255)
   ministerio              Ministerio @relation(fields: [ministerio_id], references: [id], onDelete: Cascade)

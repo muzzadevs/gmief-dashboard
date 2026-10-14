@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
 
 // POST: Aprobar un candidato como obrero (transición CANDIDATO → MINISTERIO)
 export async function POST(
@@ -46,32 +47,19 @@ export async function POST(
       },
     },
     select: { codigo: true },
-    orderBy: { codigo: "desc" },
   });
 
-  let nextNumber = 0;
-  if (ministeriosConCodigo.length > 0) {
-    const numbers = ministeriosConCodigo
-      .map((m) => {
-        if (!m.codigo) return -1;
-        const numPart = m.codigo.slice(codigoZona.length);
-        const parsed = parseInt(numPart, 10);
-        return isNaN(parsed) ? -1 : parsed;
-      })
-      .filter((n) => n >= 0);
-    if (numbers.length > 0) {
-      nextNumber = Math.max(...numbers) + 1;
-    }
-  }
-
-  if (nextNumber > 9999) {
+  const codigo = generarCodigoSiguiente(
+    codigoZona,
+    ministeriosConCodigo.map((item) => item.codigo)
+  );
+  if (!codigo) {
     return NextResponse.json(
       { error: "Se ha alcanzado el límite máximo de códigos para esta zona (9999)" },
       { status: 409 }
     );
   }
 
-  const codigo = `${codigoZona}${String(nextNumber).padStart(4, "0")}`;
   const currentYear = new Date().getFullYear();
 
   // Actualizar: tipo → MINISTERIO, asignar código y año de aprobación

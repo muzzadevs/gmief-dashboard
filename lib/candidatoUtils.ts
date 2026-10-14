@@ -15,20 +15,90 @@ export interface FaseInfo {
 }
 
 // Periodos acumulados en días
-const ENSAYISTA_DIAS = 183; // ~6 meses
-const LOCAL_DIAS = ENSAYISTA_DIAS + 365; // 6m + 1 año = ~548 días
-const NACIONAL_DIAS = LOCAL_DIAS + 1826; // 6m + 1a + 5 años = ~2374 días
+export const FASES_CANDIDATO = ["ENSAYISTA", "CANDIDATO_LOCAL", "CANDIDATO_NACIONAL"] as const;
+export type FaseFechaCandidato = (typeof FASES_CANDIDATO)[number];
+
+const ENSAYISTA_DIAS = 183;
+const LOCAL_DIAS = ENSAYISTA_DIAS + 365;
+const NACIONAL_DIAS = LOCAL_DIAS + 1826;
+const DIAS_POR_FASE: Record<FaseFechaCandidato, number> = {
+  ENSAYISTA: 0,
+  CANDIDATO_LOCAL: ENSAYISTA_DIAS,
+  CANDIDATO_NACIONAL: LOCAL_DIAS,
+};
+
+export interface FechasCandidato {
+  fecha_inicio: string;
+  fecha_candidato_local: string;
+  fecha_candidato_nacional: string;
+}
+
+export interface EtapaStepperCandidato {
+  fase: FaseCandidato;
+  label: string;
+  estado: "completada" | "actual" | "pendiente";
+  diasRestantes: number;
+  duracionDias: number | null;
+}
+
+function fechaUTC(fecha: string | Date): string {
+  if (fecha instanceof Date) {
+    if (Number.isNaN(fecha.getTime())) throw new Error("La fecha no es válida");
+    return fecha.toISOString().slice(0, 10);
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) throw new Error("La fecha no es válida");
+  const parsed = new Date(`${fecha}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== fecha) {
+    throw new Error("La fecha no es válida");
+  }
+  return fecha;
+}
+
+function sumarDias(fecha: string, dias: number): string {
+  const resultado = new Date(`${fecha}T00:00:00.000Z`);
+  resultado.setUTCDate(resultado.getUTCDate() + dias);
+  return resultado.toISOString().slice(0, 10);
+}
+
+export function obtenerFechaHoy(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export function calcularFechasCandidato(
+  fechaReferencia: string | Date,
+  faseReferencia: FaseFechaCandidato
+): FechasCandidato {
+  const referencia = fechaUTC(fechaReferencia);
+  const diasDesdeEnsayista = DIAS_POR_FASE[faseReferencia];
+  const fechaInicio = sumarDias(referencia, -diasDesdeEnsayista);
+
+  return {
+    fecha_inicio: fechaInicio,
+    fecha_candidato_local: sumarDias(fechaInicio, ENSAYISTA_DIAS),
+    fecha_candidato_nacional: sumarDias(fechaInicio, LOCAL_DIAS),
+  };
+}
+
+export function calcularFechasCandidatoAlcanzadas(
+  fechaInicio: string | Date,
+  hoy = obtenerFechaHoy()
+): FechasCandidato {
+  const fechas = calcularFechasCandidato(fechaInicio, "ENSAYISTA");
+  return {
+    fecha_inicio: fechas.fecha_inicio,
+    fecha_candidato_local: fechas.fecha_candidato_local <= hoy ? fechas.fecha_candidato_local : "",
+    fecha_candidato_nacional: fechas.fecha_candidato_nacional <= hoy ? fechas.fecha_candidato_nacional : "",
+  };
+}
 
 export function calcularFase(fechaInicio: string | Date): FaseInfo {
-  const inicio = new Date(fechaInicio);
-  const hoy = new Date();
-
-  // Normalizar a medianoche para cálculos consistentes
-  inicio.setHours(0, 0, 0, 0);
-  hoy.setHours(0, 0, 0, 0);
-
-  const diffMs = hoy.getTime() - inicio.getTime();
-  const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const inicio = fechaUTC(fechaInicio);
+  const hoy = obtenerFechaHoy();
+  const diffDias = Math.floor(
+    (new Date(`${hoy}T00:00:00.000Z`).getTime() -
+      new Date(`${inicio}T00:00:00.000Z`).getTime()) /
+      (1000 * 60 * 60 * 24)
+  );
 
   if (diffDias < ENSAYISTA_DIAS) {
     return {
@@ -75,6 +145,46 @@ export function calcularFase(fechaInicio: string | Date): FaseInfo {
       textColor: "text-emerald-700",
     };
   }
+}
+
+export function calcularStepperCandidato(
+  fechaInicio: string | Date
+): EtapaStepperCandidato[] {
+  const inicio = fechaUTC(fechaInicio);
+  const hoy = obtenerFechaHoy();
+  const diffDias = Math.floor(
+    (new Date(`${hoy}T00:00:00.000Z`).getTime() -
+      new Date(`${inicio}T00:00:00.000Z`).getTime()) /
+      (1000 * 60 * 60 * 24)
+  );
+  const etapas: {
+    fase: FaseCandidato;
+    label: string;
+    inicio: number;
+    fin: number | null;
+  }[] = [
+    { fase: "ENSAYISTA", label: "Ensayista", inicio: 0, fin: ENSAYISTA_DIAS },
+    { fase: "CANDIDATO_LOCAL", label: "Candidato Local", inicio: ENSAYISTA_DIAS, fin: LOCAL_DIAS },
+    { fase: "CANDIDATO_NACIONAL", label: "Candidato Nacional", inicio: LOCAL_DIAS, fin: NACIONAL_DIAS },
+    { fase: "APTO_OBRERO", label: "Apto para Obrero", inicio: NACIONAL_DIAS, fin: null },
+  ];
+
+  return etapas.map((etapa) => {
+    const estado = etapa.fin !== null && diffDias >= etapa.fin
+      ? "completada"
+      : diffDias >= etapa.inicio
+        ? "actual"
+        : "pendiente";
+    return {
+      fase: etapa.fase,
+      label: etapa.label,
+      estado,
+      diasRestantes: estado === "actual" && etapa.fin !== null
+        ? etapa.fin - diffDias
+        : Math.max(0, etapa.inicio - diffDias),
+      duracionDias: etapa.fin === null ? null : etapa.fin - etapa.inicio,
+    };
+  });
 }
 
 export function formatDiasRestantes(dias: number): string {

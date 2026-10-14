@@ -12,12 +12,15 @@ export type Ministerio = {
   aprob: number | null;
   telefono: string | null;
   email: string | null;
+  fecha_nacimiento: string | null;
+  direccion_particular: string | null;
   estado_nombre: string;
   has_imagen: boolean;
   cargos: string | null; // ids separados por coma
   activo: boolean;
   // Campos de candidato (solo si tipo = CANDIDATO)
   fecha_inicio: string | null;
+  fecha_candidato_local: string | null;
   fecha_candidato_nacional: string | null;
   notas: string | null;
 };

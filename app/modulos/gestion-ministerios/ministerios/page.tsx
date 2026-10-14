@@ -6,7 +6,11 @@ import LoaderPersonalizado from "../../../components/LoaderPersonalizado";
 import { useRouter } from "next/navigation";
 import { useZonasStore } from "@/store/zonasStore";
 import type { Ministerio, Cargo } from "@/types/ministerios";
-import { calcularFase, formatDiasRestantes } from "@/lib/candidatoUtils";
+import {
+  calcularFase,
+  calcularStepperCandidato,
+  formatDiasRestantes,
+} from "@/lib/candidatoUtils";
 import Toast, { useToast } from "../../../components/Toast";
 
 type PastorInfo = {
@@ -316,6 +320,10 @@ export default function Ministerios() {
                 min.tipo === "CANDIDATO" && min.fecha_inicio
                   ? calcularFase(min.fecha_inicio)
                   : null;
+              const etapasStepper =
+                min.tipo === "CANDIDATO" && min.fecha_inicio
+                  ? calcularStepperCandidato(min.fecha_inicio)
+                  : [];
 
               const isCandidato = min.tipo === "CANDIDATO";
               const avatarGradient = isCandidato
@@ -445,42 +453,56 @@ export default function Ministerios() {
                     </div>
                   </div>
 
-                  {/* Barra de progreso del candidato */}
+                  {/* Stepper del proceso del candidato */}
                   {isCandidato && faseInfo && (
-                    <div className="mt-2">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`text-xs font-bold ${faseInfo.textColor} flex items-center gap-1.5`}>
-                          {faseInfo.fase === "ENSAYISTA" && "🟡"}
-                          {faseInfo.fase === "CANDIDATO_LOCAL" && "🔵"}
-                          {faseInfo.fase === "CANDIDATO_NACIONAL" && "🟣"}
-                          {faseInfo.fase === "APTO_OBRERO" && "🟢"}
-                          {faseInfo.label}
-                        </span>
-                        <span className="text-xs text-slate-500">
-                          {faseInfo.fase === "APTO_OBRERO"
-                            ? "✅ Completado"
-                            : `${formatDiasRestantes(faseInfo.diasRestantes)} restantes`}
-                        </span>
+                    <div className="mt-2 rounded-xl bg-slate-50/80 px-3 py-3">
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-4">
+                        {etapasStepper.map((etapa, index) => {
+                          const styleByFase = {
+                            ENSAYISTA: { dot: "bg-amber-500", text: "text-amber-700" },
+                            CANDIDATO_LOCAL: { dot: "bg-blue-500", text: "text-blue-700" },
+                            CANDIDATO_NACIONAL: { dot: "bg-purple-500", text: "text-purple-700" },
+                            APTO_OBRERO: { dot: "bg-emerald-500", text: "text-emerald-700" },
+                          } as const;
+                          const faseStyle = styleByFase[etapa.fase];
+                          const dotColor = etapa.estado === "completada"
+                            ? "bg-emerald-500"
+                            : etapa.estado === "actual"
+                              ? faseStyle.dot
+                              : "bg-slate-200";
+                          const textColor = etapa.estado === "actual"
+                            ? faseStyle.text
+                            : etapa.estado === "completada"
+                              ? "text-slate-600"
+                              : "text-slate-400";
+                          const detalle = etapa.estado === "completada"
+                            ? "Completada"
+                            : etapa.estado === "actual"
+                              ? etapa.duracionDias === null
+                                ? "Disponible"
+                                : `Quedan ${formatDiasRestantes(etapa.diasRestantes)}`
+                              : etapa.duracionDias === null
+                                ? `Apto en ${formatDiasRestantes(etapa.diasRestantes)}`
+                                : `Empieza en ${formatDiasRestantes(etapa.diasRestantes)} · dura ${formatDiasRestantes(etapa.duracionDias)}`;
+
+                          return (
+                            <div key={etapa.fase} className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${dotColor}`} />
+                                {index < etapasStepper.length - 1 && (
+                                  <span className="hidden h-px flex-1 bg-slate-200 sm:block" />
+                                )}
+                              </div>
+                              <p className={`mt-1 text-[11px] font-semibold leading-tight ${textColor}`}>
+                                {etapa.label}
+                              </p>
+                              <p className="mt-0.5 text-[10px] leading-tight text-slate-500">
+                                {detalle}
+                              </p>
+                            </div>
+                          );
+                        })}
                       </div>
-                      <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                        <div
-                          className={`h-2 rounded-full transition-all duration-500 ${
-                            faseInfo.fase === "ENSAYISTA"
-                              ? "bg-amber-500"
-                              : faseInfo.fase === "CANDIDATO_LOCAL"
-                              ? "bg-blue-500"
-                              : faseInfo.fase === "CANDIDATO_NACIONAL"
-                              ? "bg-purple-500"
-                              : "bg-emerald-500"
-                          }`}
-                          style={{ width: `${Math.round(faseInfo.progreso)}%` }}
-                        />
-                      </div>
-                      {min.fecha_inicio && (
-                        <p className="text-[10px] text-slate-400 mt-1">
-                          Inicio: {new Date(min.fecha_inicio).toLocaleDateString("es-ES")}
-                        </p>
-                      )}
                     </div>
                   )}
 

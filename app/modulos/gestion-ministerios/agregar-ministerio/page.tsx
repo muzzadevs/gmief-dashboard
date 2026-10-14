@@ -5,8 +5,13 @@ import LoaderPersonalizado from "../../../components/LoaderPersonalizado";
 import Toast, { useToast } from "../../../components/Toast";
 import Combobox from "../../../components/ui/Combobox";
 import ImageUpload from "../../../components/ImageUpload";
+import CandidatoFechas from "@/components/CandidatoFechas";
 import { useRouter } from "next/navigation";
 import { useZonasStore } from "@/store/zonasStore";
+import {
+  calcularFechasCandidato,
+  type FaseFechaCandidato,
+} from "@/lib/candidatoUtils";
 
 type Estado = { id: number; nombre: string };
 type Cargo = { id: number; cargo: string };
@@ -101,11 +106,14 @@ export default function AgregarMinisterio() {
     aprob: "",
     telefono: "",
     email: "",
+    fecha_nacimiento: "",
+    direccion_particular: "",
     cargos: [4],
   });
 
   const [candidatoForm, setCandidatoForm] = useState({
-    fecha_inicio: new Date().toISOString().split("T")[0],
+    fase_referencia: "ENSAYISTA" as FaseFechaCandidato,
+    fecha_referencia: new Date().toISOString().split("T")[0],
     notas: "",
   });
 
@@ -185,6 +193,24 @@ export default function AgregarMinisterio() {
   ) => {
     const { name, value } = e.target;
     setCandidatoForm((f) => ({ ...f, [name]: value }));
+  };
+
+  const handleFaseReferenciaChange = (fase: FaseFechaCandidato) => {
+    setCandidatoForm((formActual) => {
+      if (!formActual.fecha_referencia) {
+        return { ...formActual, fase_referencia: fase };
+      }
+      const fechas = calcularFechasCandidato(
+        formActual.fecha_referencia,
+        formActual.fase_referencia
+      );
+      const fecha_referencia = fase === "ENSAYISTA"
+        ? fechas.fecha_inicio
+        : fase === "CANDIDATO_LOCAL"
+          ? fechas.fecha_candidato_local
+          : fechas.fecha_candidato_nacional;
+      return { ...formActual, fase_referencia: fase, fecha_referencia };
+    });
   };
 
   const handleCargoChange = (id: number) => {
@@ -290,6 +316,8 @@ export default function AgregarMinisterio() {
       if (codigoManual) {
         if (!codigoManualNumero || codigoManualNumero.length === 0) {
           errores.push("Debe introducir la parte numérica del «Código»");
+        } else if (Number(codigoManualNumero) === 0) {
+          errores.push("El número incremental del código debe empezar en 0001");
         }
       } else {
         if (!codigoGenerado) errores.push("No se ha podido generar el «Código». Recargue la página e intente de nuevo");
@@ -298,7 +326,7 @@ export default function AgregarMinisterio() {
     }
 
     if (activeTab === "CANDIDATO") {
-      if (!candidatoForm.fecha_inicio) errores.push("La «Fecha de inicio» es obligatoria para candidatos");
+      if (!candidatoForm.fecha_referencia) errores.push("La fecha de inicio es obligatoria para candidatos");
     }
 
     if (!form.estado_id) errores.push("Debe seleccionar un «Estado»");
@@ -333,6 +361,8 @@ export default function AgregarMinisterio() {
         estado_id: parseInt(String(form.estado_id), 10),
         telefono: form.telefono || null,
         email: form.email || null,
+        fecha_nacimiento: form.fecha_nacimiento || null,
+        direccion_particular: form.direccion_particular || null,
         iglesia_id: iglesiaId,
         tipo: activeTab,
       };
@@ -343,7 +373,8 @@ export default function AgregarMinisterio() {
           bodyData.codigo_manual = codigoManualNumero;
         }
       } else {
-        bodyData.fecha_inicio = candidatoForm.fecha_inicio;
+        bodyData.fase_referencia = candidatoForm.fase_referencia;
+        bodyData.fecha_referencia = candidatoForm.fecha_referencia;
         bodyData.notas = candidatoForm.notas || null;
       }
 
@@ -629,6 +660,17 @@ export default function AgregarMinisterio() {
               </div>
             </div>
 
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="fecha_nacimiento" className="font-medium text-slate-700 text-sm">Fecha de nacimiento</label>
+                <input id="fecha_nacimiento" name="fecha_nacimiento" type="date" value={form.fecha_nacimiento} onChange={handleChange} className="input-glass w-full" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="direccion_particular" className="font-medium text-slate-700 text-sm">Dirección particular</label>
+                <input id="direccion_particular" name="direccion_particular" value={form.direccion_particular} onChange={handleChange} maxLength={255} className="input-glass w-full" autoComplete="street-address" />
+              </div>
+            </div>
+
             {/* Sección condicional según tab */}
             {activeTab === "MINISTERIO" ? (
               <>
@@ -644,7 +686,7 @@ export default function AgregarMinisterio() {
                     {codigoManual ? (
                       <div className="flex items-center gap-0">
                         <span className="inline-flex items-center px-3 h-[42px] rounded-l-xl border border-r-0 border-slate-200 bg-slate-100 font-mono text-base text-slate-700 font-semibold tracking-wider select-none">{codigoZona}</span>
-                        <input id="codigo_manual_numero" name="codigo_manual_numero" value={codigoManualNumero} onChange={(e) => { const val = e.target.value.replace(/[^0-9]/g, ""); if (val.length <= 4) setCodigoManualNumero(val); }} inputMode="numeric" maxLength={4} placeholder="0000" className="input-glass w-full rounded-l-none font-mono text-base font-semibold tracking-wider" autoComplete="off" />
+                        <input id="codigo_manual_numero" name="codigo_manual_numero" value={codigoManualNumero} onChange={(e) => { const val = e.target.value.replace(/[^0-9]/g, ""); if (val.length <= 4) setCodigoManualNumero(val); }} inputMode="numeric" maxLength={4} placeholder="0001" className="input-glass w-full rounded-l-none font-mono text-base font-semibold tracking-wider" autoComplete="off" />
                       </div>
                     ) : (
                       <div className="input-glass w-full flex items-center bg-slate-50 cursor-not-allowed select-none">
@@ -666,29 +708,16 @@ export default function AgregarMinisterio() {
               <>
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
-                    <label htmlFor="fecha_inicio" className="font-medium text-slate-700 text-sm">Fecha de inicio <span className="text-red-500">*</span> <span className="text-xs text-slate-400 font-normal ml-2">(desde cuándo es candidato)</span></label>
-                    <input id="fecha_inicio" name="fecha_inicio" type="date" value={candidatoForm.fecha_inicio} onChange={handleCandidatoChange} className="input-glass w-full" />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
                     <label htmlFor="estado_id" className="font-medium text-slate-700 text-sm">Estado <span className="text-red-500">*</span></label>
                     <Combobox id="estado_id" name="estado_id" options={estadoOptions} value={form.estado_id} onChange={(val) => setForm((f) => ({ ...f, estado_id: val }))} placeholder="Selecciona estado" searchPlaceholder="Buscar estado..." emptyMessage="No se encontraron estados." />
                   </div>
                 </div>
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
-                  <div className="flex items-start gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mt-0.5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
-                    <div>
-                      <p className="font-semibold mb-1">Las fases se calculan automáticamente:</p>
-                      <ul className="space-y-0.5 text-blue-700">
-                        <li>🟡 <strong>Ensayista</strong> → primeros 6 meses</li>
-                        <li>🔵 <strong>Candidato Local</strong> → 6 meses a 1,5 años</li>
-                        <li>🟣 <strong>Candidato Nacional</strong> → 1,5 años a 6,5 años</li>
-                        <li>🟢 <strong>Apto para Obrero</strong> → después de 6,5 años</li>
-                      </ul>
-                      <p className="mt-1 text-xs text-blue-600">Puede poner una fecha pasada si el candidato ya lleva tiempo en proceso.</p>
-                    </div>
-                  </div>
-                </div>
+                <CandidatoFechas
+                  faseReferencia={candidatoForm.fase_referencia}
+                  fechaReferencia={candidatoForm.fecha_referencia}
+                  onFaseChange={handleFaseReferenciaChange}
+                  onFechaChange={(fecha) => setCandidatoForm((f) => ({ ...f, fecha_referencia: fecha }))}
+                />
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor="notas" className="font-medium text-slate-700 text-sm">Notas adicionales</label>
                   <textarea id="notas" name="notas" value={candidatoForm.notas} onChange={handleCandidatoChange} className="input-glass w-full min-h-[80px] resize-y" placeholder="Observaciones sobre el candidato..." />
