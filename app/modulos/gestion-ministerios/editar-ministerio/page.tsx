@@ -454,7 +454,8 @@ export default function EditarMinisterio() {
           notas: form.tipo === "CANDIDATO" ? (form.notas || null) : null,
         }),
       });
-      if (!res.ok) { const errorData = await res.json(); throw new Error(errorData.error || "No se pudo actualizar"); }
+      const updateData = await res.json();
+      if (!res.ok) { throw new Error(updateData.error || "No se pudo actualizar"); }
       await fetch(`/api/ministerio_cargo/${form.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cargos: form.cargos }) });
       if (imagenFile) { const formData = new FormData(); formData.append("imagen", imagenFile); await fetch(`/api/ministerios/${form.id}/imagen`, { method: "POST", body: formData }); }
       else if (imagenRemoved && hasImagen) { await fetch(`/api/ministerios/${form.id}/imagen`, { method: "DELETE" }); }
@@ -488,7 +489,13 @@ export default function EditarMinisterio() {
         }
       }
 
-      showSuccess(form.tipo === "MINISTERIO" ? "Ministerio actualizado exitosamente" : "Candidato actualizado exitosamente");
+      showSuccess(
+        updateData.codigo_reasignado
+          ? `El código ya existía. Se asignó automáticamente ${updateData.codigo}`
+          : form.tipo === "MINISTERIO"
+            ? "Ministerio actualizado exitosamente"
+            : "Candidato actualizado exitosamente"
+      );
       setLoading(false);
       setTimeout(() => { router.push("/modulos/gestion-ministerios/ministerios"); }, 1500);
     } catch (err) { setLoading(false); showError(err instanceof Error ? err.message : "No se pudo actualizar"); }

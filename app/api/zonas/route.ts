@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cached, invalidateCachePrefix, CACHE_TTL } from "@/lib/cache";
+import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
 
 export async function GET() {
   try {
@@ -260,8 +261,34 @@ export async function PUT(request: Request) {
             const sufijo = ministerio.codigo.startsWith(zonaActual.codigo)
               ? ministerio.codigo.slice(zonaActual.codigo.length)
               : ministerio.codigo.slice(-4);
-            const codigoNuevo = `${zona.codigo}${sufijo}`;
+            let codigoNuevo = `${zona.codigo}${sufijo}`;
             if (codigoNuevo === ministerio.codigo) continue;
+
+            const codigoExistente = await tx.ministerio.findFirst({
+              where: {
+                codigo: codigoNuevo,
+                NOT: { id: ministerio.id },
+              },
+              select: { id: true },
+            });
+
+            if (codigoExistente) {
+              const codigosZona = await tx.ministerio.findMany({
+                where: { codigo: { startsWith: zona.codigo } },
+                select: { codigo: true },
+              });
+              const codigoAlternativo = generarCodigoSiguiente(
+                zona.codigo,
+                codigosZona.map((registro) => registro.codigo)
+              );
+
+              if (!codigoAlternativo) {
+                throw new Error(
+                  `Se ha alcanzado el límite máximo de códigos para la zona ${zona.codigo} (9999)`
+                );
+              }
+              codigoNuevo = codigoAlternativo;
+            }
 
             await tx.ministerio.update({
               where: { id: ministerio.id },

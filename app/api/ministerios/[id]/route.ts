@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { encrypt, decrypt } from "@/lib/encryption";
 import { validarDNI, validarNIE } from "@/lib/dniUtils";
 import { calcularFase } from "@/lib/candidatoUtils";
+import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
 
 // Obtener un ministerio por id (con cargos y candidato_detalle)
 export async function GET(
@@ -154,23 +155,8 @@ export async function PUT(
     );
   }
 
-  // Validar unicidad del código si ha cambiado
-  if (tipo === "MINISTERIO" && codigo) {
-    const existente = await prisma.ministerio.findUnique({
-      where: { codigo },
-      select: { id: true },
-    });
-
-    if (existente && existente.id !== Number(id)) {
-      return NextResponse.json(
-        { error: `El código ${codigo} ya existe en la base de datos` },
-        { status: 409 }
-      );
-    }
-  }
-
-  const codigoNuevo = tipo === "MINISTERIO" ? codigo : null;
-  await prisma.$transaction(async (tx) => {
+  const codigoSolicitado = tipo === "MINISTERIO" ? codigo : null;
+  const resultado = await prisma.$transaction(async (tx) => {
     const ministerioActual = await tx.ministerio.findUnique({
       where: { id: Number(id) },
       select: {
@@ -188,15 +174,53 @@ export async function PUT(
       throw new Error(`No se encontró el ministerio con id ${id}`);
     }
 
+    const iglesiaDestino = await tx.iglesia.findUnique({
+      where: { id: Number(iglesia_id) },
+      select: {
+        nombre: true,
+        zona: { select: { codigo: true } },
+      },
+    });
+    if (!iglesiaDestino) {
+      throw new Error(`No se encontró la iglesia con id ${iglesia_id}`);
+    }
+
     const iglesiaNueva = ministerioActual.iglesia_id !== Number(iglesia_id)
-      ? await tx.iglesia.findUnique({
-          where: { id: Number(iglesia_id) },
-          select: {
-            nombre: true,
-            zona: { select: { codigo: true } },
-          },
-        })
+      ? iglesiaDestino
       : null;
+
+    let codigoFinal = codigoSolicitado;
+    let codigoReasignado = false;
+    if (codigoSolicitado) {
+      const codigoExistente = await tx.ministerio.findFirst({
+        where: {
+          codigo: codigoSolicitado,
+          NOT: { id: Number(id) },
+        },
+        select: { id: true },
+      });
+
+      if (codigoExistente) {
+        const codigoZona = iglesiaDestino.zona.codigo.toUpperCase();
+        const codigosZona = await tx.ministerio.findMany({
+          where: { codigo: { startsWith: codigoZona } },
+          select: { codigo: true },
+        });
+        codigoFinal = generarCodigoSiguiente(
+          codigoZona,
+          codigosZona.map((ministerio) => ministerio.codigo)
+        );
+
+        if (!codigoFinal) {
+          return {
+            error: `Se ha alcanzado el límite máximo de códigos para la zona ${codigoZona} (9999)`,
+            codigo: null,
+            codigoReasignado: false,
+          };
+        }
+        codigoReasignado = true;
+      }
+    }
 
     await tx.ministerio.update({
       where: { id: Number(id) },
@@ -207,7 +231,7 @@ export async function PUT(
         dni_encrypted: dniEncrypted,
         nie_encrypted: nieEncrypted,
         iglesia_id,
-        codigo: codigoNuevo,
+        codigo: codigoFinal,
         estado_id,
         tipo: tipo || "MINISTERIO",
         aprob: aprob || null,
@@ -216,13 +240,13 @@ export async function PUT(
       },
     });
 
-    if (ministerioActual.codigo !== codigoNuevo) {
+    if (ministerioActual.codigo !== codigoFinal) {
       await tx.ministerioHistorico.create({
         data: {
           ministerio_id: Number(id),
           campo: "Código",
           valor_anterior: ministerioActual.codigo,
-          valor_nuevo: codigoNuevo,
+          valor_nuevo: codigoFinal,
         },
       });
     }
@@ -237,7 +261,13 @@ export async function PUT(
         },
       });
     }
+
+    return { error: null, codigo: codigoFinal, codigoReasignado };
   });
+
+  if (resultado.error) {
+    return NextResponse.json({ error: resultado.error }, { status: 409 });
+  }
 
   // Si es candidato, actualizar o crear candidato_detalle
   if (tipo === "CANDIDATO" && fecha_inicio) {
@@ -264,7 +294,11 @@ export async function PUT(
     }
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    codigo: resultado.codigo,
+    codigo_reasignado: resultado.codigoReasignado,
+  });
 }
 
 // Soft delete ministerio por id

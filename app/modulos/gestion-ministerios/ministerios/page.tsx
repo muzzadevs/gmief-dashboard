@@ -35,6 +35,7 @@ type PastorInfo = {
 export default function Ministerios() {
   const router = useRouter();
   const iglesiaSelected = useZonasStore((s) => s.iglesiaSelected);
+  const setZonaSelected = useZonasStore((s) => s.setZonaSelected);
   const setMinisterioEditId = useZonasStore((s) => s.setMinisterioEditId);
   const [ministerios, setMinisterios] = useState<Ministerio[]>([]);
   const [cargos, setCargos] = useState<Cargo[]>([]);
@@ -166,17 +167,35 @@ export default function Ministerios() {
       {/* Menú superior */}
       <div className="w-full flex justify-center z-[1000] mb-4 sm:sticky sm:top-0 px-2 sm:px-0">
         <div className="mt-3 sm:mt-4 w-full sm:w-[95%] flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-6 glass-card-solid px-4 sm:px-6 py-3">
-          <button
-            type="button"
-            className="btn-primary bg-slate-800 text-white hover:bg-slate-900 shadow-lg shadow-slate-800/20"
-            onClick={() => router.push("/modulos/gestion-ministerios/zonas-subzonas")}
-            aria-label="Volver"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-            </svg>
-            Volver
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="h-11 w-11 shrink-0 rounded-xl border border-slate-200 bg-white shadow-sm transition hover:bg-slate-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              onClick={() => {
+                setZonaSelected(null);
+                router.push("/modulos/gestion-ministerios");
+              }}
+              aria-label="Volver al selector de zonas"
+              title="Volver al selector de zonas"
+              style={{
+                backgroundImage: "url('/faviconFC.ico')",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+                backgroundSize: "28px 28px",
+              }}
+            />
+            <button
+              type="button"
+              className="btn-primary bg-slate-800 text-white hover:bg-slate-900 shadow-lg shadow-slate-800/20"
+              onClick={() => router.push("/modulos/gestion-ministerios/zonas-subzonas")}
+              aria-label="Volver a iglesias"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+              </svg>
+              Volver
+            </button>
+          </div>
           <div className="flex flex-row items-center gap-3 w-full flex-wrap">
             <span className="font-semibold text-lg text-slate-800 truncate">
               Iglesia {iglesiaSelected.nombre}
