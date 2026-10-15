@@ -21,6 +21,14 @@ npm run dev
 
 Abre [http://localhost:3000](http://localhost:3000) para ver la app en acción.
 
+### Claves de cifrado de DNI/NIE
+
+Configura `ENCRYPTION_KEY` como secreto de entorno en el despliegue. Si hay registros
+cifrados con una clave anterior, configura también esa clave como
+`ENCRYPTION_KEY_PREVIOUS`. Los nuevos datos se cifran con `ENCRYPTION_KEY`, mientras
+que la aplicación intenta ambas claves al descifrar. Mantén la clave anterior hasta
+que todos los registros cifrados con ella se hayan vuelto a cifrar.
+
 ---
 
 ## 📁 Estructura principal

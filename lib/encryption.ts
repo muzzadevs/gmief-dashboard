@@ -12,22 +12,32 @@ const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12; // 96 bits recomendado para GCM
 const AUTH_TAG_LENGTH = 16; // 128 bits
 
+function parseEncryptionKey(key: string, variableName: string): Buffer {
+  if (!/^[a-fA-F0-9]{64}$/.test(key)) {
+    throw new Error(`${variableName} debe tener 32 bytes (64 caracteres hexadecimales)`);
+  }
+  return Buffer.from(key, "hex");
+}
+
 function getEncryptionKey(): Buffer {
   const key = process.env.ENCRYPTION_KEY;
-
-  console.log("ESTA ES LA CLAVE: "+key)
-  
   if (!key) {
     throw new Error(
       "ENCRYPTION_KEY no está configurada en las variables de entorno. " +
       "Genera una clave de 32 bytes con: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
     );
   }
-  const buf = Buffer.from(key, "hex");
-  if (buf.length !== 32) {
-    throw new Error("ENCRYPTION_KEY debe ser de 32 bytes (64 caracteres hexadecimales)");
+  return parseEncryptionKey(key, "ENCRYPTION_KEY");
+}
+
+function getDecryptionKeys(): Buffer[] {
+  const keys = [getEncryptionKey()];
+  const previousKey = process.env.ENCRYPTION_KEY_PREVIOUS;
+  if (previousKey) {
+    const parsedPreviousKey = parseEncryptionKey(previousKey, "ENCRYPTION_KEY_PREVIOUS");
+    if (!keys[0].equals(parsedPreviousKey)) keys.push(parsedPreviousKey);
   }
-  return buf;
+  return keys;
 }
 
 /**
@@ -54,7 +64,6 @@ export function encrypt(plaintext: string): string {
  * @returns texto plano original
  */
 export function decrypt(encryptedText: string): string {
-  const key = getEncryptionKey();
   const parts = encryptedText.split(":");
 
   if (parts.length !== 3) {
@@ -62,16 +71,31 @@ export function decrypt(encryptedText: string): string {
   }
 
   const [ivHex, authTagHex, ciphertext] = parts;
+  if (
+    !/^[a-fA-F0-9]{24}$/.test(ivHex) ||
+    !/^[a-fA-F0-9]{32}$/.test(authTagHex) ||
+    !/^(?:[a-fA-F0-9]{2})*$/.test(ciphertext)
+  ) {
+    throw new Error("Formato de texto encriptado inválido");
+  }
+
   const iv = Buffer.from(ivHex, "hex");
   const authTag = Buffer.from(authTagHex, "hex");
 
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv, {
-    authTagLength: AUTH_TAG_LENGTH,
-  });
-  decipher.setAuthTag(authTag);
+  for (const key of getDecryptionKeys()) {
+    try {
+      const decipher = crypto.createDecipheriv(ALGORITHM, key, iv, {
+        authTagLength: AUTH_TAG_LENGTH,
+      });
+      decipher.setAuthTag(authTag);
 
-  let decrypted = decipher.update(ciphertext, "hex", "utf8");
-  decrypted += decipher.final("utf8");
+      let decrypted = decipher.update(ciphertext, "hex", "utf8");
+      decrypted += decipher.final("utf8");
+      return decrypted;
+    } catch {
+      continue;
+    }
+  }
 
-  return decrypted;
+  throw new Error("No se pudo descifrar el texto con las claves configuradas");
 }
