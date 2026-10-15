@@ -6,7 +6,6 @@
  * - authTag: 16 bytes (32 hex chars) – tag de autenticación GCM
  * - ciphertext: texto cifrado en hex
  */
-
 import crypto from "crypto";
 
 const ALGORITHM = "aes-256-gcm";
@@ -15,6 +14,9 @@ const AUTH_TAG_LENGTH = 16; // 128 bits
 
 function getEncryptionKey(): Buffer {
   const key = process.env.ENCRYPTION_KEY;
+
+  console.log("ESTA ES LA CLAVE: "+key)
+  
   if (!key) {
     throw new Error(
       "ENCRYPTION_KEY no está configurada en las variables de entorno. " +

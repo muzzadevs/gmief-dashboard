@@ -15,13 +15,27 @@ export async function buscarDniDuplicado(
     select: { id: true, dni_encrypted: true },
   });
 
+  let registrosNoDescifrables = 0;
   for (const ministerio of ministerios) {
-    if (
-      ministerio.dni_encrypted &&
-      decrypt(ministerio.dni_encrypted) === dniNormalizado
-    ) {
+    if (!ministerio.dni_encrypted) continue;
+
+    let dniAlmacenado: string;
+    try {
+      dniAlmacenado = decrypt(ministerio.dni_encrypted);
+    } catch {
+      registrosNoDescifrables++;
+      continue;
+    }
+
+    if (dniAlmacenado === dniNormalizado) {
       return ministerio.id;
     }
+  }
+
+  if (registrosNoDescifrables > 0) {
+    console.warn(
+      `[buscarDniDuplicado] Se omitieron ${registrosNoDescifrables} DNI cifrados que no se pudieron descifrar.`
+    );
   }
 
   return null;

@@ -456,8 +456,8 @@ export default function Ministerios() {
                   {/* Stepper del proceso del candidato */}
                   {isCandidato && faseInfo && (
                     <div className="mt-2 rounded-xl bg-slate-50/80 px-3 py-3">
-                      <div className="relative mx-1 mb-4 h-4">
-                        <div className="absolute left-0 right-0 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-slate-200" />
+                      <div className="relative mx-1 mb-3 h-9">
+                        <div className="absolute left-0 right-0 top-[7px] h-1 -translate-y-1/2 rounded-full bg-slate-200" />
                         {etapasStepper.slice(0, 3).map((etapa, index) => {
                           if (etapa.fase === "APTO_OBRERO") return null;
                           const siguienteEtapa = etapasStepper[index + 1];
@@ -471,7 +471,7 @@ export default function Ministerios() {
                           return (
                             <span
                               key={etapa.fase}
-                              className={`absolute top-1/2 h-0.5 -translate-y-1/2 transition-all duration-500 ${estilosTramo[etapa.fase]}`}
+                              className={`absolute top-[7px] h-1 -translate-y-1/2 rounded-full transition-all duration-500 ${estilosTramo[etapa.fase]}`}
                               style={{
                                 left: `${etapa.posicion}%`,
                                 width: `${anchoTramo * etapa.progreso / 100}%`,
@@ -479,7 +479,7 @@ export default function Ministerios() {
                             />
                           );
                         })}
-                        {etapasStepper.map((etapa) => {
+                        {etapasStepper.map((etapa, index) => {
                           const styleByFase = {
                             ENSAYISTA: "bg-amber-500",
                             CANDIDATO_LOCAL: "bg-blue-500",
@@ -491,15 +491,39 @@ export default function Ministerios() {
                             : etapa.estado === "actual"
                               ? styleByFase[etapa.fase]
                               : "bg-slate-200";
+                          const etiquetaCorta = {
+                            ENSAYISTA: "EN",
+                            CANDIDATO_LOCAL: "CL",
+                            CANDIDATO_NACIONAL: "CN",
+                            APTO_OBRERO: "OB",
+                          } as const;
+                          const alineacion = index <= 1
+                            ? "translate-x-0 text-left"
+                            : index === etapasStepper.length - 1
+                              ? "-translate-x-full text-right"
+                              : "-translate-x-1/2 text-center";
+                          const colorTexto = etapa.estado === "actual"
+                            ? styleByFase[etapa.fase].replace("bg-", "text-")
+                            : etapa.estado === "completada"
+                              ? "text-slate-600"
+                              : "text-slate-400";
 
                           return (
-                            <span
-                              key={etapa.fase}
-                              aria-label={`${etapa.label}: ${etapa.estado}`}
-                              className={`absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-slate-50 ${dotColor}`}
-                              style={{ left: `${etapa.posicion}%` }}
-                              title={etapa.label}
-                            />
+                            <React.Fragment key={etapa.fase}>
+                              <span
+                                aria-hidden="true"
+                                className={`absolute top-[7px] z-10 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm ${dotColor}`}
+                                style={{ left: `${etapa.posicion}%` }}
+                              />
+                              <span
+                                aria-label={`${etiquetaCorta[etapa.fase]} — ${etapa.label}: ${etapa.estado}`}
+                                className={`absolute top-[18px] whitespace-nowrap text-[10px] font-bold leading-4 tracking-wide ${alineacion} ${colorTexto}`}
+                                style={{ left: `${etapa.posicion}%` }}
+                                title={etapa.label}
+                              >
+                                {etiquetaCorta[etapa.fase]}
+                              </span>
+                            </React.Fragment>
                           );
                         })}
                       </div>
@@ -528,10 +552,7 @@ export default function Ministerios() {
 
                           return (
                             <div key={etapa.fase} className="min-w-0">
-                              <p className={`mt-1 text-[11px] font-semibold leading-tight ${textColor}`}>
-                                {etapa.label}
-                              </p>
-                              <p className="mt-0.5 text-[10px] leading-tight text-slate-500">
+                              <p className={`text-[10px] font-semibold leading-tight ${textColor}`}>
                                 {detalle}
                               </p>
                             </div>

@@ -14,17 +14,19 @@ export interface FaseInfo {
   textColor: string;
 }
 
-// Periodos acumulados en días
 export const FASES_CANDIDATO = ["ENSAYISTA", "CANDIDATO_LOCAL", "CANDIDATO_NACIONAL"] as const;
 export type FaseFechaCandidato = (typeof FASES_CANDIDATO)[number];
 
-const ENSAYISTA_DIAS = 183;
-const LOCAL_DIAS = ENSAYISTA_DIAS + 365;
-const NACIONAL_DIAS = LOCAL_DIAS + 1826;
-const DIAS_POR_FASE: Record<FaseFechaCandidato, number> = {
-  ENSAYISTA: 0,
-  CANDIDATO_LOCAL: ENSAYISTA_DIAS,
-  CANDIDATO_NACIONAL: LOCAL_DIAS,
+const MESES_HASTA_LOCAL = 6;
+const MESES_HASTA_NACIONAL = 18;
+const MESES_NACIONAL_A_OBRERO = 60;
+const DESPLAZAMIENTOS_MESES: Record<
+  FaseFechaCandidato,
+  { inicio: number; local: number; nacional: number }
+> = {
+  ENSAYISTA: { inicio: 0, local: MESES_HASTA_LOCAL, nacional: MESES_HASTA_NACIONAL },
+  CANDIDATO_LOCAL: { inicio: -MESES_HASTA_LOCAL, local: 0, nacional: 12 },
+  CANDIDATO_NACIONAL: { inicio: -MESES_HASTA_NACIONAL, local: -12, nacional: 0 },
 };
 
 export interface FechasCandidato {
@@ -56,10 +58,39 @@ function fechaUTC(fecha: string | Date): string {
   return fecha;
 }
 
-function sumarDias(fecha: string, dias: number): string {
+function sumarMeses(fecha: string, meses: number): string {
   const resultado = new Date(`${fecha}T00:00:00.000Z`);
-  resultado.setUTCDate(resultado.getUTCDate() + dias);
+  const diaOriginal = resultado.getUTCDate();
+  resultado.setUTCDate(1);
+  resultado.setUTCMonth(resultado.getUTCMonth() + meses);
+  const ultimoDiaDelMes = new Date(
+    Date.UTC(resultado.getUTCFullYear(), resultado.getUTCMonth() + 1, 0)
+  ).getUTCDate();
+  resultado.setUTCDate(Math.min(diaOriginal, ultimoDiaDelMes));
   return resultado.toISOString().slice(0, 10);
+}
+
+function diferenciaDias(inicio: string, fin: string): number {
+  return Math.round(
+    (new Date(`${fin}T00:00:00.000Z`).getTime() -
+      new Date(`${inicio}T00:00:00.000Z`).getTime()) /
+      (1000 * 60 * 60 * 24)
+  );
+}
+
+function obtenerFechasEtapas(fechaInicio: string): {
+  fechaInicio: string;
+  fechaLocal: string;
+  fechaNacional: string;
+  fechaAptoObrero: string;
+} {
+  const fechas = calcularFechasCandidato(fechaInicio, "ENSAYISTA");
+  return {
+    fechaInicio: fechas.fecha_inicio,
+    fechaLocal: fechas.fecha_candidato_local,
+    fechaNacional: fechas.fecha_candidato_nacional,
+    fechaAptoObrero: sumarMeses(fechas.fecha_candidato_nacional, MESES_NACIONAL_A_OBRERO),
+  };
 }
 
 export function obtenerFechaHoy(): string {
@@ -71,13 +102,12 @@ export function calcularFechasCandidato(
   faseReferencia: FaseFechaCandidato
 ): FechasCandidato {
   const referencia = fechaUTC(fechaReferencia);
-  const diasDesdeEnsayista = DIAS_POR_FASE[faseReferencia];
-  const fechaInicio = sumarDias(referencia, -diasDesdeEnsayista);
+  const desplazamientos = DESPLAZAMIENTOS_MESES[faseReferencia];
 
   return {
-    fecha_inicio: fechaInicio,
-    fecha_candidato_local: sumarDias(fechaInicio, ENSAYISTA_DIAS),
-    fecha_candidato_nacional: sumarDias(fechaInicio, LOCAL_DIAS),
+    fecha_inicio: sumarMeses(referencia, desplazamientos.inicio),
+    fecha_candidato_local: sumarMeses(referencia, desplazamientos.local),
+    fecha_candidato_nacional: sumarMeses(referencia, desplazamientos.nacional),
   };
 }
 
@@ -96,42 +126,40 @@ export function calcularFechasCandidatoAlcanzadas(
 export function calcularFase(fechaInicio: string | Date): FaseInfo {
   const inicio = fechaUTC(fechaInicio);
   const hoy = obtenerFechaHoy();
-  const diffDias = Math.floor(
-    (new Date(`${hoy}T00:00:00.000Z`).getTime() -
-      new Date(`${inicio}T00:00:00.000Z`).getTime()) /
-      (1000 * 60 * 60 * 24)
-  );
+  const fechas = obtenerFechasEtapas(inicio);
 
-  if (diffDias < ENSAYISTA_DIAS) {
+  if (hoy < fechas.fechaLocal) {
+    const duracionDias = diferenciaDias(fechas.fechaInicio, fechas.fechaLocal);
+    const diasTranscurridos = diferenciaDias(fechas.fechaInicio, hoy);
     return {
       fase: "ENSAYISTA",
       label: "Ensayista",
-      progreso: Math.min(100, Math.max(0, (diffDias / ENSAYISTA_DIAS) * 100)),
-      diasRestantes: ENSAYISTA_DIAS - diffDias,
+      progreso: Math.min(100, Math.max(0, (diasTranscurridos / duracionDias) * 100)),
+      diasRestantes: diferenciaDias(hoy, fechas.fechaLocal),
       color: "amber",
       bgColor: "bg-amber-50",
       textColor: "text-amber-700",
     };
-  } else if (diffDias < LOCAL_DIAS) {
-    const diasEnFase = diffDias - ENSAYISTA_DIAS;
-    const duracionFase = LOCAL_DIAS - ENSAYISTA_DIAS;
+  } else if (hoy < fechas.fechaNacional) {
+    const duracionDias = diferenciaDias(fechas.fechaLocal, fechas.fechaNacional);
+    const diasTranscurridos = diferenciaDias(fechas.fechaLocal, hoy);
     return {
       fase: "CANDIDATO_LOCAL",
       label: "Candidato Local",
-      progreso: Math.min(100, Math.max(0, (diasEnFase / duracionFase) * 100)),
-      diasRestantes: LOCAL_DIAS - diffDias,
+      progreso: Math.min(100, Math.max(0, (diasTranscurridos / duracionDias) * 100)),
+      diasRestantes: diferenciaDias(hoy, fechas.fechaNacional),
       color: "blue",
       bgColor: "bg-blue-50",
       textColor: "text-blue-700",
     };
-  } else if (diffDias < NACIONAL_DIAS) {
-    const diasEnFase = diffDias - LOCAL_DIAS;
-    const duracionFase = NACIONAL_DIAS - LOCAL_DIAS;
+  } else if (hoy < fechas.fechaAptoObrero) {
+    const duracionDias = diferenciaDias(fechas.fechaNacional, fechas.fechaAptoObrero);
+    const diasTranscurridos = diferenciaDias(fechas.fechaNacional, hoy);
     return {
       fase: "CANDIDATO_NACIONAL",
       label: "Candidato Nacional",
-      progreso: Math.min(100, Math.max(0, (diasEnFase / duracionFase) * 100)),
-      diasRestantes: NACIONAL_DIAS - diffDias,
+      progreso: Math.min(100, Math.max(0, (diasTranscurridos / duracionDias) * 100)),
+      diasRestantes: diferenciaDias(hoy, fechas.fechaAptoObrero),
       color: "purple",
       bgColor: "bg-purple-50",
       textColor: "text-purple-700",
@@ -154,44 +182,49 @@ export function calcularStepperCandidato(
 ): EtapaStepperCandidato[] {
   const inicio = fechaUTC(fechaInicio);
   const hoy = obtenerFechaHoy();
-  const diffDias = Math.floor(
-    (new Date(`${hoy}T00:00:00.000Z`).getTime() -
-      new Date(`${inicio}T00:00:00.000Z`).getTime()) /
-      (1000 * 60 * 60 * 24)
-  );
+  const fechas = obtenerFechasEtapas(inicio);
   const etapas: {
     fase: FaseCandidato;
     label: string;
-    inicio: number;
-    fin: number | null;
+    inicio: string;
+    fin: string | null;
   }[] = [
-    { fase: "ENSAYISTA", label: "Ensayista", inicio: 0, fin: ENSAYISTA_DIAS },
-    { fase: "CANDIDATO_LOCAL", label: "Candidato Local", inicio: ENSAYISTA_DIAS, fin: LOCAL_DIAS },
-    { fase: "CANDIDATO_NACIONAL", label: "Candidato Nacional", inicio: LOCAL_DIAS, fin: NACIONAL_DIAS },
-    { fase: "APTO_OBRERO", label: "Apto para Obrero", inicio: NACIONAL_DIAS, fin: null },
+    { fase: "ENSAYISTA", label: "Ensayista", inicio: fechas.fechaInicio, fin: fechas.fechaLocal },
+    { fase: "CANDIDATO_LOCAL", label: "Candidato Local", inicio: fechas.fechaLocal, fin: fechas.fechaNacional },
+    { fase: "CANDIDATO_NACIONAL", label: "Candidato Nacional", inicio: fechas.fechaNacional, fin: fechas.fechaAptoObrero },
+    { fase: "APTO_OBRERO", label: "Apto para Obrero", inicio: fechas.fechaAptoObrero, fin: null },
   ];
 
+  const duracionTotal = diferenciaDias(fechas.fechaInicio, fechas.fechaAptoObrero);
   return etapas.map((etapa) => {
-    const estado = etapa.fin !== null && diffDias >= etapa.fin
+    const estado = etapa.fin !== null && hoy >= etapa.fin
       ? "completada"
-      : diffDias >= etapa.inicio
+      : hoy >= etapa.inicio
         ? "actual"
         : "pendiente";
+    const duracionDias = etapa.fin === null
+      ? null
+      : diferenciaDias(etapa.inicio, etapa.fin);
+    const diasEnEtapa = diferenciaDias(etapa.inicio, hoy);
     return {
       fase: etapa.fase,
       label: etapa.label,
       estado,
       diasRestantes: estado === "actual" && etapa.fin !== null
-        ? etapa.fin - diffDias
-        : Math.max(0, etapa.inicio - diffDias),
-      duracionDias: etapa.fin === null ? null : etapa.fin - etapa.inicio,
-      posicion: (etapa.inicio / NACIONAL_DIAS) * 100,
+        ? diferenciaDias(hoy, etapa.fin)
+        : estado === "pendiente"
+          ? diferenciaDias(hoy, etapa.inicio)
+          : 0,
+      duracionDias,
+      posicion: (diferenciaDias(fechas.fechaInicio, etapa.inicio) / duracionTotal) * 100,
       progreso: etapa.fin === null
         ? 0
         : estado === "completada"
           ? 100
           : estado === "actual"
-            ? Math.min(100, Math.max(0, ((diffDias - etapa.inicio) / (etapa.fin - etapa.inicio)) * 100))
+            ? duracionDias === null
+              ? 0
+              : Math.min(100, Math.max(0, (diasEnEtapa / duracionDias) * 100))
             : 0,
     };
   });
