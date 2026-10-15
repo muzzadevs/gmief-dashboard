@@ -468,16 +468,16 @@ export default function Ministerios() {
                           if (etapa.fase === "APTO_OBRERO") return null;
                           const siguienteEtapa = etapasStepper[index + 1];
                           const anchoTramo = siguienteEtapa.posicion - etapa.posicion;
-                          const estilosTramo = {
-                            ENSAYISTA: "bg-amber-500",
-                            CANDIDATO_LOCAL: "bg-blue-500",
-                            CANDIDATO_NACIONAL: "bg-purple-500",
-                          } as const;
+                          const colorTramo = etapa.estado === "completada"
+                            ? "bg-emerald-500"
+                            : etapa.estado === "actual"
+                              ? "bg-blue-500"
+                              : "bg-slate-300";
 
                           return (
                             <span
                               key={etapa.fase}
-                              className={`absolute top-[7px] h-1 -translate-y-1/2 rounded-full transition-all duration-500 ${estilosTramo[etapa.fase]}`}
+                              className={`absolute top-[7px] h-1 -translate-y-1/2 rounded-full transition-all duration-500 ${colorTramo}`}
                               style={{
                                 left: `${etapa.posicion}%`,
                                 width: `${anchoTramo * etapa.progreso / 100}%`,
@@ -486,64 +486,33 @@ export default function Ministerios() {
                           );
                         })}
                         {etapasStepper.map((etapa, index) => {
-                          const styleByFase = {
-                            ENSAYISTA: "bg-amber-500",
-                            CANDIDATO_LOCAL: "bg-blue-500",
-                            CANDIDATO_NACIONAL: "bg-purple-500",
-                            APTO_OBRERO: "bg-emerald-500",
-                          } as const;
-                          const dotColor = etapa.estado === "completada"
-                            ? "bg-emerald-500"
-                            : etapa.estado === "actual"
-                              ? styleByFase[etapa.fase]
-                              : "bg-white";
                           const etiquetaCorta = {
                             ENSAYISTA: "EN",
                             CANDIDATO_LOCAL: "CL",
                             CANDIDATO_NACIONAL: "CN",
                             APTO_OBRERO: "OB",
                           } as const;
+                          const estadoEstilo = etapa.estado === "completada"
+                            ? "bg-emerald-500 border-white text-white"
+                            : etapa.estado === "actual"
+                              ? "bg-blue-500 border-white text-white ring-2 ring-blue-200"
+                              : "bg-white border-slate-300 text-slate-500";
                           const alineacion = index === 0
                             ? "translate-x-0 text-left"
                             : index === etapasStepper.length - 1
                               ? "-translate-x-full text-right"
                               : "-translate-x-1/2 text-center";
-                          const colorTexto = etapa.estado === "completada" || etapa.estado === "actual"
-                            ? "border-white text-white"
-                            : "border-slate-300 text-slate-500";
 
                           return (
                             <React.Fragment key={etapa.fase}>
                               <span
                                 title={`${etiquetaCorta[etapa.fase]} · ${etapa.label}`}
-                                className={`absolute top-[7px] z-10 flex h-7 min-w-7 -translate-y-1/2 items-center justify-center rounded-full border-2 px-1 text-[9px] font-extrabold leading-none shadow-sm ${alineacion} ${dotColor} ${colorTexto}`}
+                                className={`absolute top-[7px] z-10 flex h-7 min-w-7 -translate-y-1/2 items-center justify-center rounded-full border-2 px-1 text-[9px] font-extrabold leading-none shadow-sm ${alineacion} ${estadoEstilo}`}
                                 style={{ left: `${etapa.posicion}%` }}
                               >
                                 {etiquetaCorta[etapa.fase]}
                               </span>
                             </React.Fragment>
-                          );
-                        })}
-                      </div>
-                      <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4">
-                        {etapasStepper.map((etapa) => {
-                          const styleByFase = {
-                            ENSAYISTA: { text: "text-amber-700", dot: "bg-amber-500" },
-                            CANDIDATO_LOCAL: { text: "text-blue-700", dot: "bg-blue-500" },
-                            CANDIDATO_NACIONAL: { text: "text-purple-700", dot: "bg-purple-500" },
-                            APTO_OBRERO: { text: "text-emerald-700", dot: "bg-emerald-500" },
-                          } as const;
-                          const dotColor = etapa.estado === "completada"
-                            ? "bg-emerald-500"
-                            : styleByFase[etapa.fase].dot;
-
-                          return (
-                            <div key={etapa.fase} className="flex min-w-0 items-center gap-1.5">
-                              <span className={`h-2 w-2 shrink-0 rounded-full ${dotColor}`} />
-                              <p className={`truncate text-[10px] font-semibold leading-tight ${styleByFase[etapa.fase].text}`}>
-                                {etapa.label}
-                              </p>
-                            </div>
                           );
                         })}
                       </div>
@@ -561,7 +530,7 @@ export default function Ministerios() {
                               </span>
                             </p>
                             {siguienteEtapa ? (
-                              <p className="rounded-full bg-purple-50 px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide text-purple-700">
+                              <p className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide text-blue-700">
                                 Queda {formatDiasRestantes(etapaActual.diasRestantes)} para {siguienteEtapa.label}
                               </p>
                             ) : (
