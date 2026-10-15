@@ -31,6 +31,7 @@ services:
       NODE_ENV: production
       DATABASE_URL: mysql://${MARIADB_USER:-gmief_app}:${MARIADB_PASSWORD:-gmief_local_password}@db:${MARIADB_PORT:-3307}/${MARIADB_DATABASE:-gmief}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Configura ENCRYPTION_KEY en .env}
+      ENCRYPTION_KEY_PREVIOUS: ${ENCRYPTION_KEY_PREVIOUS:-}
     ports:
       - "3000:3000"
 

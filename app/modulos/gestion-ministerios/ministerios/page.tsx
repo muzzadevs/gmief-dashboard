@@ -455,8 +455,14 @@ export default function Ministerios() {
 
                   {/* Stepper del proceso del candidato */}
                   {isCandidato && faseInfo && (
-                    <div className="mt-2 rounded-xl bg-slate-50/80 px-3 py-3">
-                      <div className="relative mx-1 mb-3 h-9">
+                    <div className="mt-2 rounded-xl bg-slate-50/80 px-3 py-4">
+                      <div
+                        className="relative mx-1 mb-4 h-8"
+                        role="img"
+                        aria-label={`Progreso del candidato: ${etapasStepper
+                          .map((etapa) => `${etapa.label}, ${etapa.estado}`)
+                          .join("; ")}`}
+                      >
                         <div className="absolute left-0 right-0 top-[7px] h-1 -translate-y-1/2 rounded-full bg-slate-200" />
                         {etapasStepper.slice(0, 3).map((etapa, index) => {
                           if (etapa.fase === "APTO_OBRERO") return null;
@@ -490,36 +496,28 @@ export default function Ministerios() {
                             ? "bg-emerald-500"
                             : etapa.estado === "actual"
                               ? styleByFase[etapa.fase]
-                              : "bg-slate-200";
+                              : "bg-white";
                           const etiquetaCorta = {
                             ENSAYISTA: "EN",
                             CANDIDATO_LOCAL: "CL",
                             CANDIDATO_NACIONAL: "CN",
                             APTO_OBRERO: "OB",
                           } as const;
-                          const alineacion = index <= 1
+                          const alineacion = index === 0
                             ? "translate-x-0 text-left"
                             : index === etapasStepper.length - 1
                               ? "-translate-x-full text-right"
                               : "-translate-x-1/2 text-center";
-                          const colorTexto = etapa.estado === "actual"
-                            ? styleByFase[etapa.fase].replace("bg-", "text-")
-                            : etapa.estado === "completada"
-                              ? "text-slate-600"
-                              : "text-slate-400";
+                          const colorTexto = etapa.estado === "completada" || etapa.estado === "actual"
+                            ? "border-white text-white"
+                            : "border-slate-300 text-slate-500";
 
                           return (
                             <React.Fragment key={etapa.fase}>
                               <span
-                                aria-hidden="true"
-                                className={`absolute top-[7px] z-10 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm ${dotColor}`}
+                                title={`${etiquetaCorta[etapa.fase]} · ${etapa.label}`}
+                                className={`absolute top-[7px] z-10 flex h-7 min-w-7 -translate-y-1/2 items-center justify-center rounded-full border-2 px-1 text-[9px] font-extrabold leading-none shadow-sm ${alineacion} ${dotColor} ${colorTexto}`}
                                 style={{ left: `${etapa.posicion}%` }}
-                              />
-                              <span
-                                aria-label={`${etiquetaCorta[etapa.fase]} — ${etapa.label}: ${etapa.estado}`}
-                                className={`absolute top-[18px] whitespace-nowrap text-[10px] font-bold leading-4 tracking-wide ${alineacion} ${colorTexto}`}
-                                style={{ left: `${etapa.posicion}%` }}
-                                title={etapa.label}
                               >
                                 {etiquetaCorta[etapa.fase]}
                               </span>
@@ -527,38 +525,53 @@ export default function Ministerios() {
                           );
                         })}
                       </div>
-                      <div className="grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-4">
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4">
                         {etapasStepper.map((etapa) => {
                           const styleByFase = {
-                            ENSAYISTA: { text: "text-amber-700" },
-                            CANDIDATO_LOCAL: { text: "text-blue-700" },
-                            CANDIDATO_NACIONAL: { text: "text-purple-700" },
-                            APTO_OBRERO: { text: "text-emerald-700" },
+                            ENSAYISTA: { text: "text-amber-700", dot: "bg-amber-500" },
+                            CANDIDATO_LOCAL: { text: "text-blue-700", dot: "bg-blue-500" },
+                            CANDIDATO_NACIONAL: { text: "text-purple-700", dot: "bg-purple-500" },
+                            APTO_OBRERO: { text: "text-emerald-700", dot: "bg-emerald-500" },
                           } as const;
-                          const textColor = etapa.estado === "actual"
-                            ? styleByFase[etapa.fase].text
-                            : etapa.estado === "completada"
-                              ? "text-slate-600"
-                              : "text-slate-400";
-                          const detalle = etapa.estado === "completada"
-                            ? "Completada"
-                            : etapa.estado === "actual"
-                              ? etapa.duracionDias === null
-                                ? "Disponible"
-                                : `Quedan ${formatDiasRestantes(etapa.diasRestantes)}`
-                              : etapa.duracionDias === null
-                                ? `Apto en ${formatDiasRestantes(etapa.diasRestantes)}`
-                                : `Empieza en ${formatDiasRestantes(etapa.diasRestantes)} · dura ${formatDiasRestantes(etapa.duracionDias)}`;
+                          const dotColor = etapa.estado === "completada"
+                            ? "bg-emerald-500"
+                            : styleByFase[etapa.fase].dot;
 
                           return (
-                            <div key={etapa.fase} className="min-w-0">
-                              <p className={`text-[10px] font-semibold leading-tight ${textColor}`}>
-                                {detalle}
+                            <div key={etapa.fase} className="flex min-w-0 items-center gap-1.5">
+                              <span className={`h-2 w-2 shrink-0 rounded-full ${dotColor}`} />
+                              <p className={`truncate text-[10px] font-semibold leading-tight ${styleByFase[etapa.fase].text}`}>
+                                {etapa.label}
                               </p>
                             </div>
                           );
                         })}
                       </div>
+                      {(() => {
+                        const etapaActualIndex = etapasStepper.findIndex((etapa) => etapa.estado === "actual");
+                        const etapaActual = etapasStepper[etapaActualIndex];
+                        const siguienteEtapa = etapasStepper[etapaActualIndex + 1];
+
+                        return (
+                          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+                            <p className="text-xs text-slate-600">
+                              Fase actual:{" "}
+                              <span className="font-bold text-slate-800">
+                                {etapaActual?.label ?? "Proceso completado"}
+                              </span>
+                            </p>
+                            {siguienteEtapa ? (
+                              <p className="rounded-full bg-purple-50 px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide text-purple-700">
+                                Queda {formatDiasRestantes(etapaActual.diasRestantes)} para {siguienteEtapa.label}
+                              </p>
+                            ) : (
+                              <p className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-extrabold text-emerald-700">
+                                Disponible para aprobación
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
 
