@@ -530,8 +530,8 @@ export default function Ministerios() {
                               </span>
                             </p>
                             {siguienteEtapa ? (
-                              <p className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide text-blue-700">
-                                Queda {formatDiasRestantes(etapaActual.diasRestantes)} para {siguienteEtapa.label}
+                              <p className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                                Tiempo restante: {formatDiasRestantes(etapaActual.diasRestantes)} · Próxima fase: {siguienteEtapa.label}
                               </p>
                             ) : (
                               <p className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-extrabold text-emerald-700">

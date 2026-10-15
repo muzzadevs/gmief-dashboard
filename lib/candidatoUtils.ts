@@ -232,14 +232,26 @@ export function calcularStepperCandidato(
 
 export function formatDiasRestantes(dias: number): string {
   if (dias <= 0) return "Completado";
-  const años = Math.floor(dias / 365);
-  const meses = Math.floor((dias % 365) / 30);
-  const diasResto = dias % 30;
+  const inicio = obtenerFechaHoy();
+  const objetivoDate = new Date(`${inicio}T00:00:00.000Z`);
+  objetivoDate.setUTCDate(objetivoDate.getUTCDate() + dias);
+  const objetivo = objetivoDate.toISOString().slice(0, 10);
+  const inicioDate = new Date(`${inicio}T00:00:00.000Z`);
+  let mesesTotales =
+    (objetivoDate.getUTCFullYear() - inicioDate.getUTCFullYear()) * 12 +
+    (objetivoDate.getUTCMonth() - inicioDate.getUTCMonth());
+  if (sumarMeses(inicio, mesesTotales) > objetivo) mesesTotales -= 1;
 
+  const años = Math.floor(mesesTotales / 12);
+  const meses = mesesTotales % 12;
+  const diasResto = diferenciaDias(sumarMeses(inicio, mesesTotales), objetivo);
   const partes: string[] = [];
-  if (años > 0) partes.push(`${años}a`);
-  if (meses > 0) partes.push(`${meses}m`);
-  if (diasResto > 0 && años === 0) partes.push(`${diasResto}d`);
 
-  return partes.join(" ") || "< 1d";
+  if (años > 0) partes.push(`${años} ${años === 1 ? "año" : "años"}`);
+  if (meses > 0) partes.push(`${meses} ${meses === 1 ? "mes" : "meses"}`);
+  if (diasResto > 0) partes.push(`${diasResto} ${diasResto === 1 ? "día" : "días"}`);
+
+  if (partes.length === 1) return partes[0];
+  if (partes.length === 2) return `${partes[0]} y ${partes[1]}`;
+  return `${partes[0]}, ${partes[1]} y ${partes[2]}`;
 }

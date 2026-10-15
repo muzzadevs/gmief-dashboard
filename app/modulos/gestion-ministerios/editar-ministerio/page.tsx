@@ -626,7 +626,7 @@ export default function EditarMinisterio() {
                 <span className={`text-sm font-bold ${faseInfo.textColor} flex items-center gap-2`}>
                   {faseInfo.fase === "ENSAYISTA" && "🟡"}{faseInfo.fase === "CANDIDATO_LOCAL" && "🔵"}{faseInfo.fase === "CANDIDATO_NACIONAL" && "🟣"}{faseInfo.fase === "APTO_OBRERO" && "🟢"}{faseInfo.label}
                 </span>
-                <span className="text-xs text-slate-500">{faseInfo.fase === "APTO_OBRERO" ? "✅ Completado - Apto para ser aprobado como obrero" : `${formatDiasRestantes(faseInfo.diasRestantes)} restantes para la siguiente fase`}</span>
+                <span className="text-xs text-slate-500">{faseInfo.fase === "APTO_OBRERO" ? "✅ Completado - Apto para ser aprobado como obrero" : `Plazo para la siguiente fase: ${formatDiasRestantes(faseInfo.diasRestantes)}`}</span>
               </div>
               <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
                 <div className={`h-2.5 rounded-full transition-all duration-500 ${faseInfo.fase === "ENSAYISTA" ? "bg-amber-500" : faseInfo.fase === "CANDIDATO_LOCAL" ? "bg-blue-500" : faseInfo.fase === "CANDIDATO_NACIONAL" ? "bg-purple-500" : "bg-emerald-500"}`} style={{ width: `${Math.round(faseInfo.progreso)}%` }} />
