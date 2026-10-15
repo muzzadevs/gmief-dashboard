@@ -1,0 +1,1 @@
+0 3,15 * * * root /usr/bin/docker run --rm -v /etc/letsencrypt:/etc/letsencrypt -v /var/www/letsencrypt:/var/www/letsencrypt certbot/certbot:latest renew --quiet --webroot -w /var/www/letsencrypt && /usr/sbin/nginx -s reload
