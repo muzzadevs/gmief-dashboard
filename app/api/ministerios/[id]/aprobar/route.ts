@@ -62,13 +62,14 @@ export async function POST(
 
   const currentYear = new Date().getFullYear();
 
-  // Actualizar: tipo → MINISTERIO, asignar código y año de aprobación
+  // Actualizar: tipo → MINISTERIO, asignar código, username y año de aprobación
   await prisma.$transaction(async (tx) => {
     await tx.ministerio.update({
       where: { id: numId },
       data: {
         tipo: "MINISTERIO",
         codigo,
+        username: codigo, // El username pasa a ser el nuevo código de obrero
         aprob: currentYear,
       },
     });

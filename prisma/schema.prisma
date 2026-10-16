@@ -53,31 +53,34 @@ model Iglesia {
 }
 
 model Ministerio {
-  id        Int              @id @default(autoincrement())
-  nombre    String           @db.VarChar(20)
-  apellidos String?          @db.VarChar(60)
-  alias     String?          @db.VarChar(50)
-  dni_encrypted String?      @db.VarChar(255)
-  nie_encrypted String?      @db.VarChar(255)
-  iglesia_id Int
-  codigo    String?          @unique(map: "codigo") @db.VarChar(7)
-  estado_id Int
-  tipo      String           @default("MINISTERIO") @db.VarChar(15)
-  aprob     Int?
-  telefono  String?          @db.VarChar(15)
-  email     String?          @db.VarChar(255)
-  fecha_nacimiento DateTime? @db.Date
-  direccion_particular String? @db.VarChar(255)
-  imagen    Bytes?           @db.LongBlob
-  activo    Boolean          @default(true)
-  iglesia   Iglesia          @relation(fields: [iglesia_id], references: [id])
-  estado    Estado           @relation(fields: [estado_id], references: [id])
-  cargos    MinisterioCargo[]
-  observaciones Observacion[]
-  candidato_detalle CandidatoDetalle?
-  pastor_iglesia PastorIglesia?
-  solicitud_items SolicitudCredencialItem[]
-  historico MinisterioHistorico[]
+  id                   Int              @id @default(autoincrement())
+  nombre               String           @db.VarChar(20)
+  apellidos            String?          @db.VarChar(60)
+  alias                String?          @db.VarChar(50)
+  dni_encrypted        String?          @db.VarChar(255)
+  nie_encrypted        String?          @db.VarChar(255)
+  iglesia_id           Int
+  codigo               String?          @unique(map: "codigo") @db.VarChar(50)
+  estado_id            Int
+  tipo                 String           @default("MINISTERIO") @db.VarChar(15)
+  aprob                Int?
+  telefono             String?          @db.VarChar(15)
+  email                String?          @db.VarChar(255)
+  fecha_nacimiento     DateTime?        @db.Date
+  direccion_particular String?          @db.VarChar(255)
+  imagen               Bytes?           @db.LongBlob
+  activo               Boolean          @default(true)
+  username             String?          @unique(map: "username") @db.VarChar(50)
+  password_hash        String?          @db.VarChar(255)
+  must_change_password Boolean          @default(true)
+  iglesia              Iglesia          @relation(fields: [iglesia_id], references: [id])
+  estado               Estado           @relation(fields: [estado_id], references: [id])
+  cargos               MinisterioCargo[]
+  observaciones        Observacion[]
+  candidato_detalle    CandidatoDetalle?
+  pastor_iglesia       PastorIglesia?
+  solicitud_items      SolicitudCredencialItem[]
+  historico            MinisterioHistorico[]
 
   @@index([iglesia_id])
   @@index([estado_id])
@@ -102,6 +105,7 @@ model Cargo {
   id          Int              @id @default(autoincrement())
   cargo       String           @db.VarChar(100)
   ministerios MinisterioCargo[]
+  roles       RolCargo[]
 
   @@map("cargos")
 }
@@ -159,15 +163,68 @@ model PastorIglesia {
 }
 
 model Modulo {
-  id          Int      @id @default(autoincrement())
-  nombre      String   @db.VarChar(100)
-  descripcion String?  @db.VarChar(255)
-  icono       String?  @db.VarChar(50)
-  href        String   @db.VarChar(255)
-  activo      Boolean  @default(true)
-  orden       Int      @default(0)
+  id          Int              @id @default(autoincrement())
+  nombre      String           @db.VarChar(100)
+  descripcion String?          @db.VarChar(255)
+  icono       String?          @db.VarChar(50)
+  href        String           @db.VarChar(255)
+  activo      Boolean          @default(true)
+  orden       Int              @default(0)
+  permisos    RolModuloPermiso[]
 
   @@map("modulos")
+}
+
+model Rol {
+  id          Int                @id @default(autoincrement())
+  nombre      String             @unique @db.VarChar(50)
+  descripcion String?            @db.VarChar(255)
+  es_sistema  Boolean            @default(false)
+  permisos    RolModuloPermiso[]
+  cargos      RolCargo[]
+
+  @@map("roles")
+}
+
+model Permiso {
+  id          Int                @id @default(autoincrement())
+  clave       String             @unique @db.VarChar(50)
+  nombre      String             @db.VarChar(100)
+  descripcion String?            @db.VarChar(255)
+  es_sistema  Boolean            @default(false)
+  orden       Int                @default(0)
+  asignaciones RolModuloPermiso[]
+
+  @@map("permisos")
+}
+
+model RolModuloPermiso {
+  id         Int     @id @default(autoincrement())
+  rol_id     Int
+  modulo_id  Int
+  permiso_id Int
+  rol        Rol     @relation(fields: [rol_id], references: [id], onDelete: Cascade)
+  modulo     Modulo  @relation(fields: [modulo_id], references: [id], onDelete: Cascade)
+  permiso    Permiso @relation(fields: [permiso_id], references: [id], onDelete: Cascade)
+
+  @@unique([rol_id, modulo_id, permiso_id])
+  @@index([rol_id])
+  @@index([modulo_id])
+  @@index([permiso_id])
+  @@map("rol_modulo_permisos")
+}
+
+model RolCargo {
+  id       Int   @id @default(autoincrement())
+  rol_id   Int
+  cargo_id Int
+  rol      Rol   @relation(fields: [rol_id], references: [id], onDelete: Cascade)
+  cargo    Cargo @relation(fields: [cargo_id], references: [id], onDelete: Cascade)
+
+  @@unique([rol_id, cargo_id])
+  @@index([rol_id])
+  @@index([cargo_id])
+  @@map("rol_cargos")
 }
 
 model SolicitudCredencial {

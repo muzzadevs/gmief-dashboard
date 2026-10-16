@@ -11,6 +11,7 @@ import {
 } from "@/lib/candidatoUtils";
 import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
 import { buscarDniDuplicado } from "@/lib/ministerioDni";
+import { generarCodigoCandidato } from "@/lib/auth";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -390,8 +391,36 @@ async function createMinisterio(req: Request) {
       });
     }
 
+    // Para candidatos: generar código temporal CODIGOZONA+NOMBRE+ID
+    if (tipo === "CANDIDATO") {
+      const iglesia = await tx.iglesia.findUnique({
+        where: { id: iglesia_id },
+        include: { zona: { select: { codigo: true } } },
+      });
+      if (iglesia) {
+        const codigoTemp = generarCodigoCandidato(
+          iglesia.zona.codigo,
+          nombre,
+          nuevoMinisterio.id
+        );
+        await tx.ministerio.update({
+          where: { id: nuevoMinisterio.id },
+          data: { codigo: codigoTemp, username: codigoTemp },
+        });
+        return { ...nuevoMinisterio, codigo: codigoTemp };
+      }
+    }
+
+    // Para ministerios (obreros): username = código
+    if (nuevoMinisterio.codigo) {
+      await tx.ministerio.update({
+        where: { id: nuevoMinisterio.id },
+        data: { username: nuevoMinisterio.codigo },
+      });
+    }
+
     return nuevoMinisterio;
   });
 
-  return NextResponse.json({ id: ministerio.id, codigo });
+  return NextResponse.json({ id: ministerio.id, codigo: ministerio.codigo });
 }

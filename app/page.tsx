@@ -1,33 +1,75 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import FloatingPhotos from "./components/FloatingPhotos";
+import ModalCambiarPassword from "./components/ModalCambiarPassword";
+import { useAuthStore } from "@/store/authStore";
+import type { UserInfo } from "@/types/auth";
 
 export default function Home() {
   const router = useRouter();
+  const { login: storeLogin, restoreSession } = useAuthStore();
   const [user, setUser] = useState("");
   const [pass, setPass] = useState("");
   const [error, setError] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showChangePass, setShowChangePass] = useState(false);
+  const [pendingToken, setPendingToken] = useState("");
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  // Si ya tiene sesión válida, redirigir al dashboard
+  useEffect(() => {
+    const hasSession = restoreSession();
+    if (hasSession) {
+      router.replace("/dashboard");
+    }
+  }, [restoreSession, router]);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
-    // Validación temporal en memoria
-    setTimeout(() => {
-      if (user === "admin" && pass === "1234") {
-        router.push("/dashboard");
-      } else {
-        setError("Credenciales incorrectas. Inténtalo de nuevo.");
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: user, password: pass }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        setError(data.error || "Credenciales incorrectas. Inténtalo de nuevo.");
         setIsLoading(false);
+        return;
       }
-    }, 600);
+
+      if (data.mustChangePassword) {
+        // Guardar token temporalmente y mostrar modal
+        setPendingToken(data.token);
+        storeLogin(data.token, data.user);
+        setShowChangePass(true);
+        setIsLoading(false);
+        return;
+      }
+
+      // Login exitoso sin cambio de pass
+      storeLogin(data.token, data.user);
+      router.push("/dashboard");
+    } catch {
+      setError("Error de conexión. Inténtalo de nuevo.");
+      setIsLoading(false);
+    }
+  };
+
+  const handlePasswordChanged = (newToken: string, newUser: unknown) => {
+    storeLogin(newToken, newUser as UserInfo);
+    setShowChangePass(false);
+    router.push("/dashboard");
   };
 
   return (
@@ -189,6 +231,12 @@ export default function Home() {
         </a>
       </span>
 
+      {/* Modal de cambio de contraseña obligatorio */}
+      <ModalCambiarPassword
+        open={showChangePass}
+        token={pendingToken}
+        onSuccess={handlePasswordChanged}
+      />
     </main>
   );
 }
