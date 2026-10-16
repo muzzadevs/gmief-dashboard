@@ -32,6 +32,7 @@ type IglesiaTodas = {
   zona_id: number;
   zona_nombre: string;
   zona_codigo: string;
+  activo: boolean;
 };
 
 const DOC_TYPE_OPTIONS = [
@@ -575,11 +576,11 @@ export default function EditarMinisterio() {
 
   const estadoOptions = estados.map((e) => ({ value: String(e.id), label: e.nombre }));
   const yearOptions = years.map((y) => ({ value: String(y), label: String(y) }));
-  const iglesiaOptions = todasIglesias.map((ig) => ({
+  const iglesiaOptions = todasIglesias.filter((ig) => ig.activo).map((ig) => ({
     value: String(ig.id),
     label: `[${ig.zona_codigo}] ${ig.nombre}`,
   }));
-  const pastorIglesiaOptions = todasIglesias.map((ig) => ({
+  const pastorIglesiaOptions = todasIglesias.filter((ig) => ig.activo).map((ig) => ({
     value: String(ig.id),
     label: `[${ig.zona_codigo}] ${ig.nombre}`,
   }));

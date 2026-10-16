@@ -5,7 +5,7 @@ import Toast, { useToast } from "./Toast";
 import Combobox from "./ui/Combobox";
 import ModalConfirmarEliminar from "./ModalConfirmarEliminar";
 
-type Zona = { id: number; nombre: string };
+type Zona = { id: number; nombre: string; activo: boolean };
 type Subzona = { id: number; nombre: string; zona_id: number; activo: boolean };
 
 interface ModalEditarSubzonasProps {
@@ -139,7 +139,7 @@ export default function ModalEditarSubzonas({
 
   if (!isOpen) return null;
 
-  const zonaOptions = zonas.map((zona) => ({
+  const zonaOptions = zonas.filter((zona) => zona.activo).map((zona) => ({
     value: String(zona.id),
     label: zona.nombre,
   }));

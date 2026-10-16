@@ -163,6 +163,10 @@ body {
 }
 
 /* ── Leaflet popup override ── */
+.leaflet-map-gray-tiles {
+  filter: grayscale(1) brightness(1.04) contrast(0.92);
+}
+
 .leaflet-popup-content-wrapper {
   border-radius: 0.75rem !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;

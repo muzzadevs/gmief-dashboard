@@ -5,7 +5,10 @@ import { cached, CACHE_TTL } from "@/lib/cache";
 export async function GET() {
   try {
     const modulos = await cached("modulos:all", CACHE_TTL.MODERATE, () =>
-      prisma.modulo.findMany({ orderBy: { orden: "asc" } })
+      prisma.modulo.findMany({
+        where: { activo: true },
+        orderBy: { orden: "asc" },
+      })
     );
 
     return NextResponse.json({ ok: true, data: modulos }, { status: 200 });

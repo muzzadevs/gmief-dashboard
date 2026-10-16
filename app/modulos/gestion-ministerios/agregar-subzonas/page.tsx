@@ -6,7 +6,7 @@ import Toast, { useToast } from "../../../components/Toast";
 import Combobox from "../../../components/ui/Combobox";
 import { useRouter } from "next/navigation";
 
-type Zona = { id: number; nombre: string };
+type Zona = { id: number; nombre: string; activo: boolean };
 
 export default function AgregarSubzonas() {
   const router = useRouter();
@@ -88,7 +88,7 @@ export default function AgregarSubzonas() {
     return <LoaderPersonalizado>Cargando...</LoaderPersonalizado>;
   }
 
-  const zonaOptions = zonas.map((zona) => ({
+  const zonaOptions = zonas.filter((zona) => zona.activo).map((zona) => ({
     value: String(zona.id),
     label: zona.nombre,
   }));

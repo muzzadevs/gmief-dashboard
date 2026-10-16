@@ -6,8 +6,8 @@ import Toast, { useToast } from "../../../components/Toast";
 import Combobox from "../../../components/ui/Combobox";
 import { useRouter } from "next/navigation";
 
-type Zona = { id: number; nombre: string };
-type Subzona = { id: number; nombre: string; zona_id: number };
+type Zona = { id: number; nombre: string; activo: boolean };
+type Subzona = { id: number; nombre: string; zona_id: number; activo: boolean };
 
 export default function AgregarIglesia() {
   const router = useRouter();
@@ -129,12 +129,12 @@ export default function AgregarIglesia() {
     return <LoaderPersonalizado>Cargando...</LoaderPersonalizado>;
   }
 
-  const zonaOptions = zonas.map((zona) => ({
+  const zonaOptions = zonas.filter((zona) => zona.activo).map((zona) => ({
     value: String(zona.id),
     label: zona.nombre,
   }));
 
-  const subzonaOptions = subzonas.map((subzona) => ({
+  const subzonaOptions = subzonas.filter((subzona) => subzona.activo).map((subzona) => ({
     value: String(subzona.id),
     label: subzona.nombre,
   }));

@@ -163,17 +163,13 @@ export default function SpainMap({ onLoadingChange }: SpainMapProps) {
         zoom={6}
         className="w-full h-full"
         zoomControl={false}
-        attributionControl={false}
       >
-        {/* Base gris sin etiquetas */}
+        {/* OpenStreetMap no necesita API key y usa los nombres locales de España. */}
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
-          attribution="&copy; OpenStreetMap contributors &copy; CARTO"
-        />
-        {/* Etiquetas encima */}
-        <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png"
-          attribution="&copy; OpenStreetMap contributors &copy; CARTO"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          className="leaflet-map-gray-tiles"
+          maxZoom={19}
         />
 
         {/* Fly to handler */}
@@ -242,7 +238,7 @@ export default function SpainMap({ onLoadingChange }: SpainMapProps) {
 
       {/* Contador de iglesias */}
       {!loading && iglesias.length > 0 && (
-        <div className="fixed bottom-3 right-3 z-[1000] bg-slate-800/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs font-medium shadow-lg">
+        <div className="fixed bottom-8 right-3 z-[1000] bg-slate-800/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs font-medium shadow-lg">
           📍 {iglesias.length} iglesias en el mapa
         </div>
       )}

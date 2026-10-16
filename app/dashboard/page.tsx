@@ -95,7 +95,7 @@ export default function Dashboard() {
         if (!res.ok) throw new Error("Error al cargar módulos");
         const json = await res.json();
         if (json.ok && json.data) {
-          setModulos(json.data);
+          setModulos(json.data.filter((modulo: Modulo) => modulo.activo));
         } else {
           throw new Error("Respuesta inválida");
         }

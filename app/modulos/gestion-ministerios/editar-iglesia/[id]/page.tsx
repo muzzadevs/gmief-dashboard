@@ -7,8 +7,8 @@ import Combobox from "../../../../components/ui/Combobox";
 import ModalConfirmarEliminar from "../../../../components/ModalConfirmarEliminar";
 import { useRouter } from "next/navigation";
 
-type Zona = { id: number; nombre: string };
-type Subzona = { id: number; nombre: string; zona_id: number };
+type Zona = { id: number; nombre: string; activo: boolean };
+type Subzona = { id: number; nombre: string; zona_id: number; activo: boolean };
 type Iglesia = {
   id: number;
   nombre: string;
@@ -220,12 +220,12 @@ export default function EditarIglesia({ params }: Props) {
     );
   }
 
-  const zonaOptions = zonas.map((zona) => ({
+  const zonaOptions = zonas.filter((zona) => zona.activo).map((zona) => ({
     value: String(zona.id),
     label: zona.nombre,
   }));
 
-  const subzonaOptions = subzonas.map((subzona) => ({
+  const subzonaOptions = subzonas.filter((subzona) => subzona.activo).map((subzona) => ({
     value: String(subzona.id),
     label: subzona.nombre,
   }));

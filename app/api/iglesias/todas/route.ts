@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
   try {
     const iglesias = await prisma.iglesia.findMany({
+      where: { activo: true },
       select: {
         id: true,
         nombre: true,
