@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireCredencialesPermission } from "@/lib/credencialesPermissions";
 
 // POST: Marcar un item de solicitud como expedido
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireCredencialesPermission(req, "crear");
+  if (denied) return denied;
+
   const { id } = await params;
   try {
     const body = await req.json();

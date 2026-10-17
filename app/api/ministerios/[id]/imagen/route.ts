@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 // GET: Servir la imagen de un ministerio
 export async function GET(
@@ -46,6 +47,9 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireGestionMinisteriosPermission(req, "editar");
+  if (denied) return denied;
+
   const { id } = await params;
   if (!id) {
     return NextResponse.json({ error: "ID requerido" }, { status: 400 });
@@ -96,9 +100,12 @@ export async function POST(
 
 // DELETE: Eliminar imagen de un ministerio
 export async function DELETE(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireGestionMinisteriosPermission(req, "borrar");
+  if (denied) return denied;
+
   const { id } = await params;
   if (!id) {
     return NextResponse.json({ error: "ID requerido" }, { status: 400 });

@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "prisma generate && next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:auth": "tsx scripts/seed-auth.ts"
   },
   "dependencies": {
     "@fontsource/poppins": "^5.2.7",
@@ -48,6 +49,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   }
 }

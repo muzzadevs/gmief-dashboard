@@ -12,6 +12,7 @@ import {
 import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
 import { buscarDniDuplicado } from "@/lib/ministerioDni";
 import { generarCodigoCandidato } from "@/lib/auth";
+import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -148,6 +149,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const denied = await requireGestionMinisteriosPermission(req, "editar");
+  if (denied) return denied;
+
   try {
     return await createMinisterio(req);
   } catch (error) {

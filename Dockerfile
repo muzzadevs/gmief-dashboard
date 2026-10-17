@@ -25,14 +25,17 @@ FROM base AS runner
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-COPY --from=dependencies /app/node_modules ./node_modules
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/generated ./generated
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
-COPY --from=builder /app/public ./public
+COPY --from=dependencies --chown=node:node /app/node_modules ./node_modules
+COPY --from=builder --chown=node:node /app/.next ./.next
+COPY --from=builder --chown=node:node /app/generated ./generated
+COPY --from=builder --chown=node:node /app/prisma ./prisma
+COPY --from=builder --chown=node:node /app/package.json ./package.json
+COPY --from=builder --chown=node:node /app/prisma.config.ts ./prisma.config.ts
+COPY --from=builder --chown=node:node /app/public ./public
+COPY --from=builder --chown=node:node /app/scripts ./scripts
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "./node_modules/.bin/prisma db push && npm run start -- --hostname 0.0.0.0"]
+USER node
+
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && npm run seed:auth && npm run start -- --hostname 0.0.0.0"]

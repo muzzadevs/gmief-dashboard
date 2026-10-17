@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
+import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 // POST: Aprobar un candidato como obrero (transición CANDIDATO → MINISTERIO)
 export async function POST(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireGestionMinisteriosPermission(req, "editar");
+  if (denied) return denied;
+
   const { id } = await params;
   if (!id) {
     return NextResponse.json({ error: "ID requerido" }, { status: 400 });

@@ -8,11 +8,12 @@ import { searchStartsWith } from "@/lib/search";
 
 interface Props {
   busqueda?: string;
+  canEdit: boolean;
 }
 
 type IglesiaStats = Record<number, { ministerios: number; candidatos: number }>;
 
-export default function Iglesias({ busqueda = "" }: Props) {
+export default function Iglesias({ busqueda = "", canEdit }: Props) {
   const zonaSelected = useZonasStore((s) => s.zonaSelected);
   const subzonaSelected = useZonasStore((s) => s.subzonaSelected);
   const iglesias = useZonasStore((s) => s.iglesias);
@@ -161,7 +162,7 @@ export default function Iglesias({ busqueda = "" }: Props) {
                 )}
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <button
+                {canEdit && <button
                   type="button"
                   className={`btn-primary shadow-md text-sm ${
                     isInactive
@@ -177,7 +178,7 @@ export default function Iglesias({ busqueda = "" }: Props) {
                 >
                   <FaEdit className="w-4 h-4" />
                   <span className="hidden sm:inline">Editar</span>
-                </button>
+                </button>}
                 <button
                   type="button"
                   className={`btn-primary shadow-md text-sm ${

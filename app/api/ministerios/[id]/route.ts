@@ -11,6 +11,7 @@ import {
 } from "@/lib/candidatoUtils";
 import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
 import { buscarDniDuplicado } from "@/lib/ministerioDni";
+import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 // Obtener un ministerio por id (con cargos y candidato_detalle)
 export async function GET(
@@ -122,6 +123,9 @@ export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireGestionMinisteriosPermission(req, "editar");
+  if (denied) return denied;
+
   const { id } = await params;
   const data = await req.json();
   const {
@@ -421,6 +425,9 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireGestionMinisteriosPermission(req, "borrar");
+  if (denied) return denied;
+
   const { id } = await params;
   if (!id) {
     return NextResponse.json({ error: "ID requerido" }, { status: 400 });

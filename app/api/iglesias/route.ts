@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { geocodeIglesia } from "@/lib/geocode";
+import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 export async function GET(req: NextRequest) {
   const zonaId = req.nextUrl.searchParams.get("zonaId");
@@ -28,6 +29,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await requireGestionMinisteriosPermission(req, "editar");
+  if (denied) return denied;
+
   try {
     const { nombre, direccion, municipio, provincia, cp, zona_id, subzona_id } =
       await req.json();

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import LoaderPersonalizado from "../../../components/LoaderPersonalizado";
+import { useCredencialesPermissions } from "@/app/hooks/useCredencialesPermissions";
 
 type SolicitudItem = {
   id: number;
@@ -27,8 +28,13 @@ type Solicitud = {
 
 export default function GenerarCredenciales() {
   const router = useRouter();
+  const { ready, canCreate } = useCredencialesPermissions();
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (ready && !canCreate) router.replace("/modulos/gestor-credenciales");
+  }, [ready, canCreate, router]);
 
   const fetchSolicitudes = useCallback(async () => {
     try {
@@ -46,8 +52,8 @@ export default function GenerarCredenciales() {
   }, []);
 
   useEffect(() => {
-    fetchSolicitudes();
-  }, [fetchSolicitudes]);
+    if (ready && canCreate) fetchSolicitudes();
+  }, [ready, canCreate, fetchSolicitudes]);
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
@@ -90,6 +96,10 @@ export default function GenerarCredenciales() {
     if (oa !== ob) return oa - ob;
     return new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
   });
+
+  if (!ready || !canCreate) {
+    return <LoaderPersonalizado>Cargando permisos...</LoaderPersonalizado>;
+  }
 
   return (
     <main className="min-h-screen min-h-dvh flex flex-col">

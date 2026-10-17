@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cached, invalidateCachePrefix, CACHE_TTL } from "@/lib/cache";
 import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
+import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 export async function GET() {
   try {
@@ -25,6 +26,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const denied = await requireGestionMinisteriosPermission(request, "editar");
+  if (denied) return denied;
+
   try {
     const body = await request.json();
     const { nombre, codigo } = body;
@@ -123,6 +127,9 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const denied = await requireGestionMinisteriosPermission(request, "editar");
+  if (denied) return denied;
+
   try {
     const body = await request.json();
     const { zonas } = body;
@@ -340,6 +347,9 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const denied = await requireGestionMinisteriosPermission(request, "borrar");
+  if (denied) return denied;
+
   try {
     const body = await request.json();
     const { id } = body;

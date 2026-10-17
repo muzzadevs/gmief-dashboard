@@ -1,11 +1,15 @@
 import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 // Actualizar los cargos de un ministerio: elimina los que no estén, añade los nuevos
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireGestionMinisteriosPermission(req, "editar");
+  if (denied) return denied;
+
   const { id } = await params;
   const { cargos } = await req.json();
   if (!id || !Array.isArray(cargos)) {

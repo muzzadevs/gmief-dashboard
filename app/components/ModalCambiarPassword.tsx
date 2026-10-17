@@ -47,7 +47,12 @@ export default function ModalCambiarPassword({ open, token, onSuccess }: ModalCa
         body: JSON.stringify({ newPassword: newPass }),
       });
       const data = await res.json();
-      if (!res.ok || !data.ok) return triggerShake(data.error || "Error al cambiar la contraseña");
+      if (!res.ok || !data.ok) {
+        const message = data.error === "NO_AUTH"
+          ? "La sesión no está autenticada. Accede desde https://filadelfiaconecta.com e inicia sesión de nuevo."
+          : data.error || "Error al cambiar la contraseña";
+        return triggerShake(message);
+      }
       onSuccess(data.token, data.user);
     } catch { triggerShake("Error de conexión"); } finally { setLoading(false); }
   };

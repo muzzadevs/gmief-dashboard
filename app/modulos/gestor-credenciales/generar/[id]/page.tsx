@@ -8,6 +8,7 @@ import LoaderPersonalizado from "../../../../components/LoaderPersonalizado";
 import Toast, { useToast } from "../../../../components/Toast";
 import type { CredentialData } from "../../../../components/CredentialCard";
 import { generateCredentialPdf } from "@/lib/credentialPdf";
+import { useCredencialesPermissions } from "@/app/hooks/useCredencialesPermissions";
 
 const CredentialCard3D = dynamic(
   () => import("../../../../components/CredentialCard3D"),
@@ -46,6 +47,7 @@ type SolicitudDetail = {
 
 export default function SolicitudDetalle() {
   const router = useRouter();
+  const { ready, canCreate } = useCredencialesPermissions();
   const params = useParams();
   const solicitudId = params.id as string;
   const [solicitud, setSolicitud] = useState<SolicitudDetail | null>(null);
@@ -53,6 +55,10 @@ export default function SolicitudDetalle() {
   const [previewItem, setPreviewItem] = useState<SolicitudItem | null>(null);
   const [expediting, setExpediting] = useState<number | null>(null);
   const { toast, showSuccess, showError, hideToast } = useToast();
+
+  useEffect(() => {
+    if (ready && !canCreate) router.replace("/modulos/gestor-credenciales");
+  }, [ready, canCreate, router]);
 
   const fetchSolicitud = useCallback(async () => {
     try {
@@ -70,8 +76,8 @@ export default function SolicitudDetalle() {
   }, [solicitudId]);
 
   useEffect(() => {
-    fetchSolicitud();
-  }, [fetchSolicitud]);
+    if (ready && canCreate) fetchSolicitud();
+  }, [ready, canCreate, fetchSolicitud]);
 
   const handleExpedir = async (item: SolicitudItem) => {
     setExpediting(item.id);
@@ -128,6 +134,10 @@ export default function SolicitudDetalle() {
 
   const getDisplayName = (m: MinisterioItem) =>
     m.alias ? m.alias : `${m.nombre} ${m.apellidos || ""}`.trim();
+
+  if (!ready || !canCreate) {
+    return <LoaderPersonalizado>Cargando permisos...</LoaderPersonalizado>;
+  }
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {

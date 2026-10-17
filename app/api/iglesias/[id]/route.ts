@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { geocodeIglesia, addressFieldsChanged } from "@/lib/geocode";
+import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 export async function GET(
   request: NextRequest,
@@ -39,6 +40,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireGestionMinisteriosPermission(request, "borrar");
+  if (denied) return denied;
+
   try {
     const { id: idParam } = await params;
     const id = parseInt(idParam);
@@ -75,6 +79,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireGestionMinisteriosPermission(request, "editar");
+  if (denied) return denied;
+
   try {
     const { id: idParam } = await params;
     const id = parseInt(idParam);

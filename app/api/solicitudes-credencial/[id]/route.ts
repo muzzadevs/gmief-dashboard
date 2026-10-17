@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { decrypt } from "@/lib/encryption";
+import { requireCredencialesPermission } from "@/lib/credencialesPermissions";
 
 // GET: Obtener solicitud con detalle completo de ministerios
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireCredencialesPermission(req, "crear");
+  if (denied) return denied;
+
   const { id } = await params;
   try {
     const solicitud = await prisma.solicitudCredencial.findUnique({

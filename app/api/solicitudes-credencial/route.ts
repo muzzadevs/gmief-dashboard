@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireCredencialesPermission } from "@/lib/credencialesPermissions";
 
 // GET: Obtener todas las solicitudes con conteo de items
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await requireCredencialesPermission(req, "crear");
+  if (denied) return denied;
+
   try {
     const solicitudes = await prisma.solicitudCredencial.findMany({
       include: {
@@ -57,6 +61,9 @@ export async function GET() {
 
 // POST: Crear nueva solicitud con ministerios seleccionados
 export async function POST(req: Request) {
+  const denied = await requireCredencialesPermission(req, "solicitar");
+  if (denied) return denied;
+
   try {
     const body = await req.json();
     const { ministerio_ids, notas } = body;

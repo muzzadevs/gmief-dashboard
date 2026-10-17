@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 export async function GET(req: NextRequest) {
   const zonaId = req.nextUrl.searchParams.get("zonaId");
@@ -21,6 +22,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await requireGestionMinisteriosPermission(req, "editar");
+  if (denied) return denied;
+
   try {
     const { nombre, zona_id } = await req.json();
 
@@ -49,6 +53,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  const denied = await requireGestionMinisteriosPermission(req, "editar");
+  if (denied) return denied;
+
   try {
     const { subzonas } = await req.json();
 
@@ -91,6 +98,9 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const denied = await requireGestionMinisteriosPermission(req, "borrar");
+  if (denied) return denied;
+
   try {
     const { id } = await req.json();
 
