@@ -12,12 +12,16 @@ interface ModalEditarSubzonasProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  canEdit: boolean;
+  canDelete: boolean;
 }
 
 export default function ModalEditarSubzonas({
   isOpen,
   onClose,
   onSuccess,
+  canEdit,
+  canDelete,
 }: ModalEditarSubzonasProps) {
   const { toast, showSuccess, showError, hideToast } = useToast();
   const [zonas, setZonas] = useState<Zona[]>([]);
@@ -195,6 +199,7 @@ export default function ModalEditarSubzonas({
                             e.target.value
                           )
                         }
+                        disabled={!canEdit || loading}
                         className="input-glass w-full"
                         placeholder="Nombre de la subzona"
                         required
@@ -214,12 +219,13 @@ export default function ModalEditarSubzonas({
                             parseInt(val)
                           )
                         }
+                        disabled={!canEdit || loading}
                         placeholder="Selecciona una zona"
                         searchPlaceholder="Buscar zona..."
                         emptyMessage="No se encontraron zonas."
                       />
                     </div>
-                    <button
+                    {canDelete && <button
                       type="button"
                       onClick={() => setDeleteModal({ open: true, subzona })}
                       className="btn-primary bg-red-600 text-white hover:bg-red-700 shadow-md text-sm h-[42px]"
@@ -230,7 +236,7 @@ export default function ModalEditarSubzonas({
                         <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
                       </svg>
                       <span className="hidden md:inline">Eliminar</span>
-                    </button>
+                    </button>}
                   </div>
                 ))}
               </form>
@@ -247,14 +253,14 @@ export default function ModalEditarSubzonas({
             >
               Cancelar
             </button>
-            <button
+            {canEdit && <button
               type="submit"
               onClick={handleSubmit}
               disabled={loading || loadingData}
               className="btn-primary bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/20"
             >
               {loading ? "Actualizando..." : "Actualizar Subzonas"}
-            </button>
+            </button>}
           </div>
         </div>
       </div>

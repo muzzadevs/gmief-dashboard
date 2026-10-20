@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ministerioDentroDeAlcance, resolverAlcanceZona } from "@/lib/auth";
+import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 export async function POST(req: Request) {
+  const denied = await requireGestionMinisteriosPermission(req, "editar", {
+    allowZoneScopedEdit: true,
+  });
+  if (denied) return denied;
+
   const { ministerio_id, cargos } = await req.json();
   if (!ministerio_id || !Array.isArray(cargos) || cargos.length === 0) {
     return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });

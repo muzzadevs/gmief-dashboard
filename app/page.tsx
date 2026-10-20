@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import FloatingPhotos from "./components/FloatingPhotos";
+import LightPillar from "./components/LightPillar";
 import ModalCambiarPassword from "./components/ModalCambiarPassword";
 import { useAuthStore } from "@/store/authStore";
 import type { UserInfo } from "@/types/auth";
@@ -74,8 +74,21 @@ export default function Home() {
 
   return (
     <main className="min-h-dvh relative overflow-hidden">
-      {/* Floating photos background */}
-      <FloatingPhotos />
+      <LightPillar
+        topColor="#2733ff"
+        bottomColor="#09236f"
+        intensity={0.9}
+        pillarWidth={6.4}
+        clickPulse={false}
+        intro={false}
+        pillarRotation={28}
+        bloom={1}
+        interactive={false}
+        rotationSpeed={0.15}
+        detail={6}
+        pillarHeight={0.1}
+        className="login-light-pillar"
+      />
 
       {/* Login form */}
       <div className="relative z-10 min-h-dvh grid place-items-center px-4">

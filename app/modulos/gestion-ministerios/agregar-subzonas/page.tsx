@@ -5,11 +5,14 @@ import LoaderPersonalizado from "../../../components/LoaderPersonalizado";
 import Toast, { useToast } from "../../../components/Toast";
 import Combobox from "../../../components/ui/Combobox";
 import { useRouter } from "next/navigation";
+import GestionMinisteriosSinPermisoEdicion from "../../../components/GestionMinisteriosSinPermisoEdicion";
+import { useGestionMinisteriosPermissions } from "@/app/hooks/useGestionMinisteriosPermissions";
 
 type Zona = { id: number; nombre: string; activo: boolean };
 
 export default function AgregarSubzonas() {
   const router = useRouter();
+  const { ready, canEdit, canEditInZone } = useGestionMinisteriosPermissions();
   const { toast, showSuccess, showError, hideToast } = useToast();
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [form, setForm] = useState({
@@ -83,6 +86,11 @@ export default function AgregarSubzonas() {
       setLoading(false);
     }
   };
+
+  if (!ready) {
+    return <LoaderPersonalizado>Comprobando permisos...</LoaderPersonalizado>;
+  }
+  if (!canEdit && !canEditInZone) return <GestionMinisteriosSinPermisoEdicion />;
 
   if (zonas.length === 0) {
     return <LoaderPersonalizado>Cargando...</LoaderPersonalizado>;

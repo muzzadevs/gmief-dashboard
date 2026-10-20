@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 // GET: Obtener pastor de una iglesia específica, o comprobar si un ministerio es pastor
 export async function GET(req: NextRequest) {
@@ -115,6 +116,9 @@ export async function GET(req: NextRequest) {
 
 // POST: Asignar pastor a una iglesia (reemplaza si ya existe)
 export async function POST(req: NextRequest) {
+  const denied = await requireGestionMinisteriosPermission(req, "editar");
+  if (denied) return denied;
+
   try {
     const { iglesia_id, ministerio_id } = await req.json();
 
@@ -228,6 +232,9 @@ export async function POST(req: NextRequest) {
 
 // DELETE: Quitar pastor de una iglesia o quitar a un ministerio como pastor
 export async function DELETE(req: NextRequest) {
+  const denied = await requireGestionMinisteriosPermission(req, "borrar");
+  if (denied) return denied;
+
   try {
     const { iglesia_id, ministerio_id } = await req.json();
 

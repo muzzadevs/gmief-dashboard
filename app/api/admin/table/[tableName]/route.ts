@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ADMIN_TOKEN } from "@/store/adminStore";
 import { coerceValueByType, getAdminTableDefinition, INVALID_COERCION } from "@/lib/adminDynamicTables";
 import { decrypt, encrypt } from "@/lib/encryption";
+import { requireSuperAdmin } from "@/lib/adminPermissions";
 
 // Helper to get Prisma model dynamically
 function getPrismaModel(modelName: string) {
@@ -14,6 +15,9 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ tableName: string }> }
 ) {
+  const denied = requireSuperAdmin(request);
+  if (denied) return denied;
+
   const token = request.headers.get("X-Admin-Token");
   if (token !== ADMIN_TOKEN) {
     return NextResponse.json(
@@ -124,6 +128,9 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ tableName: string }> }
 ) {
+  const denied = requireSuperAdmin(request);
+  if (denied) return denied;
+
   const token = request.headers.get("X-Admin-Token");
   if (token !== ADMIN_TOKEN) {
     return NextResponse.json(
@@ -268,6 +275,9 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ tableName: string }> }
 ) {
+  const denied = requireSuperAdmin(request);
+  if (denied) return denied;
+
   const token = request.headers.get("X-Admin-Token");
   if (token !== ADMIN_TOKEN) {
     return NextResponse.json(
@@ -395,6 +405,9 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ tableName: string }> }
 ) {
+  const denied = requireSuperAdmin(request);
+  if (denied) return denied;
+
   const token = request.headers.get("X-Admin-Token");
   if (token !== ADMIN_TOKEN) {
     return NextResponse.json(

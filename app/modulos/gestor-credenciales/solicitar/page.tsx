@@ -6,6 +6,7 @@ import Image from "next/image";
 import LoaderPersonalizado from "../../../components/LoaderPersonalizado";
 import Toast, { useToast } from "../../../components/Toast";
 import { searchIncludes } from "@/lib/search";
+import { useCredencialesPermissions } from "@/app/hooks/useCredencialesPermissions";
 
 type MinisterioBuscar = {
   id: number;
@@ -22,12 +23,17 @@ type MinisterioBuscar = {
 
 export default function SolicitarCredenciales() {
   const router = useRouter();
+  const { ready, canRequest } = useCredencialesPermissions();
   const [ministerios, setMinisterios] = useState<MinisterioBuscar[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set());
   const [creando, setCreando] = useState(false);
   const { toast, showSuccess, showError, hideToast } = useToast();
+
+  useEffect(() => {
+    if (ready && !canRequest) router.replace("/modulos/gestor-credenciales");
+  }, [ready, canRequest, router]);
 
   const fetchMinisterios = useCallback(async () => {
     try {
@@ -45,8 +51,8 @@ export default function SolicitarCredenciales() {
   }, []);
 
   useEffect(() => {
-    fetchMinisterios();
-  }, [fetchMinisterios]);
+    if (ready && canRequest) fetchMinisterios();
+  }, [ready, canRequest, fetchMinisterios]);
 
   const toggleSeleccion = (id: number) => {
     setSeleccionados((prev) => {
@@ -117,6 +123,10 @@ export default function SolicitarCredenciales() {
 
   const getDisplayName = (m: MinisterioBuscar) =>
     m.alias ? m.alias : `${m.nombre} ${m.apellidos || ""}`.trim();
+
+  if (!ready || !canRequest) {
+    return <LoaderPersonalizado>Cargando permisos...</LoaderPersonalizado>;
+  }
 
   return (
     <main className="min-h-screen min-h-dvh flex flex-col">

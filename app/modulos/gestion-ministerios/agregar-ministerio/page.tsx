@@ -7,6 +7,8 @@ import Combobox from "../../../components/ui/Combobox";
 import ImageUpload from "../../../components/ImageUpload";
 import CandidatoFechas from "@/components/CandidatoFechas";
 import { useRouter } from "next/navigation";
+import GestionMinisteriosSinPermisoEdicion from "../../../components/GestionMinisteriosSinPermisoEdicion";
+import { useGestionMinisteriosPermissions } from "@/app/hooks/useGestionMinisteriosPermissions";
 import { useZonasStore } from "@/store/zonasStore";
 import {
   calcularFechasCandidato,
@@ -69,6 +71,7 @@ function validarNIEFrontend(nie: string): { valid: boolean; error?: string } {
 
 export default function AgregarMinisterio() {
   const router = useRouter();
+  const { ready, canEdit, canEditInZone } = useGestionMinisteriosPermissions();
   const iglesiaSelected = useZonasStore((s) => s.iglesiaSelected);
   const { toast, showSuccess, showError, hideToast } = useToast();
   const [estados, setEstados] = useState<Estado[]>([]);
@@ -466,6 +469,11 @@ export default function AgregarMinisterio() {
     { length: currentYear - 1959 },
     (_, i) => currentYear - i
   );
+
+  if (!ready) {
+    return <LoaderPersonalizado>Comprobando permisos...</LoaderPersonalizado>;
+  }
+  if (!canEdit && !canEditInZone) return <GestionMinisteriosSinPermisoEdicion />;
 
   if (!iglesiaSelected || estados.length === 0 || cargos.length === 0) {
     return <LoaderPersonalizado>Cargando...</LoaderPersonalizado>;

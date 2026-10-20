@@ -12,6 +12,7 @@ import {
 import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
 import { buscarDniDuplicado } from "@/lib/ministerioDni";
 import { generarCodigoCandidato, resolverAlcanceZona } from "@/lib/auth";
+import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 export async function GET(req: Request) {
   const scope = await resolverAlcanceZona(req);
@@ -159,6 +160,11 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const denied = await requireGestionMinisteriosPermission(req, "editar", {
+    allowZoneScopedEdit: true,
+  });
+  if (denied) return denied;
+
   try {
     return await createMinisterio(req);
   } catch (error) {

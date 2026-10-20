@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { geocodeIglesia } from "@/lib/geocode";
 import { resolverAlcanceZona } from "@/lib/auth";
+import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 export async function GET(req: NextRequest) {
   const scope = await resolverAlcanceZona(req);
@@ -31,6 +32,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await requireGestionMinisteriosPermission(req, "editar", {
+    allowZoneScopedEdit: true,
+  });
+  if (denied) return denied;
+
   try {
     const scope = await resolverAlcanceZona(req);
     const { nombre, direccion, municipio, provincia, cp, zona_id, subzona_id } =

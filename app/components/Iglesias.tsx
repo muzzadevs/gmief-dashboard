@@ -10,11 +10,12 @@ import { tienePermisoEditarPorZona } from "@/types/auth";
 
 interface Props {
   busqueda?: string;
+  canEdit: boolean;
 }
 
 type IglesiaStats = Record<number, { ministerios: number; candidatos: number }>;
 
-export default function Iglesias({ busqueda = "" }: Props) {
+export default function Iglesias({ busqueda = "", canEdit }: Props) {
   const zonaSelected = useZonasStore((s) => s.zonaSelected);
   const subzonaSelected = useZonasStore((s) => s.subzonaSelected);
   const iglesias = useZonasStore((s) => s.iglesias);
@@ -100,9 +101,8 @@ export default function Iglesias({ busqueda = "" }: Props) {
         const countCand = iglesiaStats?.candidatos ?? 0;
 
         const isInactive = !iglesia.activo;
-        const canEdit =
-          !isZoneScoped ||
-          user?.zonaId === iglesia.zona_id;
+        const canEditIglesia =
+          canEdit || (isZoneScoped && user?.zonaId === iglesia.zona_id);
 
         return (
           <div
@@ -169,7 +169,7 @@ export default function Iglesias({ busqueda = "" }: Props) {
                 )}
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                {canEdit && <button
+                {canEditIglesia && <button
                   type="button"
                   className={`btn-primary shadow-md text-sm ${
                     isInactive

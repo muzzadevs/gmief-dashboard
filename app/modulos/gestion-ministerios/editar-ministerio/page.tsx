@@ -4,6 +4,8 @@ import React, { useEffect, useState } from "react";
 import LoaderPersonalizado from "../../../components/LoaderPersonalizado";
 import Combobox from "../../../components/ui/Combobox";
 import Toast, { useToast } from "../../../components/Toast";
+import GestionMinisteriosSinPermisoEdicion from "../../../components/GestionMinisteriosSinPermisoEdicion";
+import { useGestionMinisteriosPermissions } from "@/app/hooks/useGestionMinisteriosPermissions";
 import ImageUpload from "../../../components/ImageUpload";
 import CandidatoFechas from "@/components/CandidatoFechas";
 import ModalConfirmarEliminar from "../../../components/ModalConfirmarEliminar";
@@ -101,6 +103,7 @@ type MinisterioForm = {
 
 export default function EditarMinisterio() {
   const router = useRouter();
+  const { ready, canEdit, canEditInZone } = useGestionMinisteriosPermissions();
   const iglesiaSelected = useZonasStore((s) => s.iglesiaSelected);
   const ministerioEditId = useZonasStore((s) => s.ministerioEditId);
   const { toast, showSuccess, showError, hideToast } = useToast();
@@ -569,6 +572,11 @@ export default function EditarMinisterio() {
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 1959 }, (_, i) => currentYear - i);
+
+  if (!ready) {
+    return <LoaderPersonalizado>Comprobando permisos...</LoaderPersonalizado>;
+  }
+  if (!canEdit && !canEditInZone) return <GestionMinisteriosSinPermisoEdicion />;
 
   if (!iglesiaSelected || !form || estados.length === 0 || cargos.length === 0) {
     return <LoaderPersonalizado>Cargando...</LoaderPersonalizado>;

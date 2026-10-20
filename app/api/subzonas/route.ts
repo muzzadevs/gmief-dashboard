@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolverAlcanceZona } from "@/lib/auth";
+import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 export async function GET(req: NextRequest) {
   const scope = await resolverAlcanceZona(req);
@@ -33,6 +34,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await requireGestionMinisteriosPermission(req, "editar", {
+    allowZoneScopedEdit: true,
+  });
+  if (denied) return denied;
+
   try {
     const scope = await resolverAlcanceZona(req);
     const { nombre, zona_id } = await req.json();
@@ -65,6 +71,11 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  const denied = await requireGestionMinisteriosPermission(req, "editar", {
+    allowZoneScopedEdit: true,
+  });
+  if (denied) return denied;
+
   try {
     const scope = await resolverAlcanceZona(req);
     const { subzonas } = await req.json();
@@ -124,6 +135,9 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const denied = await requireGestionMinisteriosPermission(req, "borrar");
+  if (denied) return denied;
+
   try {
     const scope = await resolverAlcanceZona(req);
     const { id } = await req.json();

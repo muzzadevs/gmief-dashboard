@@ -12,6 +12,7 @@ import {
   formatDiasRestantes,
 } from "@/lib/candidatoUtils";
 import Toast, { useToast } from "../../../components/Toast";
+import { useGestionMinisteriosPermissions } from "@/app/hooks/useGestionMinisteriosPermissions";
 
 type PastorInfo = {
   id: number;
@@ -38,6 +39,8 @@ type PastorInfo = {
 
 export default function Ministerios() {
   const router = useRouter();
+  const { canEdit, canEditInZone, canDelete } = useGestionMinisteriosPermissions();
+  const canEditMinisterios = canEdit || canEditInZone;
   const iglesiaSelected = useZonasStore((s) => s.iglesiaSelected);
   const setZonaSelected = useZonasStore((s) => s.setZonaSelected);
   const setMinisterioEditId = useZonasStore((s) => s.setMinisterioEditId);
@@ -219,7 +222,7 @@ export default function Ministerios() {
                 Pastor actual: {pastorDisplayName}
               </button>
             )}
-            <button
+            {canEditMinisterios && <button
               type="button"
               className="btn-primary bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 ml-auto sm:ml-2"
               onClick={() => router.push("/modulos/gestion-ministerios/agregar-ministerio")}
@@ -229,7 +232,7 @@ export default function Ministerios() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
               <span className="hidden sm:inline">Agregar</span>
-            </button>
+            </button>}
           </div>
         </div>
       </div>
@@ -408,7 +411,7 @@ export default function Ministerios() {
                       {/* Botones solo en sm+ */}
                       {!isInactive && (
                         <div className="hidden sm:flex flex-row gap-2 w-full sm:w-auto justify-end items-end">
-                          {isCandidato && faseInfo?.fase === "APTO_OBRERO" && (
+                          {canEditMinisterios && isCandidato && faseInfo?.fase === "APTO_OBRERO" && (
                             <button
                               type="button"
                               className="btn-primary bg-emerald-600 text-white hover:bg-emerald-700 shadow-md text-sm"
@@ -421,7 +424,7 @@ export default function Ministerios() {
                               Aprobar
                             </button>
                           )}
-                          <button
+                          {canEditMinisterios && <button
                             type="button"
                             className="btn-primary bg-amber-500 text-white hover:bg-amber-600 shadow-md text-sm"
                             title="Editar"
@@ -434,8 +437,8 @@ export default function Ministerios() {
                               <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487a2.1 2.1 0 1 1 2.97 2.97L7.5 19.79l-4 1 1-4 12.362-12.303z" />
                             </svg>
                             Editar
-                          </button>
-                          <button
+                          </button>}
+                          {canDelete && <button
                             type="button"
                             className="btn-primary bg-red-600 text-white hover:bg-red-700 shadow-md text-sm"
                             title="Eliminar"
@@ -447,7 +450,7 @@ export default function Ministerios() {
                               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
                             Eliminar
-                          </button>
+                          </button>}
                         </div>
                       )}
                     </div>
@@ -596,7 +599,7 @@ export default function Ministerios() {
                   {/* Botones en móvil */}
                   {!isInactive && (
                   <div className="flex sm:hidden flex-row gap-2 w-full mt-2">
-                    {isCandidato && faseInfo?.fase === "APTO_OBRERO" && (
+                    {canEditMinisterios && isCandidato && faseInfo?.fase === "APTO_OBRERO" && (
                       <button
                         type="button"
                         className="btn-primary bg-emerald-600 text-white hover:bg-emerald-700 shadow-md w-full text-sm"
@@ -609,7 +612,7 @@ export default function Ministerios() {
                         Aprobar
                       </button>
                     )}
-                    <button
+                    {canEditMinisterios && <button
                       type="button"
                       className="btn-primary bg-amber-500 text-white hover:bg-amber-600 shadow-md w-1/2 text-sm"
                       title="Editar"
@@ -622,8 +625,8 @@ export default function Ministerios() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487a2.1 2.1 0 1 1 2.97 2.97L7.5 19.79l-4 1 1-4 12.362-12.303z" />
                       </svg>
                       Editar
-                    </button>
-                    <button
+                    </button>}
+                    {canDelete && <button
                       type="button"
                       className="btn-primary bg-red-600 text-white hover:bg-red-700 shadow-md w-1/2 text-sm"
                       title="Eliminar"
@@ -635,7 +638,7 @@ export default function Ministerios() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                       </svg>
                       Eliminar
-                    </button>
+                    </button>}
                   </div>
                   )}
                 </div>

@@ -5,6 +5,8 @@ import LoaderPersonalizado from "../../../components/LoaderPersonalizado";
 import Toast, { useToast } from "../../../components/Toast";
 import Combobox from "../../../components/ui/Combobox";
 import { useRouter } from "next/navigation";
+import GestionMinisteriosSinPermisoEdicion from "../../../components/GestionMinisteriosSinPermisoEdicion";
+import { useGestionMinisteriosPermissions } from "@/app/hooks/useGestionMinisteriosPermissions";
 import { useAuthStore } from "@/store/authStore";
 import { tienePermisoEditarPorZona } from "@/types/auth";
 
@@ -13,6 +15,7 @@ type Subzona = { id: number; nombre: string; zona_id: number; activo: boolean };
 
 export default function AgregarIglesia() {
   const router = useRouter();
+  const { ready, canEdit } = useGestionMinisteriosPermissions();
   const { toast, showSuccess, showError, hideToast } = useToast();
   const user = useAuthStore((s) => s.user);
   const isZoneScoped =
@@ -142,6 +145,11 @@ export default function AgregarIglesia() {
       setLoading(false);
     }
   };
+
+  if (!ready) {
+    return <LoaderPersonalizado>Comprobando permisos...</LoaderPersonalizado>;
+  }
+  if (!canEdit && !isZoneScoped) return <GestionMinisteriosSinPermisoEdicion />;
 
   if (zonas.length === 0) {
     return <LoaderPersonalizado>Cargando...</LoaderPersonalizado>;

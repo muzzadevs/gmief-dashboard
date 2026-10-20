@@ -12,6 +12,7 @@ import {
 import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
 import { buscarDniDuplicado } from "@/lib/ministerioDni";
 import { resolverAlcanceZona } from "@/lib/auth";
+import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 // Obtener un ministerio por id (con cargos y candidato_detalle)
 export async function GET(
@@ -134,6 +135,11 @@ export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireGestionMinisteriosPermission(req, "editar", {
+    allowZoneScopedEdit: true,
+  });
+  if (denied) return denied;
+
   const { id } = await params;
   const scope = await resolverAlcanceZona(req);
   const data = await req.json();
@@ -457,6 +463,9 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireGestionMinisteriosPermission(req, "borrar");
+  if (denied) return denied;
+
   const { id } = await params;
   if (!id) {
     return NextResponse.json({ error: "ID requerido" }, { status: 400 });

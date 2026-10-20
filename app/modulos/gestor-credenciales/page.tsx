@@ -1,9 +1,21 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import LoaderPersonalizado from "../../components/LoaderPersonalizado";
+import { useCredencialesPermissions } from "@/app/hooks/useCredencialesPermissions";
 
 export default function GestorCredenciales() {
   const router = useRouter();
+  const { ready, canAccess, canCreate, canRequest } = useCredencialesPermissions();
+
+  useEffect(() => {
+    if (ready && !canAccess) router.replace("/dashboard");
+  }, [ready, canAccess, router]);
+
+  if (!ready || !canAccess) {
+    return <LoaderPersonalizado>Cargando permisos...</LoaderPersonalizado>;
+  }
 
   return (
     <main className="min-h-screen min-h-dvh flex flex-col">
@@ -33,7 +45,7 @@ export default function GestorCredenciales() {
       <div className="flex-1 w-full flex justify-center px-3 py-8">
         <div className="w-full max-w-2xl grid grid-cols-1 sm:grid-cols-2 gap-6">
           {/* Solicitar */}
-          <button
+          {canRequest && <button
             type="button"
             onClick={() => router.push("/modulos/gestor-credenciales/solicitar")}
             className="glass-card-solid p-0 overflow-hidden text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] cursor-pointer animate-fadein group"
@@ -59,10 +71,10 @@ export default function GestorCredenciales() {
                 </svg>
               </div>
             </div>
-          </button>
+          </button>}
 
           {/* Generar */}
-          <button
+          {canCreate && <button
             type="button"
             onClick={() => router.push("/modulos/gestor-credenciales/generar")}
             className="glass-card-solid p-0 overflow-hidden text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] cursor-pointer animate-fadein group"
@@ -89,7 +101,7 @@ export default function GestorCredenciales() {
                 </svg>
               </div>
             </div>
-          </button>
+          </button>}
         </div>
       </div>
     </main>

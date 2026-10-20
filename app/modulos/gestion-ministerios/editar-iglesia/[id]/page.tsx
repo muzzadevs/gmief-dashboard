@@ -6,6 +6,8 @@ import Toast, { useToast } from "../../../../components/Toast";
 import Combobox from "../../../../components/ui/Combobox";
 import ModalConfirmarEliminar from "../../../../components/ModalConfirmarEliminar";
 import { useRouter } from "next/navigation";
+import GestionMinisteriosSinPermisoEdicion from "../../../../components/GestionMinisteriosSinPermisoEdicion";
+import { useGestionMinisteriosPermissions } from "@/app/hooks/useGestionMinisteriosPermissions";
 
 type Zona = { id: number; nombre: string; activo: boolean };
 type Subzona = { id: number; nombre: string; zona_id: number; activo: boolean };
@@ -28,6 +30,7 @@ export default function EditarIglesia({ params }: Props) {
   const { id } = React.use(params);
 
   const router = useRouter();
+  const { ready, canEdit, canEditInZone, canDelete } = useGestionMinisteriosPermissions();
   const { toast, showSuccess, showError, hideToast } = useToast();
 
   const [zonas, setZonas] = useState<Zona[]>([]);
@@ -214,6 +217,10 @@ export default function EditarIglesia({ params }: Props) {
     }
   };
 
+  if (!ready) {
+    return <LoaderPersonalizado>Comprobando permisos...</LoaderPersonalizado>;
+  }
+  if (!canEdit && !canEditInZone) return <GestionMinisteriosSinPermisoEdicion />;
   if (loadingData || !iglesia) {
     return (
       <LoaderPersonalizado>Cargando datos de la iglesia...</LoaderPersonalizado>
@@ -394,14 +401,14 @@ export default function EditarIglesia({ params }: Props) {
               >
                 {loading ? "Actualizando..." : "Actualizar Iglesia"}
               </button>
-              <button
+              {canDelete && <button
                 type="button"
                 className="sm:w-auto py-2.5 px-6 rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white font-bold text-base shadow-lg shadow-red-600/25 hover:from-red-700 hover:to-red-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 disabled={loading || loadingSubzonas}
                 onClick={() => setDeleteModalOpen(true)}
               >
                 Eliminar
-              </button>
+              </button>}
             </div>
           </form>
         </div>

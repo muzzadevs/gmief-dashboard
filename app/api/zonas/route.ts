@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { cached, invalidateCachePrefix, CACHE_TTL } from "@/lib/cache";
 import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
 import { resolverAlcanceZona } from "@/lib/auth";
+import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 export async function GET(request: Request) {
   try {
@@ -30,6 +31,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const denied = await requireGestionMinisteriosPermission(request, "editar");
+  if (denied) return denied;
+
   try {
     const scope = await resolverAlcanceZona(request);
     if (scope) {
@@ -136,6 +140,9 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const denied = await requireGestionMinisteriosPermission(request, "editar");
+  if (denied) return denied;
+
   try {
     const scope = await resolverAlcanceZona(request);
     const body = await request.json();
@@ -360,6 +367,9 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const denied = await requireGestionMinisteriosPermission(request, "borrar");
+  if (denied) return denied;
+
   try {
     const scope = await resolverAlcanceZona(request);
     const body = await request.json();

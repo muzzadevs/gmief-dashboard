@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireCredencialesPermission } from "@/lib/credencialesPermissions";
 
 // GET: Buscar ministerios globalmente por nombre, apellidos, alias o código
 export async function GET(req: Request) {
+  const denied = await requireCredencialesPermission(req, "solicitar");
+  if (denied) return denied;
+
   const { searchParams } = new URL(req.url);
   const query = searchParams.get("q") || "";
 

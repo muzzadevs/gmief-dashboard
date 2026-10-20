@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { geocodeIglesia, addressFieldsChanged } from "@/lib/geocode";
 import { resolverAlcanceZona } from "@/lib/auth";
+import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 export async function GET(
   request: NextRequest,
@@ -44,6 +45,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireGestionMinisteriosPermission(request, "borrar");
+  if (denied) return denied;
+
   try {
     const scope = await resolverAlcanceZona(request);
     const { id: idParam } = await params;
@@ -93,6 +97,11 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireGestionMinisteriosPermission(request, "editar", {
+    allowZoneScopedEdit: true,
+  });
+  if (denied) return denied;
+
   try {
     const scope = await resolverAlcanceZona(request);
     const { id: idParam } = await params;

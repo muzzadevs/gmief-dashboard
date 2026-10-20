@@ -59,6 +59,29 @@ body {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
+.light-pillar-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.light-pillar-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.login-light-pillar {
+  z-index: 1;
+  background:
+    radial-gradient(ellipse 48% 110% at 50% 52%, rgba(39, 51, 255, 0.7), transparent 72%),
+    linear-gradient(140deg, #09236f, #1e40af 54%, #2733ff);
+}
+
 /* ── Scrollbar ── */
 ::-webkit-scrollbar {
   width: 6px;
