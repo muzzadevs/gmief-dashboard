@@ -4,23 +4,15 @@ import { resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 export async function GET(req: NextRequest) {
-  const scope = await resolverAlcanceZona(req);
   const zonaId = req.nextUrl.searchParams.get("zonaId");
   if (!zonaId) return NextResponse.json([]);
 
   if (zonaId === "ALL") {
     const subzonas = await prisma.subzona.findMany({
-      ...(scope
-        ? {
-            where: { zona_id: scope.zonaId },
-          }
-        : {}),
       orderBy: { nombre: "asc" },
     });
     return NextResponse.json(subzonas);
   }
-
-  if (scope && Number(zonaId) !== scope.zonaId) return NextResponse.json([]);
 
   const subzonas = await prisma.subzona.findMany({
     where: {

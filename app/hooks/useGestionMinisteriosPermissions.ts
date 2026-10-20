@@ -58,9 +58,10 @@ export function useGestionMinisteriosPermissions() {
 
   return {
     ready: moduleLoaded && !isLoading,
-    canView: isSuperAdmin || permissions.includes("ver"),
+    canView: isSuperAdmin || permissions.includes("ver") || canEditInZone,
     canEdit: isSuperAdmin || permissions.includes("editar"),
     canEditInZone,
     canDelete: isSuperAdmin || permissions.includes("borrar"),
+    zoneId: user?.zonaId ?? null,
   };
 }

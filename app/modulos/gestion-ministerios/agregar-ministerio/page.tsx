@@ -71,7 +71,7 @@ function validarNIEFrontend(nie: string): { valid: boolean; error?: string } {
 
 export default function AgregarMinisterio() {
   const router = useRouter();
-  const { ready, canEdit, canEditInZone } = useGestionMinisteriosPermissions();
+  const { ready, canEdit, canEditInZone, zoneId } = useGestionMinisteriosPermissions();
   const iglesiaSelected = useZonasStore((s) => s.iglesiaSelected);
   const { toast, showSuccess, showError, hideToast } = useToast();
   const [estados, setEstados] = useState<Estado[]>([]);
@@ -489,12 +489,15 @@ export default function AgregarMinisterio() {
     label: String(y),
   }));
 
-  const iglesiaOptions = todasIglesias.filter((ig) => ig.activo).map((ig) => ({
+  const iglesiasPermitidas = todasIglesias.filter(
+    (ig) => ig.activo && (!canEditInZone || ig.zona_id === zoneId)
+  );
+  const iglesiaOptions = iglesiasPermitidas.map((ig) => ({
     value: String(ig.id),
     label: `[${ig.zona_codigo}] ${ig.nombre}`,
   }));
 
-  const pastorIglesiaOptions = todasIglesias.filter((ig) => ig.activo).map((ig) => ({
+  const pastorIglesiaOptions = iglesiasPermitidas.map((ig) => ({
     value: String(ig.id),
     label: `[${ig.zona_codigo}] ${ig.nombre}`,
   }));

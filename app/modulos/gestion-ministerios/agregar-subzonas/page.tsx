@@ -12,7 +12,7 @@ type Zona = { id: number; nombre: string; activo: boolean };
 
 export default function AgregarSubzonas() {
   const router = useRouter();
-  const { ready, canEdit, canEditInZone } = useGestionMinisteriosPermissions();
+  const { ready, canEdit, canEditInZone, zoneId } = useGestionMinisteriosPermissions();
   const { toast, showSuccess, showError, hideToast } = useToast();
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [form, setForm] = useState({
@@ -96,7 +96,9 @@ export default function AgregarSubzonas() {
     return <LoaderPersonalizado>Cargando...</LoaderPersonalizado>;
   }
 
-  const zonaOptions = zonas.filter((zona) => zona.activo).map((zona) => ({
+  const zonaOptions = zonas
+    .filter((zona) => zona.activo && (!canEditInZone || zona.id === zoneId))
+    .map((zona) => ({
     value: String(zona.id),
     label: zona.nombre,
   }));

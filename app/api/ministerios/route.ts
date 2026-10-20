@@ -15,7 +15,6 @@ import { generarCodigoCandidato, resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 export async function GET(req: Request) {
-  const scope = await resolverAlcanceZona(req);
   const { searchParams } = new URL(req.url);
   const iglesiaId = searchParams.get("iglesiaId");
   const tipo = searchParams.get("tipo"); // "MINISTERIO", "CANDIDATO", or null for all
@@ -23,17 +22,6 @@ export async function GET(req: Request) {
   if (!iglesiaId) {
     return NextResponse.json({ error: "iglesiaId requerido" }, { status: 400 });
   }
-  if (scope) {
-    const iglesia = await prisma.iglesia.findFirst({
-      where: {
-        id: Number(iglesiaId),
-        zona_id: scope.zonaId,
-      },
-      select: { id: true },
-    });
-    if (!iglesia) return NextResponse.json([]);
-  }
-
   const where: Record<string, unknown> = { iglesia_id: Number(iglesiaId) };
   if (tipo) {
     where.tipo = tipo;

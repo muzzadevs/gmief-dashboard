@@ -1,5 +1,9 @@
 import { create } from "zustand";
-import type { UserInfo, PermisosResueltos } from "@/types/auth";
+import {
+  PERMISOS_EDITAR_POR_ZONA,
+  type PermisosResueltos,
+  type UserInfo,
+} from "@/types/auth";
 
 const TOKEN_KEY = "__fc_auth_token";
 const USER_KEY = "__fc_auth_user";
@@ -133,7 +137,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!user) return false;
     if (user.isSuperAdmin) return true;
     const permisos = user.permisos[moduloId];
-    return permisos ? permisos.includes("ver") : false;
+    return permisos
+      ? permisos.includes("ver") ||
+          PERMISOS_EDITAR_POR_ZONA.some((permission) => permisos.includes(permission))
+      : false;
   },
 
   updatePermisos: (permisos: PermisosResueltos) => {

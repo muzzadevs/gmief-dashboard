@@ -21,8 +21,6 @@ export async function GET(
 ) {
   const { id } = await params;
   if (!id) return NextResponse.json({ error: "id requerido" }, { status: 400 });
-  const scope = await resolverAlcanceZona(req);
-
   const [ministerio, imagenCheck] = await Promise.all([
     prisma.ministerio.findUnique({
       where: { id: Number(id) },
@@ -49,16 +47,6 @@ export async function GET(
   if (!ministerio) {
     return NextResponse.json({ error: "No encontrado" }, { status: 404 });
   }
-  if (
-    scope &&
-    ministerio.iglesia.zona_id !== scope.zonaId
-  ) {
-    return NextResponse.json(
-      { error: "Ministerio fuera de tu zona" },
-      { status: 403 }
-    );
-  }
-
   if (ministerio.tipo === "CANDIDATO" && ministerio.candidato_detalle?.fecha_inicio) {
     const fechas = calcularFechasCandidatoAlcanzadas(ministerio.candidato_detalle.fecha_inicio);
     const data: {

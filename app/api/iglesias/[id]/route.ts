@@ -5,11 +5,10 @@ import { resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const scope = await resolverAlcanceZona(request);
     const { id: idParam } = await params;
     const id = parseInt(idParam);
 
@@ -27,10 +26,6 @@ export async function GET(
         { status: 404 }
       );
     }
-    if (scope && iglesia.zona_id !== scope.zonaId) {
-      return NextResponse.json({ error: "Iglesia fuera de tu zona" }, { status: 403 });
-    }
-
     return NextResponse.json(iglesia);
   } catch (error) {
     console.error("Error fetching iglesia:", error);

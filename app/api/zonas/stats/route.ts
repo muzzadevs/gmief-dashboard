@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cached, CACHE_TTL } from "@/lib/cache";
-import { resolverAlcanceZona } from "@/lib/auth";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const scope = await resolverAlcanceZona(request);
     const stats = await cached("zonas:stats", CACHE_TTL.FREQUENT, async () => {
       // Traemos solo tipo y zona_id — muy ligero, sin blobs ni relaciones pesadas
       const ministerios = await prisma.ministerio.findMany({
@@ -46,12 +44,7 @@ export async function GET(request: Request) {
       return result;
     });
 
-    return NextResponse.json({
-      ok: true,
-      data: scope
-        ? { [scope.zonaId]: stats[scope.zonaId] ?? { ministerios: 0, candidatos: 0 } }
-        : stats,
-    });
+    return NextResponse.json({ ok: true, data: stats });
   } catch (error: unknown) {
     console.error("[GET /api/zonas/stats] Error:", error);
     return NextResponse.json(

@@ -5,18 +5,13 @@ import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPer
 
 // GET: Servir la imagen de un ministerio
 export async function GET(
-  req: Request,
+  _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
   if (!id) {
     return NextResponse.json({ error: "ID requerido" }, { status: 400 });
   }
-  const scope = await resolverAlcanceZona(req);
-  if (!(await ministerioDentroDeAlcance(scope, Number(id)))) {
-    return NextResponse.json({ error: "Ministerio fuera de tu zona o subzona" }, { status: 403 });
-  }
-
   const ministerio = await prisma.ministerio.findUnique({
     where: { id: Number(id) },
     select: { imagen: true },

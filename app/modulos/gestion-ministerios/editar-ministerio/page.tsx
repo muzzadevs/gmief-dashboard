@@ -103,7 +103,7 @@ type MinisterioForm = {
 
 export default function EditarMinisterio() {
   const router = useRouter();
-  const { ready, canEdit, canEditInZone } = useGestionMinisteriosPermissions();
+  const { ready, canEdit, canEditInZone, zoneId } = useGestionMinisteriosPermissions();
   const iglesiaSelected = useZonasStore((s) => s.iglesiaSelected);
   const ministerioEditId = useZonasStore((s) => s.ministerioEditId);
   const { toast, showSuccess, showError, hideToast } = useToast();
@@ -581,14 +581,21 @@ export default function EditarMinisterio() {
   if (!iglesiaSelected || !form || estados.length === 0 || cargos.length === 0) {
     return <LoaderPersonalizado>Cargando...</LoaderPersonalizado>;
   }
+  if (canEditInZone && iglesiaSelected.zona_id !== zoneId) {
+    return <GestionMinisteriosSinPermisoEdicion />;
+  }
 
   const estadoOptions = estados.map((e) => ({ value: String(e.id), label: e.nombre }));
   const yearOptions = years.map((y) => ({ value: String(y), label: String(y) }));
-  const iglesiaOptions = todasIglesias.filter((ig) => ig.activo).map((ig) => ({
+  const iglesiasPermitidas = todasIglesias.filter(
+    (ig) => ig.activo && (!canEditInZone || ig.zona_id === zoneId)
+  );
+  const iglesiaOptions = iglesiasPermitidas.map((ig) => ({
     value: String(ig.id),
     label: `[${ig.zona_codigo}] ${ig.nombre}`,
   }));
-  const pastorIglesiaOptions = todasIglesias.filter((ig) => ig.activo).map((ig) => ({
+
+  const pastorIglesiaOptions = iglesiasPermitidas.map((ig) => ({
     value: String(ig.id),
     label: `[${ig.zona_codigo}] ${ig.nombre}`,
   }));

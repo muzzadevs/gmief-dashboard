@@ -11,9 +11,12 @@ import { useGestionMinisteriosPermissions } from "@/app/hooks/useGestionMinister
 
 export default function ZonasSubZonas() {
   const router = useRouter();
-  const { canEdit, canEditInZone, canDelete } = useGestionMinisteriosPermissions();
-  const canEditScopedData = canEdit || canEditInZone;
+  const { canEdit, canEditInZone, canDelete, zoneId } = useGestionMinisteriosPermissions();
   const setZonaSelected = useZonasStore((s) => s.setZonaSelected);
+  const zonaSelected = useZonasStore((s) => s.zonaSelected);
+  const canEditScopedData = canEditInZone
+    ? zonaSelected?.id === zoneId
+    : canEdit;
   const [busqueda, setBusqueda] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
 

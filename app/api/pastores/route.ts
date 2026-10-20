@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 // GET: Obtener pastor de una iglesia específica, o comprobar si un ministerio es pastor
@@ -116,7 +117,9 @@ export async function GET(req: NextRequest) {
 
 // POST: Asignar pastor a una iglesia (reemplaza si ya existe)
 export async function POST(req: NextRequest) {
-  const denied = await requireGestionMinisteriosPermission(req, "editar");
+  const denied = await requireGestionMinisteriosPermission(req, "editar", {
+    allowZoneScopedEdit: true,
+  });
   if (denied) return denied;
 
   try {
@@ -127,6 +130,48 @@ export async function POST(req: NextRequest) {
         { error: "iglesia_id y ministerio_id son requeridos" },
         { status: 400 }
       );
+    }
+
+    const scope = await resolverAlcanceZona(req);
+    if (scope) {
+      const [iglesia, ministerio] = await Promise.all([
+        prisma.iglesia.findFirst({
+          where: { id: Number(iglesia_id), zona_id: scope.zonaId },
+          select: { id: true },
+        }),
+        prisma.ministerio.findFirst({
+          where: {
+            id: Number(ministerio_id),
+            iglesia: { zona_id: scope.zonaId },
+          },
+          select: { id: true },
+        }),
+      ]);
+      if (!iglesia || !ministerio) {
+        return NextResponse.json({ error: "Fuera de tu zona" }, { status: 403 });
+      }
+
+      const asignacionesAfectadas = await prisma.pastorIglesia.findMany({
+        where: {
+          OR: [
+            { ministerio_id: Number(ministerio_id) },
+            { iglesia_id: Number(iglesia_id) },
+          ],
+        },
+        select: {
+          iglesia: { select: { zona_id: true } },
+          ministerio: { select: { iglesia: { select: { zona_id: true } } } },
+        },
+      });
+      if (
+        asignacionesAfectadas.some(
+          (asignacion) =>
+            asignacion.iglesia.zona_id !== scope.zonaId ||
+            asignacion.ministerio.iglesia.zona_id !== scope.zonaId
+        )
+      ) {
+        return NextResponse.json({ error: "Fuera de tu zona" }, { status: 403 });
+      }
     }
 
     const pastor = await prisma.$transaction(async (tx) => {
@@ -237,6 +282,38 @@ export async function DELETE(req: NextRequest) {
 
   try {
     const { iglesia_id, ministerio_id } = await req.json();
+    const scope = await resolverAlcanceZona(req);
+
+    if (scope && ministerio_id) {
+      const ministerio = await prisma.ministerio.findFirst({
+        where: {
+          id: Number(ministerio_id),
+          iglesia: { zona_id: scope.zonaId },
+        },
+        select: { id: true },
+      });
+      const asignaciones = await prisma.pastorIglesia.findMany({
+        where: { ministerio_id: Number(ministerio_id) },
+        select: { iglesia: { select: { zona_id: true } } },
+      });
+      if (!ministerio || asignaciones.some((a) => a.iglesia.zona_id !== scope.zonaId)) {
+        return NextResponse.json({ error: "Fuera de tu zona" }, { status: 403 });
+      }
+    }
+
+    if (scope && iglesia_id) {
+      const iglesia = await prisma.iglesia.findFirst({
+        where: { id: Number(iglesia_id), zona_id: scope.zonaId },
+        select: { id: true },
+      });
+      const asignacion = await prisma.pastorIglesia.findUnique({
+        where: { iglesia_id: Number(iglesia_id) },
+        select: { ministerio: { select: { iglesia: { select: { zona_id: true } } } } },
+      });
+      if (!iglesia || (asignacion && asignacion.ministerio.iglesia.zona_id !== scope.zonaId)) {
+        return NextResponse.json({ error: "Fuera de tu zona" }, { status: 403 });
+      }
+    }
 
     if (ministerio_id) {
       await prisma.$transaction(async (tx) => {

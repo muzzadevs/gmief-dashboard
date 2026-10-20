@@ -30,7 +30,7 @@ export default function EditarIglesia({ params }: Props) {
   const { id } = React.use(params);
 
   const router = useRouter();
-  const { ready, canEdit, canEditInZone, canDelete } = useGestionMinisteriosPermissions();
+  const { ready, canEdit, canEditInZone, canDelete, zoneId } = useGestionMinisteriosPermissions();
   const { toast, showSuccess, showError, hideToast } = useToast();
 
   const [zonas, setZonas] = useState<Zona[]>([]);
@@ -226,8 +226,13 @@ export default function EditarIglesia({ params }: Props) {
       <LoaderPersonalizado>Cargando datos de la iglesia...</LoaderPersonalizado>
     );
   }
+  if (canEditInZone && iglesia.zona_id !== zoneId) {
+    return <GestionMinisteriosSinPermisoEdicion />;
+  }
 
-  const zonaOptions = zonas.filter((zona) => zona.activo).map((zona) => ({
+  const zonaOptions = zonas.filter((zona) =>
+    zona.activo && (!canEditInZone || zona.id === zoneId)
+  ).map((zona) => ({
     value: String(zona.id),
     label: zona.nombre,
   }));

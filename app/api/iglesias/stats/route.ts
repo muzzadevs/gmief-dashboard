@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { resolverAlcanceZona } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   const zonaId = req.nextUrl.searchParams.get("zonaId");
@@ -11,10 +10,6 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const scope = await resolverAlcanceZona(req);
-    if (scope && Number(zonaId) !== scope.zonaId) {
-      return NextResponse.json({ ok: true, data: {} });
-    }
     const iglesiaWhere: Record<string, unknown> = { zona_id: Number(zonaId) };
     if (subzonaId) {
       iglesiaWhere.subzona_id = Number(subzonaId);

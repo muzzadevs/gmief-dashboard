@@ -39,9 +39,11 @@ type PastorInfo = {
 
 export default function Ministerios() {
   const router = useRouter();
-  const { canEdit, canEditInZone, canDelete } = useGestionMinisteriosPermissions();
-  const canEditMinisterios = canEdit || canEditInZone;
+  const { canEdit, canEditInZone, canDelete, zoneId } = useGestionMinisteriosPermissions();
   const iglesiaSelected = useZonasStore((s) => s.iglesiaSelected);
+  const canEditMinisterios = canEditInZone
+    ? iglesiaSelected?.zona_id === zoneId
+    : canEdit;
   const setZonaSelected = useZonasStore((s) => s.setZonaSelected);
   const setMinisterioEditId = useZonasStore((s) => s.setMinisterioEditId);
   const [ministerios, setMinisterios] = useState<Ministerio[]>([]);

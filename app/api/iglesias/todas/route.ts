@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { resolverAlcanceZona } from "@/lib/auth";
 
 // GET: Devuelve todas las iglesias activas con su zona (para comboboxes globales)
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const scope = await resolverAlcanceZona(request);
     const iglesias = await prisma.iglesia.findMany({
       where: {
         activo: true,
-        ...(scope ? { zona_id: scope.zonaId } : {}),
       },
       select: {
         id: true,

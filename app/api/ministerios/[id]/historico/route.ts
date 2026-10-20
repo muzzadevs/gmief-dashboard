@@ -4,7 +4,7 @@ import { ministerioDentroDeAlcance, resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
@@ -13,11 +13,6 @@ export async function GET(
   if (!Number.isInteger(ministerioId) || ministerioId <= 0) {
     return NextResponse.json({ error: "ID de ministerio no válido" }, { status: 400 });
   }
-  const scope = await resolverAlcanceZona(request);
-  if (!(await ministerioDentroDeAlcance(scope, ministerioId))) {
-    return NextResponse.json({ error: "Ministerio fuera de tu zona o subzona" }, { status: 403 });
-  }
-
   try {
     const historico = await prisma.ministerioHistorico.findMany({
       where: { ministerio_id: ministerioId },

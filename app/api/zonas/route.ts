@@ -5,17 +5,12 @@ import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
 import { resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const rows = await cached("zonas:all", CACHE_TTL.FREQUENT, () =>
       prisma.zona.findMany({ orderBy: { nombre: "asc" } })
     );
-    const scope = await resolverAlcanceZona(request);
-
-    return NextResponse.json(
-      { ok: true, data: scope ? rows.filter((zona) => zona.id === scope.zonaId) : rows },
-      { status: 200 }
-    );
+    return NextResponse.json({ ok: true, data: rows }, { status: 200 });
   } catch (error: unknown) {
     console.error("[GET /api/zonas] Error:", error);
     return NextResponse.json(

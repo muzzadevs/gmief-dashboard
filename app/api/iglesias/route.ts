@@ -5,11 +5,9 @@ import { resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 export async function GET(req: NextRequest) {
-  const scope = await resolverAlcanceZona(req);
   const zonaId = req.nextUrl.searchParams.get("zonaId");
   const subzonaId = req.nextUrl.searchParams.get("subzonaId");
   if (!zonaId) return NextResponse.json([]);
-  if (scope && Number(zonaId) !== scope.zonaId) return NextResponse.json([]);
 
   if (subzonaId) {
     const iglesias = await prisma.iglesia.findMany({

@@ -7,8 +7,6 @@ import LoaderPersonalizado from "../../components/LoaderPersonalizado";
 import ModalAgregarZona from "../../components/ModalAgregarZona";
 import ModalEditarZonas from "../../components/ModalEditarZonas";
 import { searchIncludes } from "@/lib/search";
-import { useAuthStore } from "@/store/authStore";
-import { tienePermisoEditarPorZona } from "@/types/auth";
 import { useGestionMinisteriosPermissions } from "@/app/hooks/useGestionMinisteriosPermissions";
 
 type Zona = { id: number; nombre: string; codigo: string; activo: boolean };
@@ -16,11 +14,8 @@ type ZonaStats = Record<number, { ministerios: number; candidatos: number }>;
 
 export default function GestionMinisteriosHome() {
   const router = useRouter();
-  const { canEdit, canDelete } = useGestionMinisteriosPermissions();
+  const { canEdit, canEditInZone, canDelete } = useGestionMinisteriosPermissions();
   const setZonaSelected = useZonasStore((s) => s.setZonaSelected);
-  const user = useAuthStore((s) => s.user);
-  const isZoneScoped =
-    user !== null && !user.isSuperAdmin && tienePermisoEditarPorZona(user.permisos);
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
@@ -95,7 +90,7 @@ export default function GestionMinisteriosHome() {
               />
             </div>
             <div className="flex flex-row items-center gap-2 w-full sm:w-auto">
-              {canEdit && !isZoneScoped && (
+              {canEdit && !canEditInZone && (
                 <button
                   type="button"
                   className="btn-primary bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 flex-1 sm:flex-initial text-xs sm:text-sm"
@@ -108,7 +103,7 @@ export default function GestionMinisteriosHome() {
                   <span className="hidden sm:inline">Agregar </span>Zona
                 </button>
               )}
-              {(canEdit || canDelete) && !isZoneScoped && <button
+              {(canEdit || canDelete) && !canEditInZone && <button
                 type="button"
                 className="btn-primary bg-amber-500 text-white hover:bg-amber-600 shadow-lg shadow-amber-500/20 flex-1 sm:flex-initial text-xs sm:text-sm"
                 onClick={() => setIsModalEditarOpen(true)}

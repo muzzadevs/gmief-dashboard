@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Iglesia } from "@/types/subzonas";
 import { useZonasStore } from "@/store/zonasStore";
 import { searchStartsWith } from "@/lib/search";
-import { useAuthStore } from "@/store/authStore";
-import { tienePermisoEditarPorZona } from "@/types/auth";
+import { useGestionMinisteriosPermissions } from "@/app/hooks/useGestionMinisteriosPermissions";
 
 interface Props {
   busqueda?: string;
@@ -21,9 +20,7 @@ export default function Iglesias({ busqueda = "", canEdit }: Props) {
   const iglesias = useZonasStore((s) => s.iglesias);
   const fetchIglesias = useZonasStore((s) => s.fetchIglesias);
   const setIglesiaSelected = useZonasStore((s) => s.setIglesiaSelected);
-  const user = useAuthStore((s) => s.user);
-  const isZoneScoped =
-    user !== null && !user.isSuperAdmin && tienePermisoEditarPorZona(user.permisos);
+  const { canEditInZone, zoneId } = useGestionMinisteriosPermissions();
   const router = useRouter();
   const [loading, setLoading] = React.useState(true);
   const [stats, setStats] = useState<IglesiaStats>({});
@@ -101,8 +98,9 @@ export default function Iglesias({ busqueda = "", canEdit }: Props) {
         const countCand = iglesiaStats?.candidatos ?? 0;
 
         const isInactive = !iglesia.activo;
-        const canEditIglesia =
-          canEdit || (isZoneScoped && user?.zonaId === iglesia.zona_id);
+        const canEditIglesia = canEditInZone
+          ? zoneId === iglesia.zona_id
+          : canEdit;
 
         return (
           <div

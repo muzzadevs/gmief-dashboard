@@ -8,18 +8,16 @@ import { useRouter } from "next/navigation";
 import GestionMinisteriosSinPermisoEdicion from "../../../components/GestionMinisteriosSinPermisoEdicion";
 import { useGestionMinisteriosPermissions } from "@/app/hooks/useGestionMinisteriosPermissions";
 import { useAuthStore } from "@/store/authStore";
-import { tienePermisoEditarPorZona } from "@/types/auth";
 
 type Zona = { id: number; nombre: string; activo: boolean };
 type Subzona = { id: number; nombre: string; zona_id: number; activo: boolean };
 
 export default function AgregarIglesia() {
   const router = useRouter();
-  const { ready, canEdit } = useGestionMinisteriosPermissions();
+  const { ready, canEdit, canEditInZone, zoneId } = useGestionMinisteriosPermissions();
   const { toast, showSuccess, showError, hideToast } = useToast();
   const user = useAuthStore((s) => s.user);
-  const isZoneScoped =
-    user !== null && !user.isSuperAdmin && tienePermisoEditarPorZona(user.permisos);
+  const isZoneScoped = canEditInZone;
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [subzonas, setSubzonas] = useState<Subzona[]>([]);
   const [form, setForm] = useState({
@@ -42,17 +40,17 @@ export default function AgregarIglesia() {
           const response = await res.json();
           if (response.ok && response.data) {
             setZonas(response.data);
-            if (isZoneScoped && user?.zonaId) {
+            if (isZoneScoped && zoneId) {
               const subzonasRes = await fetch(
-                `/api/subzonas?zonaId=${user.zonaId}`
+                `/api/subzonas?zonaId=${zoneId}`
               );
               if (subzonasRes.ok) {
                 setSubzonas(await subzonasRes.json());
               }
               setForm((current) => ({
                 ...current,
-                zona_id: String(user.zonaId),
-                subzona_id: user.subzonaId ? String(user.subzonaId) : "",
+                zona_id: String(zoneId),
+                subzona_id: user?.subzonaId ? String(user.subzonaId) : "",
               }));
             }
           } else {
@@ -64,7 +62,7 @@ export default function AgregarIglesia() {
       }
     };
     fetchZonas();
-  }, [isZoneScoped, user?.zonaId, user?.subzonaId]);
+  }, [isZoneScoped, zoneId, user?.subzonaId]);
 
   const handleZonaChange = async (zonaId: string) => {
     setForm((f) => ({ ...f, zona_id: zonaId, subzona_id: "" }));
@@ -155,7 +153,9 @@ export default function AgregarIglesia() {
     return <LoaderPersonalizado>Cargando...</LoaderPersonalizado>;
   }
 
-  const zonaOptions = zonas.filter((zona) => zona.activo).map((zona) => ({
+  const zonaOptions = zonas
+    .filter((zona) => zona.activo && (!isZoneScoped || zona.id === zoneId))
+    .map((zona) => ({
     value: String(zona.id),
     label: zona.nombre,
   }));
