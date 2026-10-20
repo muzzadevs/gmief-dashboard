@@ -15,15 +15,9 @@ export async function GET(req: NextRequest) {
     if (scope && Number(zonaId) !== scope.zonaId) {
       return NextResponse.json({ ok: true, data: {} });
     }
-    if (scope?.subzonaId && subzonaId && Number(subzonaId) !== scope.subzonaId) {
-      return NextResponse.json({ ok: true, data: {} });
-    }
     const iglesiaWhere: Record<string, unknown> = { zona_id: Number(zonaId) };
     if (subzonaId) {
       iglesiaWhere.subzona_id = Number(subzonaId);
-    }
-    if (scope?.subzonaId) {
-      iglesiaWhere.subzona_id = scope.subzonaId;
     }
 
     // Query ligera: solo traer tipo y iglesia_id para contar

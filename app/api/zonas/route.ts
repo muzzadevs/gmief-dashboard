@@ -157,12 +157,6 @@ export async function PUT(request: Request) {
         { status: 403 }
       );
     }
-    if (scope?.subzonaId) {
-      return NextResponse.json(
-        { ok: false, error: "FORBIDDEN", message: "No puedes editar una zona desde el ámbito de una subzona" },
-        { status: 403 }
-      );
-    }
 
     const normalizedZonas: { id: number; nombre: string; codigo: string }[] = [];
     const codigosSet = new Set<string>();
@@ -375,12 +369,6 @@ export async function DELETE(request: Request) {
       return NextResponse.json(
         { ok: false, error: "MISSING_ID", message: "ID es requerido" },
         { status: 400 }
-      );
-    }
-    if (scope?.subzonaId) {
-      return NextResponse.json(
-        { ok: false, error: "FORBIDDEN", message: "No puedes eliminar una zona desde el ámbito de una subzona" },
-        { status: 403 }
       );
     }
     if (scope && Number(id) !== scope.zonaId) {

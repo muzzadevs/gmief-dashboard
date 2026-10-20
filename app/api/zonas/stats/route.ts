@@ -6,29 +6,6 @@ import { resolverAlcanceZona } from "@/lib/auth";
 export async function GET(request: Request) {
   try {
     const scope = await resolverAlcanceZona(request);
-    if (scope?.subzonaId) {
-      const ministerios = await prisma.ministerio.findMany({
-        where: {
-          activo: true,
-          iglesia: {
-            zona_id: scope.zonaId,
-            subzona_id: scope.subzonaId,
-            activo: true,
-          },
-        },
-        select: { tipo: true },
-      });
-      return NextResponse.json({
-        ok: true,
-        data: {
-          [scope.zonaId]: {
-            ministerios: ministerios.filter((item) => item.tipo !== "CANDIDATO").length,
-            candidatos: ministerios.filter((item) => item.tipo === "CANDIDATO").length,
-          },
-        },
-      });
-    }
-
     const stats = await cached("zonas:stats", CACHE_TTL.FREQUENT, async () => {
       // Traemos solo tipo y zona_id — muy ligero, sin blobs ni relaciones pesadas
       const ministerios = await prisma.ministerio.findMany({

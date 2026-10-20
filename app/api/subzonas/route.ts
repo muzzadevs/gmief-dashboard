@@ -11,10 +11,7 @@ export async function GET(req: NextRequest) {
     const subzonas = await prisma.subzona.findMany({
       ...(scope
         ? {
-            where: {
-              zona_id: scope.zonaId,
-              ...(scope.subzonaId ? { id: scope.subzonaId } : {}),
-            },
+            where: { zona_id: scope.zonaId },
           }
         : {}),
       orderBy: { nombre: "asc" },
@@ -28,7 +25,6 @@ export async function GET(req: NextRequest) {
     where: {
       zona_id: Number(zonaId),
       activo: true,
-      ...(scope?.subzonaId ? { id: scope.subzonaId } : {}),
     },
     orderBy: { nombre: "asc" },
   });
@@ -47,8 +43,8 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    if (scope && (Number(zona_id) !== scope.zonaId || scope.subzonaId !== null)) {
-      return NextResponse.json({ error: "Fuera de tu zona o subzona" }, { status: 403 });
+    if (scope && Number(zona_id) !== scope.zonaId) {
+      return NextResponse.json({ error: "Fuera de tu zona" }, { status: 403 });
     }
 
     const subzona = await prisma.subzona.create({
@@ -94,7 +90,6 @@ export async function PUT(req: NextRequest) {
         where: {
           id: { in: ids },
           zona_id: scope.zonaId,
-          ...(scope.subzonaId ? { id: scope.subzonaId } : {}),
         },
         select: { id: true },
       });
@@ -102,7 +97,7 @@ export async function PUT(req: NextRequest) {
         allowedSubzonas.length !== new Set(ids).size ||
         subzonas.some((subzona: { zona_id: number }) => Number(subzona.zona_id) !== scope.zonaId)
       ) {
-        return NextResponse.json({ error: "Fuera de tu zona o subzona" }, { status: 403 });
+        return NextResponse.json({ error: "Fuera de tu zona" }, { status: 403 });
       }
     }
 
@@ -144,12 +139,11 @@ export async function DELETE(req: NextRequest) {
         where: {
           id: Number(id),
           zona_id: scope.zonaId,
-          ...(scope.subzonaId ? { id: scope.subzonaId } : {}),
         },
         select: { id: true },
       });
       if (!subzona) {
-        return NextResponse.json({ error: "Fuera de tu zona o subzona" }, { status: 403 });
+        return NextResponse.json({ error: "Fuera de tu zona" }, { status: 403 });
       }
     }
 

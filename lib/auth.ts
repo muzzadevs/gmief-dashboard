@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import {
-  PERMISO_EDITAR_POR_ZONA,
+  PERMISOS_EDITAR_POR_ZONA,
   type JwtPayload,
   type PermisosResueltos,
 } from "@/types/auth";
@@ -19,7 +19,6 @@ const BCRYPT_ROUNDS = 10;
 
 export interface ZonaScope {
   zonaId: number;
-  subzonaId: number | null;
 }
 
 function getJwtSecret(): string {
@@ -129,25 +128,20 @@ export async function resolverAlcanceZona(request: Request): Promise<ZonaScope |
   }
 
   const permisos = await resolverPermisos(payload.ministerioId);
-  if (!permisos[modulo.id]?.includes(PERMISO_EDITAR_POR_ZONA)) {
+  if (!permisos[modulo.id]?.some((clave) => PERMISOS_EDITAR_POR_ZONA.includes(clave))) {
     return null;
   }
 
   const ministerio = await prisma.ministerio.findUnique({
     where: { id: payload.ministerioId },
-    select: {
-      iglesia: { select: { zona_id: true, subzona_id: true } },
-    },
+    select: { iglesia: { select: { zona_id: true } } },
   });
 
   if (!ministerio) {
     throw new Error("No se encontró el ministerio del usuario autenticado.");
   }
 
-  return {
-    zonaId: ministerio.iglesia.zona_id,
-    subzonaId: ministerio.iglesia.subzona_id,
-  };
+  return { zonaId: ministerio.iglesia.zona_id };
 }
 
 export async function ministerioDentroDeAlcance(
@@ -159,10 +153,7 @@ export async function ministerioDentroDeAlcance(
   const ministerio = await prisma.ministerio.findFirst({
     where: {
       id: ministerioId,
-      iglesia: {
-        zona_id: scope.zonaId,
-        ...(scope.subzonaId ? { subzona_id: scope.subzonaId } : {}),
-      },
+      iglesia: { zona_id: scope.zonaId },
     },
     select: { id: true },
   });

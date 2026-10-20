@@ -27,7 +27,6 @@ export async function GET(req: Request) {
       where: {
         id: Number(iglesiaId),
         zona_id: scope.zonaId,
-        ...(scope.subzonaId ? { subzona_id: scope.subzonaId } : {}),
       },
       select: { id: true },
     });
@@ -211,7 +210,6 @@ async function createMinisterio(req: Request) {
       where: {
         id: Number(iglesia_id),
         zona_id: scope.zonaId,
-        ...(scope.subzonaId ? { subzona_id: scope.subzonaId } : {}),
       },
       select: { id: true },
     });

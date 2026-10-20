@@ -102,8 +102,7 @@ export default function Iglesias({ busqueda = "" }: Props) {
         const isInactive = !iglesia.activo;
         const canEdit =
           !isZoneScoped ||
-          (user?.zonaId === iglesia.zona_id &&
-            (user.subzonaId === null || user.subzonaId === iglesia.subzona_id));
+          user?.zonaId === iglesia.zona_id;
 
         return (
           <div

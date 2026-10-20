@@ -37,11 +37,11 @@ export interface UserInfo {
 /** Mapa moduloId → array de claves de permiso que tiene el usuario */
 export type PermisosResueltos = Record<number, string[]>;
 
-export const PERMISO_EDITAR_POR_ZONA = "editarporzona";
+export const PERMISOS_EDITAR_POR_ZONA = ["editarporzona"];
 
 export function tienePermisoEditarPorZona(permisos: PermisosResueltos): boolean {
   return Object.values(permisos).some((claves) =>
-    claves.includes(PERMISO_EDITAR_POR_ZONA)
+    claves.some((clave) => PERMISOS_EDITAR_POR_ZONA.includes(clave))
   );
 }
 

@@ -5,20 +5,12 @@ import LoaderPersonalizado from "../../../components/LoaderPersonalizado";
 import Toast, { useToast } from "../../../components/Toast";
 import Combobox from "../../../components/ui/Combobox";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/store/authStore";
-import { tienePermisoEditarPorZona } from "@/types/auth";
 
 type Zona = { id: number; nombre: string; activo: boolean };
 
 export default function AgregarSubzonas() {
   const router = useRouter();
   const { toast, showSuccess, showError, hideToast } = useToast();
-  const user = useAuthStore((s) => s.user);
-  const isSubzonaScoped =
-    user !== null &&
-    !user.isSuperAdmin &&
-    tienePermisoEditarPorZona(user.permisos) &&
-    user.subzonaId !== null;
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [form, setForm] = useState({
     nombre: "",
@@ -27,10 +19,6 @@ export default function AgregarSubzonas() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isSubzonaScoped) {
-      router.replace("/modulos/gestion-ministerios/zonas-subzonas");
-      return;
-    }
     const fetchZonas = async () => {
       try {
         const res = await fetch(`/api/zonas`);
@@ -47,9 +35,7 @@ export default function AgregarSubzonas() {
       }
     };
     fetchZonas();
-  }, [isSubzonaScoped, router]);
-
-  if (isSubzonaScoped) return null;
+  }, []);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>

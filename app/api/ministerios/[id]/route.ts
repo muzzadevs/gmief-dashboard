@@ -50,11 +50,10 @@ export async function GET(
   }
   if (
     scope &&
-    (ministerio.iglesia.zona_id !== scope.zonaId ||
-      (scope.subzonaId !== null && ministerio.iglesia.subzona_id !== scope.subzonaId))
+    ministerio.iglesia.zona_id !== scope.zonaId
   ) {
     return NextResponse.json(
-      { error: "Ministerio fuera de tu zona o subzona" },
+      { error: "Ministerio fuera de tu zona" },
       { status: 403 }
     );
   }
@@ -183,15 +182,12 @@ export async function PUT(
     ]);
     const actualEnAmbito =
       actual &&
-      actual.iglesia.zona_id === scope.zonaId &&
-      (scope.subzonaId === null || actual.iglesia.subzona_id === scope.subzonaId);
+      actual.iglesia.zona_id === scope.zonaId;
     const destinoEnAmbito =
-      destino &&
-      destino.zona_id === scope.zonaId &&
-      (scope.subzonaId === null || destino.subzona_id === scope.subzonaId);
+      destino && destino.zona_id === scope.zonaId;
     if (!actualEnAmbito || !destinoEnAmbito) {
       return NextResponse.json(
-        { error: "Ministerio fuera de tu zona o subzona" },
+        { error: "Ministerio fuera de tu zona" },
         { status: 403 }
       );
     }
@@ -474,7 +470,6 @@ export async function DELETE(
         id: numId,
         iglesia: {
           zona_id: scope.zonaId,
-          ...(scope.subzonaId ? { subzona_id: scope.subzonaId } : {}),
         },
       },
       select: { id: true },

@@ -26,12 +26,8 @@ export async function GET(
         { status: 404 }
       );
     }
-    if (
-      scope &&
-      (iglesia.zona_id !== scope.zonaId ||
-        (scope.subzonaId !== null && iglesia.subzona_id !== scope.subzonaId))
-    ) {
-      return NextResponse.json({ error: "Iglesia fuera de tu zona o subzona" }, { status: 403 });
+    if (scope && iglesia.zona_id !== scope.zonaId) {
+      return NextResponse.json({ error: "Iglesia fuera de tu zona" }, { status: 403 });
     }
 
     return NextResponse.json(iglesia);
@@ -61,12 +57,11 @@ export async function DELETE(
         where: {
           id,
           zona_id: scope.zonaId,
-          ...(scope.subzonaId ? { subzona_id: scope.subzonaId } : {}),
         },
         select: { id: true },
       });
       if (!iglesia) {
-        return NextResponse.json({ error: "Iglesia fuera de tu zona o subzona" }, { status: 403 });
+        return NextResponse.json({ error: "Iglesia fuera de tu zona" }, { status: 403 });
       }
     }
 
@@ -129,12 +124,9 @@ export async function PUT(
     }
     if (
       scope &&
-      (existingIglesia.zona_id !== scope.zonaId ||
-        (scope.subzonaId !== null && existingIglesia.subzona_id !== scope.subzonaId) ||
-        Number(zona_id) !== scope.zonaId ||
-        (scope.subzonaId !== null && Number(subzona_id) !== scope.subzonaId))
+      (existingIglesia.zona_id !== scope.zonaId || Number(zona_id) !== scope.zonaId)
     ) {
-      return NextResponse.json({ error: "Fuera de tu zona o subzona" }, { status: 403 });
+      return NextResponse.json({ error: "Fuera de tu zona" }, { status: 403 });
     }
 
     if (subzona_id) {

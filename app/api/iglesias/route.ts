@@ -9,9 +9,6 @@ export async function GET(req: NextRequest) {
   const subzonaId = req.nextUrl.searchParams.get("subzonaId");
   if (!zonaId) return NextResponse.json([]);
   if (scope && Number(zonaId) !== scope.zonaId) return NextResponse.json([]);
-  if (scope?.subzonaId && subzonaId && Number(subzonaId) !== scope.subzonaId) {
-    return NextResponse.json([]);
-  }
 
   if (subzonaId) {
     const iglesias = await prisma.iglesia.findMany({
@@ -27,7 +24,6 @@ export async function GET(req: NextRequest) {
   const iglesias = await prisma.iglesia.findMany({
     where: {
       zona_id: Number(zonaId),
-      ...(scope?.subzonaId ? { subzona_id: scope.subzonaId } : {}),
     },
     orderBy: { nombre: "asc" },
   });
@@ -46,12 +42,8 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    if (
-      scope &&
-      (Number(zona_id) !== scope.zonaId ||
-        (scope.subzonaId !== null && Number(subzona_id) !== scope.subzonaId))
-    ) {
-      return NextResponse.json({ error: "Fuera de tu zona o subzona" }, { status: 403 });
+    if (scope && Number(zona_id) !== scope.zonaId) {
+      return NextResponse.json({ error: "Fuera de tu zona" }, { status: 403 });
     }
 
     if (subzona_id) {

@@ -7,15 +7,10 @@ import SelectMenuZonas from "../../../components/SelectMenuZonas";
 import ModalEditarSubzonas from "../../../components/ModalEditarSubzonas";
 import { useRouter } from "next/navigation";
 import { useZonasStore } from "@/store/zonasStore";
-import { useAuthStore } from "@/store/authStore";
-import { tienePermisoEditarPorZona } from "@/types/auth";
 
 export default function ZonasSubZonas() {
   const router = useRouter();
   const setZonaSelected = useZonasStore((s) => s.setZonaSelected);
-  const user = useAuthStore((s) => s.user);
-  const isZoneScoped =
-    user !== null && !user.isSuperAdmin && tienePermisoEditarPorZona(user.permisos);
   const [busqueda, setBusqueda] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -75,7 +70,7 @@ export default function ZonasSubZonas() {
               </svg>
               <span className="hidden sm:inline">Agregar </span>Iglesia
             </button>
-            {(!isZoneScoped || user?.subzonaId === null) && <button
+            <button
               type="button"
               className="btn-primary bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/20 flex-1 text-xs sm:text-sm"
               onClick={() => router.push("/modulos/gestion-ministerios/agregar-subzonas")}
@@ -85,7 +80,7 @@ export default function ZonasSubZonas() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
               <span className="hidden sm:inline">Agregar </span>Subzonas
-            </button>}
+            </button>
             <button
               type="button"
               className="btn-primary bg-amber-500 text-white hover:bg-amber-600 shadow-lg shadow-amber-500/20 flex-1 text-xs sm:text-sm"

@@ -9,12 +9,7 @@ export async function GET(request: Request) {
     const iglesias = await prisma.iglesia.findMany({
       where: {
         activo: true,
-        ...(scope
-          ? {
-              zona_id: scope.zonaId,
-              ...(scope.subzonaId ? { subzona_id: scope.subzonaId } : {}),
-            }
-          : {}),
+        ...(scope ? { zona_id: scope.zonaId } : {}),
       },
       select: {
         id: true,
