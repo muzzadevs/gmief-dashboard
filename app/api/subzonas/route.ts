@@ -1,19 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { resolverAlcanceZona } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
+  const scope = await resolverAlcanceZona(req);
   const zonaId = req.nextUrl.searchParams.get("zonaId");
   if (!zonaId) return NextResponse.json([]);
 
   if (zonaId === "ALL") {
     const subzonas = await prisma.subzona.findMany({
+      ...(scope
+        ? {
+            where: {
+              zona_id: scope.zonaId,
+              ...(scope.subzonaId ? { id: scope.subzonaId } : {}),
+            },
+          }
+        : {}),
       orderBy: { nombre: "asc" },
     });
     return NextResponse.json(subzonas);
   }
 
+  if (scope && Number(zonaId) !== scope.zonaId) return NextResponse.json([]);
+
   const subzonas = await prisma.subzona.findMany({
-    where: { zona_id: Number(zonaId), activo: true },
+    where: {
+      zona_id: Number(zonaId),
+      activo: true,
+      ...(scope?.subzonaId ? { id: scope.subzonaId } : {}),
+    },
     orderBy: { nombre: "asc" },
   });
 
@@ -22,6 +38,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const scope = await resolverAlcanceZona(req);
     const { nombre, zona_id } = await req.json();
 
     if (!nombre || !zona_id) {
@@ -29,6 +46,9 @@ export async function POST(req: NextRequest) {
         { error: "Nombre y zona son requeridos" },
         { status: 400 }
       );
+    }
+    if (scope && (Number(zona_id) !== scope.zonaId || scope.subzonaId !== null)) {
+      return NextResponse.json({ error: "Fuera de tu zona o subzona" }, { status: 403 });
     }
 
     const subzona = await prisma.subzona.create({
@@ -50,6 +70,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
+    const scope = await resolverAlcanceZona(req);
     const { subzonas } = await req.json();
 
     if (!subzonas || !Array.isArray(subzonas) || subzonas.length === 0) {
@@ -65,6 +86,23 @@ export async function PUT(req: NextRequest) {
           { error: "Cada subzona debe tener id, nombre y zona_id" },
           { status: 400 }
         );
+      }
+    }
+    if (scope) {
+      const ids = subzonas.map((subzona: { id: number }) => Number(subzona.id));
+      const allowedSubzonas = await prisma.subzona.findMany({
+        where: {
+          id: { in: ids },
+          zona_id: scope.zonaId,
+          ...(scope.subzonaId ? { id: scope.subzonaId } : {}),
+        },
+        select: { id: true },
+      });
+      if (
+        allowedSubzonas.length !== new Set(ids).size ||
+        subzonas.some((subzona: { zona_id: number }) => Number(subzona.zona_id) !== scope.zonaId)
+      ) {
+        return NextResponse.json({ error: "Fuera de tu zona o subzona" }, { status: 403 });
       }
     }
 
@@ -92,6 +130,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const scope = await resolverAlcanceZona(req);
     const { id } = await req.json();
 
     if (!id) {
@@ -99,6 +138,19 @@ export async function DELETE(req: NextRequest) {
         { error: "ID es requerido" },
         { status: 400 }
       );
+    }
+    if (scope) {
+      const subzona = await prisma.subzona.findFirst({
+        where: {
+          id: Number(id),
+          zona_id: scope.zonaId,
+          ...(scope.subzonaId ? { id: scope.subzonaId } : {}),
+        },
+        select: { id: true },
+      });
+      if (!subzona) {
+        return NextResponse.json({ error: "Fuera de tu zona o subzona" }, { status: 403 });
+      }
     }
 
     // Soft delete en cascada: ministerios de iglesias de esta subzona

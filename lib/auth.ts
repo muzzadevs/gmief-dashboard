@@ -1,6 +1,10 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import type { JwtPayload, PermisosResueltos } from "@/types/auth";
+import {
+  PERMISO_EDITAR_POR_ZONA,
+  type JwtPayload,
+  type PermisosResueltos,
+} from "@/types/auth";
 import { prisma } from "@/lib/prisma";
 
 // ── Constantes ──
@@ -12,6 +16,11 @@ export const JWT_EXPIRATION = "7d";
 export const COOKIE_NAME = "fc_auth_token";
 export const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 días en segundos
 const BCRYPT_ROUNDS = 10;
+
+export interface ZonaScope {
+  zonaId: number;
+  subzonaId: number | null;
+}
 
 function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
@@ -92,6 +101,72 @@ export async function resolverPermisos(ministerioId: number): Promise<PermisosRe
   }
 
   return merged;
+}
+
+export async function resolverAlcanceZona(request: Request): Promise<ZonaScope | null> {
+  const cookieToken = request.headers
+    .get("cookie")
+    ?.split(";")
+    .map((cookie) => cookie.trim())
+    .find((cookie) => cookie.startsWith(`${COOKIE_NAME}=`))
+    ?.slice(COOKIE_NAME.length + 1);
+  const authHeader = request.headers.get("authorization");
+  const bearerToken = authHeader?.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : null;
+  const payload = verifyToken(cookieToken || bearerToken || "");
+
+  if (!payload || payload.isSuperAdmin || payload.ministerioId === null) {
+    return null;
+  }
+
+  const modulo = await prisma.modulo.findFirst({
+    where: { href: "/modulos/gestion-ministerios" },
+    select: { id: true },
+  });
+  if (!modulo) {
+    throw new Error("No se encontró el módulo de Gestión de Ministerios.");
+  }
+
+  const permisos = await resolverPermisos(payload.ministerioId);
+  if (!permisos[modulo.id]?.includes(PERMISO_EDITAR_POR_ZONA)) {
+    return null;
+  }
+
+  const ministerio = await prisma.ministerio.findUnique({
+    where: { id: payload.ministerioId },
+    select: {
+      iglesia: { select: { zona_id: true, subzona_id: true } },
+    },
+  });
+
+  if (!ministerio) {
+    throw new Error("No se encontró el ministerio del usuario autenticado.");
+  }
+
+  return {
+    zonaId: ministerio.iglesia.zona_id,
+    subzonaId: ministerio.iglesia.subzona_id,
+  };
+}
+
+export async function ministerioDentroDeAlcance(
+  scope: ZonaScope | null,
+  ministerioId: number
+): Promise<boolean> {
+  if (!scope) return true;
+
+  const ministerio = await prisma.ministerio.findFirst({
+    where: {
+      id: ministerioId,
+      iglesia: {
+        zona_id: scope.zonaId,
+        ...(scope.subzonaId ? { subzona_id: scope.subzonaId } : {}),
+      },
+    },
+    select: { id: true },
+  });
+  return ministerio !== null;
 }
 
 // ── Generar username para candidatos ──

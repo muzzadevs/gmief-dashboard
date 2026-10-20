@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { geocodeIglesia, addressFieldsChanged } from "@/lib/geocode";
+import { resolverAlcanceZona } from "@/lib/auth";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const scope = await resolverAlcanceZona(request);
     const { id: idParam } = await params;
     const id = parseInt(idParam);
 
@@ -24,6 +26,13 @@ export async function GET(
         { status: 404 }
       );
     }
+    if (
+      scope &&
+      (iglesia.zona_id !== scope.zonaId ||
+        (scope.subzonaId !== null && iglesia.subzona_id !== scope.subzonaId))
+    ) {
+      return NextResponse.json({ error: "Iglesia fuera de tu zona o subzona" }, { status: 403 });
+    }
 
     return NextResponse.json(iglesia);
   } catch (error) {
@@ -40,11 +49,25 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const scope = await resolverAlcanceZona(request);
     const { id: idParam } = await params;
     const id = parseInt(idParam);
 
     if (isNaN(id)) {
       return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+    }
+    if (scope) {
+      const iglesia = await prisma.iglesia.findFirst({
+        where: {
+          id,
+          zona_id: scope.zonaId,
+          ...(scope.subzonaId ? { subzona_id: scope.subzonaId } : {}),
+        },
+        select: { id: true },
+      });
+      if (!iglesia) {
+        return NextResponse.json({ error: "Iglesia fuera de tu zona o subzona" }, { status: 403 });
+      }
     }
 
     // Soft delete en cascada: desactivar ministerios de esta iglesia
@@ -76,6 +99,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const scope = await resolverAlcanceZona(request);
     const { id: idParam } = await params;
     const id = parseInt(idParam);
 
@@ -102,6 +126,25 @@ export async function PUT(
         { error: "Iglesia no encontrada" },
         { status: 404 }
       );
+    }
+    if (
+      scope &&
+      (existingIglesia.zona_id !== scope.zonaId ||
+        (scope.subzonaId !== null && existingIglesia.subzona_id !== scope.subzonaId) ||
+        Number(zona_id) !== scope.zonaId ||
+        (scope.subzonaId !== null && Number(subzona_id) !== scope.subzonaId))
+    ) {
+      return NextResponse.json({ error: "Fuera de tu zona o subzona" }, { status: 403 });
+    }
+
+    if (subzona_id) {
+      const subzona = await prisma.subzona.findFirst({
+        where: { id: Number(subzona_id), zona_id: Number(zona_id) },
+        select: { id: true },
+      });
+      if (!subzona) {
+        return NextResponse.json({ error: "La subzona no pertenece a la zona" }, { status: 400 });
+      }
     }
 
     // Verificar si los campos de dirección cambiaron para re-geocodificar

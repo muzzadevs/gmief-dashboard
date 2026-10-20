@@ -1,9 +1,34 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cached, CACHE_TTL } from "@/lib/cache";
+import { resolverAlcanceZona } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const scope = await resolverAlcanceZona(request);
+    if (scope?.subzonaId) {
+      const ministerios = await prisma.ministerio.findMany({
+        where: {
+          activo: true,
+          iglesia: {
+            zona_id: scope.zonaId,
+            subzona_id: scope.subzonaId,
+            activo: true,
+          },
+        },
+        select: { tipo: true },
+      });
+      return NextResponse.json({
+        ok: true,
+        data: {
+          [scope.zonaId]: {
+            ministerios: ministerios.filter((item) => item.tipo !== "CANDIDATO").length,
+            candidatos: ministerios.filter((item) => item.tipo === "CANDIDATO").length,
+          },
+        },
+      });
+    }
+
     const stats = await cached("zonas:stats", CACHE_TTL.FREQUENT, async () => {
       // Traemos solo tipo y zona_id — muy ligero, sin blobs ni relaciones pesadas
       const ministerios = await prisma.ministerio.findMany({
@@ -44,7 +69,12 @@ export async function GET() {
       return result;
     });
 
-    return NextResponse.json({ ok: true, data: stats });
+    return NextResponse.json({
+      ok: true,
+      data: scope
+        ? { [scope.zonaId]: stats[scope.zonaId] ?? { ministerios: 0, candidatos: 0 } }
+        : stats,
+    });
   } catch (error: unknown) {
     console.error("[GET /api/zonas/stats] Error:", error);
     return NextResponse.json(

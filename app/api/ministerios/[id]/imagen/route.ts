@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ministerioDentroDeAlcance, resolverAlcanceZona } from "@/lib/auth";
 
 // GET: Servir la imagen de un ministerio
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
   if (!id) {
     return NextResponse.json({ error: "ID requerido" }, { status: 400 });
+  }
+  const scope = await resolverAlcanceZona(req);
+  if (!(await ministerioDentroDeAlcance(scope, Number(id)))) {
+    return NextResponse.json({ error: "Ministerio fuera de tu zona o subzona" }, { status: 403 });
   }
 
   const ministerio = await prisma.ministerio.findUnique({
@@ -49,6 +54,10 @@ export async function POST(
   const { id } = await params;
   if (!id) {
     return NextResponse.json({ error: "ID requerido" }, { status: 400 });
+  }
+  const scope = await resolverAlcanceZona(req);
+  if (!(await ministerioDentroDeAlcance(scope, Number(id)))) {
+    return NextResponse.json({ error: "Ministerio fuera de tu zona o subzona" }, { status: 403 });
   }
 
   try {
@@ -96,12 +105,16 @@ export async function POST(
 
 // DELETE: Eliminar imagen de un ministerio
 export async function DELETE(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
   if (!id) {
     return NextResponse.json({ error: "ID requerido" }, { status: 400 });
+  }
+  const scope = await resolverAlcanceZona(req);
+  if (!(await ministerioDentroDeAlcance(scope, Number(id)))) {
+    return NextResponse.json({ error: "Ministerio fuera de tu zona o subzona" }, { status: 403 });
   }
 
   await prisma.ministerio.update({

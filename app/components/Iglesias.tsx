@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import type { Iglesia } from "@/types/subzonas";
 import { useZonasStore } from "@/store/zonasStore";
 import { searchStartsWith } from "@/lib/search";
+import { useAuthStore } from "@/store/authStore";
+import { tienePermisoEditarPorZona } from "@/types/auth";
 
 interface Props {
   busqueda?: string;
@@ -18,6 +20,9 @@ export default function Iglesias({ busqueda = "" }: Props) {
   const iglesias = useZonasStore((s) => s.iglesias);
   const fetchIglesias = useZonasStore((s) => s.fetchIglesias);
   const setIglesiaSelected = useZonasStore((s) => s.setIglesiaSelected);
+  const user = useAuthStore((s) => s.user);
+  const isZoneScoped =
+    user !== null && !user.isSuperAdmin && tienePermisoEditarPorZona(user.permisos);
   const router = useRouter();
   const [loading, setLoading] = React.useState(true);
   const [stats, setStats] = useState<IglesiaStats>({});
@@ -95,6 +100,10 @@ export default function Iglesias({ busqueda = "" }: Props) {
         const countCand = iglesiaStats?.candidatos ?? 0;
 
         const isInactive = !iglesia.activo;
+        const canEdit =
+          !isZoneScoped ||
+          (user?.zonaId === iglesia.zona_id &&
+            (user.subzonaId === null || user.subzonaId === iglesia.subzona_id));
 
         return (
           <div
@@ -161,7 +170,7 @@ export default function Iglesias({ busqueda = "" }: Props) {
                 )}
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <button
+                {canEdit && <button
                   type="button"
                   className={`btn-primary shadow-md text-sm ${
                     isInactive
@@ -177,7 +186,7 @@ export default function Iglesias({ busqueda = "" }: Props) {
                 >
                   <FaEdit className="w-4 h-4" />
                   <span className="hidden sm:inline">Editar</span>
-                </button>
+                </button>}
                 <button
                   type="button"
                   className={`btn-primary shadow-md text-sm ${

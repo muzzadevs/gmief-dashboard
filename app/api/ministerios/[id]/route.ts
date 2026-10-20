@@ -11,20 +11,23 @@ import {
 } from "@/lib/candidatoUtils";
 import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
 import { buscarDniDuplicado } from "@/lib/ministerioDni";
+import { resolverAlcanceZona } from "@/lib/auth";
 
 // Obtener un ministerio por id (con cargos y candidato_detalle)
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
   if (!id) return NextResponse.json({ error: "id requerido" }, { status: 400 });
+  const scope = await resolverAlcanceZona(req);
 
   const [ministerio, imagenCheck] = await Promise.all([
     prisma.ministerio.findUnique({
       where: { id: Number(id) },
       omit: { imagen: true },
       include: {
+        iglesia: { select: { zona_id: true, subzona_id: true } },
         cargos: { select: { cargo_id: true } },
         candidato_detalle: {
           select: {
@@ -44,6 +47,16 @@ export async function GET(
 
   if (!ministerio) {
     return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+  }
+  if (
+    scope &&
+    (ministerio.iglesia.zona_id !== scope.zonaId ||
+      (scope.subzonaId !== null && ministerio.iglesia.subzona_id !== scope.subzonaId))
+  ) {
+    return NextResponse.json(
+      { error: "Ministerio fuera de tu zona o subzona" },
+      { status: 403 }
+    );
   }
 
   if (ministerio.tipo === "CANDIDATO" && ministerio.candidato_detalle?.fecha_inicio) {
@@ -123,6 +136,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const scope = await resolverAlcanceZona(req);
   const data = await req.json();
   const {
     nombre,
@@ -155,6 +169,32 @@ export async function PUT(
       { error: `Faltan campos obligatorios: ${faltantes.join(", ")}` },
       { status: 400 }
     );
+  }
+  if (scope) {
+    const [actual, destino] = await Promise.all([
+      prisma.ministerio.findUnique({
+        where: { id: Number(id) },
+        select: { iglesia: { select: { zona_id: true, subzona_id: true } } },
+      }),
+      prisma.iglesia.findUnique({
+        where: { id: Number(iglesia_id) },
+        select: { zona_id: true, subzona_id: true },
+      }),
+    ]);
+    const actualEnAmbito =
+      actual &&
+      actual.iglesia.zona_id === scope.zonaId &&
+      (scope.subzonaId === null || actual.iglesia.subzona_id === scope.subzonaId);
+    const destinoEnAmbito =
+      destino &&
+      destino.zona_id === scope.zonaId &&
+      (scope.subzonaId === null || destino.subzona_id === scope.subzonaId);
+    if (!actualEnAmbito || !destinoEnAmbito) {
+      return NextResponse.json(
+        { error: "Ministerio fuera de tu zona o subzona" },
+        { status: 403 }
+      );
+    }
   }
 
   // Validar y encriptar DNI si se proporciona
@@ -427,6 +467,25 @@ export async function DELETE(
   }
 
   const numId = Number(id);
+  const scope = await resolverAlcanceZona(req);
+  if (scope) {
+    const ministerio = await prisma.ministerio.findFirst({
+      where: {
+        id: numId,
+        iglesia: {
+          zona_id: scope.zonaId,
+          ...(scope.subzonaId ? { subzona_id: scope.subzonaId } : {}),
+        },
+      },
+      select: { id: true },
+    });
+    if (!ministerio) {
+      return NextResponse.json(
+        { error: "Ministerio fuera de tu zona o subzona" },
+        { status: 403 }
+      );
+    }
+  }
 
   // Soft delete: poner activo en false
   await prisma.ministerio.update({

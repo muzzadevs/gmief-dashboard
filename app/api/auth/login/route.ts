@@ -49,6 +49,8 @@ export async function POST(req: Request) {
         nombre: "Administrador",
         apellidos: "Sistema",
         isSuperAdmin: true,
+        zonaId: null,
+        subzonaId: null,
         permisos: allPermisos,
       };
 
@@ -74,6 +76,9 @@ export async function POST(req: Request) {
         password_hash: true,
         must_change_password: true,
         activo: true,
+        iglesia: {
+          select: { zona_id: true, subzona_id: true },
+        },
       },
     });
 
@@ -136,6 +141,8 @@ export async function POST(req: Request) {
       nombre: ministerio.nombre,
       apellidos: ministerio.apellidos,
       isSuperAdmin: false,
+      zonaId: ministerio.iglesia.zona_id,
+      subzonaId: ministerio.iglesia.subzona_id,
       permisos,
     };
 

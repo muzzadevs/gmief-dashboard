@@ -69,7 +69,12 @@ export async function POST(req: Request) {
     // Obtener info actualizada del usuario
     const ministerio = await prisma.ministerio.findUnique({
       where: { id: payload.ministerioId! },
-      select: { nombre: true, apellidos: true, username: true },
+      select: {
+        nombre: true,
+        apellidos: true,
+        username: true,
+        iglesia: { select: { zona_id: true, subzona_id: true } },
+      },
     });
 
     const permisos = await resolverPermisos(payload.ministerioId!);
@@ -80,6 +85,8 @@ export async function POST(req: Request) {
       nombre: ministerio?.nombre || "",
       apellidos: ministerio?.apellidos || null,
       isSuperAdmin: false,
+      zonaId: ministerio?.iglesia.zona_id ?? null,
+      subzonaId: ministerio?.iglesia.subzona_id ?? null,
       permisos,
     };
 

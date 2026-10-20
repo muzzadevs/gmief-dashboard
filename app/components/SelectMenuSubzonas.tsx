@@ -14,9 +14,19 @@ export default function SelectMenuSubzonas() {
 
   useEffect(() => {
     if (zonaSelected) {
-      fetchSubzonas(zonaSelected.id);
+      fetchSubzonas(zonaSelected.id).then(() => {
+        const state = useZonasStore.getState();
+        if (
+          state.subzonaSelected &&
+          !state.subzonas.some(
+            (subzona) => subzona.id === state.subzonaSelected?.id
+          )
+        ) {
+          setSubzonaSelected(null);
+        }
+      });
     }
-  }, [zonaSelected, fetchSubzonas]);
+  }, [zonaSelected, fetchSubzonas, setSubzonaSelected]);
 
   if (!zonaSelected) return null;
 

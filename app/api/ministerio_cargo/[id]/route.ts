@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ministerioDentroDeAlcance, resolverAlcanceZona } from "@/lib/auth";
 
 // Actualizar los cargos de un ministerio: elimina los que no estén, añade los nuevos
 export async function PUT(
@@ -7,6 +8,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const scope = await resolverAlcanceZona(req);
+  if (!(await ministerioDentroDeAlcance(scope, Number(id)))) {
+    return NextResponse.json({ error: "Ministerio fuera de tu zona o subzona" }, { status: 403 });
+  }
   const { cargos } = await req.json();
   if (!id || !Array.isArray(cargos)) {
     return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });

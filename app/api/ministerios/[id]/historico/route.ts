@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ministerioDentroDeAlcance, resolverAlcanceZona } from "@/lib/auth";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
@@ -10,6 +11,10 @@ export async function GET(
 
   if (!Number.isInteger(ministerioId) || ministerioId <= 0) {
     return NextResponse.json({ error: "ID de ministerio no válido" }, { status: 400 });
+  }
+  const scope = await resolverAlcanceZona(request);
+  if (!(await ministerioDentroDeAlcance(scope, ministerioId))) {
+    return NextResponse.json({ error: "Ministerio fuera de tu zona o subzona" }, { status: 403 });
   }
 
   try {
@@ -44,6 +49,10 @@ export async function PATCH(
 
   if (!Number.isInteger(ministerioId) || ministerioId <= 0) {
     return NextResponse.json({ error: "ID de ministerio no válido" }, { status: 400 });
+  }
+  const scope = await resolverAlcanceZona(request);
+  if (!(await ministerioDentroDeAlcance(scope, ministerioId))) {
+    return NextResponse.json({ error: "Ministerio fuera de tu zona o subzona" }, { status: 403 });
   }
 
   try {

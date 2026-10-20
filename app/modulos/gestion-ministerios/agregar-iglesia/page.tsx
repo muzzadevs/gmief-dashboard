@@ -5,6 +5,8 @@ import LoaderPersonalizado from "../../../components/LoaderPersonalizado";
 import Toast, { useToast } from "../../../components/Toast";
 import Combobox from "../../../components/ui/Combobox";
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/authStore";
+import { tienePermisoEditarPorZona } from "@/types/auth";
 
 type Zona = { id: number; nombre: string; activo: boolean };
 type Subzona = { id: number; nombre: string; zona_id: number; activo: boolean };
@@ -12,6 +14,9 @@ type Subzona = { id: number; nombre: string; zona_id: number; activo: boolean };
 export default function AgregarIglesia() {
   const router = useRouter();
   const { toast, showSuccess, showError, hideToast } = useToast();
+  const user = useAuthStore((s) => s.user);
+  const isZoneScoped =
+    user !== null && !user.isSuperAdmin && tienePermisoEditarPorZona(user.permisos);
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [subzonas, setSubzonas] = useState<Subzona[]>([]);
   const [form, setForm] = useState({
@@ -34,6 +39,19 @@ export default function AgregarIglesia() {
           const response = await res.json();
           if (response.ok && response.data) {
             setZonas(response.data);
+            if (isZoneScoped && user?.zonaId) {
+              const subzonasRes = await fetch(
+                `/api/subzonas?zonaId=${user.zonaId}`
+              );
+              if (subzonasRes.ok) {
+                setSubzonas(await subzonasRes.json());
+              }
+              setForm((current) => ({
+                ...current,
+                zona_id: String(user.zonaId),
+                subzona_id: user.subzonaId ? String(user.subzonaId) : "",
+              }));
+            }
           } else {
             console.error("Error in zonas response:", response);
           }
@@ -43,7 +61,7 @@ export default function AgregarIglesia() {
       }
     };
     fetchZonas();
-  }, []);
+  }, [isZoneScoped, user?.zonaId, user?.subzonaId]);
 
   const handleZonaChange = async (zonaId: string) => {
     setForm((f) => ({ ...f, zona_id: zonaId, subzona_id: "" }));

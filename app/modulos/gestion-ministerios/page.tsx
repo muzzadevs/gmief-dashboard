@@ -7,6 +7,8 @@ import LoaderPersonalizado from "../../components/LoaderPersonalizado";
 import ModalAgregarZona from "../../components/ModalAgregarZona";
 import ModalEditarZonas from "../../components/ModalEditarZonas";
 import { searchIncludes } from "@/lib/search";
+import { useAuthStore } from "@/store/authStore";
+import { tienePermisoEditarPorZona } from "@/types/auth";
 
 type Zona = { id: number; nombre: string; codigo: string; activo: boolean };
 type ZonaStats = Record<number, { ministerios: number; candidatos: number }>;
@@ -14,6 +16,9 @@ type ZonaStats = Record<number, { ministerios: number; candidatos: number }>;
 export default function GestionMinisteriosHome() {
   const router = useRouter();
   const setZonaSelected = useZonasStore((s) => s.setZonaSelected);
+  const user = useAuthStore((s) => s.user);
+  const isZoneScoped =
+    user !== null && !user.isSuperAdmin && tienePermisoEditarPorZona(user.permisos);
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
@@ -88,18 +93,20 @@ export default function GestionMinisteriosHome() {
               />
             </div>
             <div className="flex flex-row items-center gap-2 w-full sm:w-auto">
-              <button
-                type="button"
-                className="btn-primary bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 flex-1 sm:flex-initial text-xs sm:text-sm"
-                onClick={() => setIsModalAgregarOpen(true)}
-                aria-label="Agregar Zona"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-                <span className="hidden sm:inline">Agregar </span>Zona
-              </button>
-              <button
+              {!isZoneScoped && (
+                <button
+                  type="button"
+                  className="btn-primary bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 flex-1 sm:flex-initial text-xs sm:text-sm"
+                  onClick={() => setIsModalAgregarOpen(true)}
+                  aria-label="Agregar Zona"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                  <span className="hidden sm:inline">Agregar </span>Zona
+                </button>
+              )}
+              {(!isZoneScoped || user?.subzonaId === null) && <button
                 type="button"
                 className="btn-primary bg-amber-500 text-white hover:bg-amber-600 shadow-lg shadow-amber-500/20 flex-1 sm:flex-initial text-xs sm:text-sm"
                 onClick={() => setIsModalEditarOpen(true)}
@@ -109,7 +116,7 @@ export default function GestionMinisteriosHome() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
                 </svg>
                 <span className="hidden sm:inline">Editar </span>Zonas
-              </button>
+              </button>}
             </div>
           </div>
         </div>

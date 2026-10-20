@@ -2,14 +2,19 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cached, invalidateCachePrefix, CACHE_TTL } from "@/lib/cache";
 import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
+import { resolverAlcanceZona } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const rows = await cached("zonas:all", CACHE_TTL.FREQUENT, () =>
       prisma.zona.findMany({ orderBy: { nombre: "asc" } })
     );
+    const scope = await resolverAlcanceZona(request);
 
-    return NextResponse.json({ ok: true, data: rows }, { status: 200 });
+    return NextResponse.json(
+      { ok: true, data: scope ? rows.filter((zona) => zona.id === scope.zonaId) : rows },
+      { status: 200 }
+    );
   } catch (error: unknown) {
     console.error("[GET /api/zonas] Error:", error);
     return NextResponse.json(
@@ -26,6 +31,14 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const scope = await resolverAlcanceZona(request);
+    if (scope) {
+      return NextResponse.json(
+        { ok: false, error: "FORBIDDEN", message: "No puedes crear zonas fuera de tu ámbito" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { nombre, codigo } = body;
 
@@ -124,6 +137,7 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const scope = await resolverAlcanceZona(request);
     const body = await request.json();
     const { zonas } = body;
 
@@ -135,6 +149,18 @@ export async function PUT(request: Request) {
           message: "Se esperaba un array de zonas",
         },
         { status: 400 }
+      );
+    }
+    if (scope && zonas.some((zona: { id?: number }) => Number(zona.id) !== scope.zonaId)) {
+      return NextResponse.json(
+        { ok: false, error: "FORBIDDEN", message: "Solo puedes editar tu zona" },
+        { status: 403 }
+      );
+    }
+    if (scope?.subzonaId) {
+      return NextResponse.json(
+        { ok: false, error: "FORBIDDEN", message: "No puedes editar una zona desde el ámbito de una subzona" },
+        { status: 403 }
       );
     }
 
@@ -341,6 +367,7 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const scope = await resolverAlcanceZona(request);
     const body = await request.json();
     const { id } = body;
 
@@ -348,6 +375,18 @@ export async function DELETE(request: Request) {
       return NextResponse.json(
         { ok: false, error: "MISSING_ID", message: "ID es requerido" },
         { status: 400 }
+      );
+    }
+    if (scope?.subzonaId) {
+      return NextResponse.json(
+        { ok: false, error: "FORBIDDEN", message: "No puedes eliminar una zona desde el ámbito de una subzona" },
+        { status: 403 }
+      );
+    }
+    if (scope && Number(id) !== scope.zonaId) {
+      return NextResponse.json(
+        { ok: false, error: "FORBIDDEN", message: "Solo puedes eliminar tu zona" },
+        { status: 403 }
       );
     }
 

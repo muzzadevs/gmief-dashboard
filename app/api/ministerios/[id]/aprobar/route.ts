@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
+import { ministerioDentroDeAlcance, resolverAlcanceZona } from "@/lib/auth";
 
 // POST: Aprobar un candidato como obrero (transición CANDIDATO → MINISTERIO)
 export async function POST(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
@@ -13,6 +14,10 @@ export async function POST(
   }
 
   const numId = Number(id);
+  const scope = await resolverAlcanceZona(req);
+  if (!(await ministerioDentroDeAlcance(scope, numId))) {
+    return NextResponse.json({ error: "Ministerio fuera de tu zona o subzona" }, { status: 403 });
+  }
 
   // Verificar que existe y es candidato
   const ministerio = await prisma.ministerio.findUnique({

@@ -29,11 +29,21 @@ export interface UserInfo {
   nombre: string;
   apellidos: string | null;
   isSuperAdmin: boolean;
+  zonaId: number | null;
+  subzonaId: number | null;
   permisos: PermisosResueltos;
 }
 
 /** Mapa moduloId → array de claves de permiso que tiene el usuario */
 export type PermisosResueltos = Record<number, string[]>;
+
+export const PERMISO_EDITAR_POR_ZONA = "editarporzona";
+
+export function tienePermisoEditarPorZona(permisos: PermisosResueltos): boolean {
+  return Object.values(permisos).some((claves) =>
+    claves.includes(PERMISO_EDITAR_POR_ZONA)
+  );
+}
 
 // ── Tipos de roles y permisos ──
 

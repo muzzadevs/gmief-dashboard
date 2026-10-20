@@ -24,7 +24,12 @@ export default function SelectMenuZonas() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json: { ok: boolean; data: Zona[] } = await res.json();
         if (!json.ok) throw new Error("Respuesta no OK");
-        if (!ignore) setZonas(json.data);
+        if (!ignore) {
+          setZonas(json.data);
+          if (zonaSelected && !json.data.some((zona) => zona.id === zonaSelected.id)) {
+            setZonaSelected(null);
+          }
+        }
       } catch (e: unknown) {
         if (!ignore && !(e instanceof DOMException && e.name === "AbortError")) setError("No se pudieron cargar las zonas");
       } finally {
@@ -33,7 +38,7 @@ export default function SelectMenuZonas() {
     })();
 
     return () => { ignore = true; ac.abort(); };
-  }, [setZonas]);
+  }, [setZonas, setZonaSelected, zonaSelected]);
 
   const value = zonaSelected ? String(zonaSelected.id) : "";
 

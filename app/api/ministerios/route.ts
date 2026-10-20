@@ -11,15 +11,27 @@ import {
 } from "@/lib/candidatoUtils";
 import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
 import { buscarDniDuplicado } from "@/lib/ministerioDni";
-import { generarCodigoCandidato } from "@/lib/auth";
+import { generarCodigoCandidato, resolverAlcanceZona } from "@/lib/auth";
 
 export async function GET(req: Request) {
+  const scope = await resolverAlcanceZona(req);
   const { searchParams } = new URL(req.url);
   const iglesiaId = searchParams.get("iglesiaId");
   const tipo = searchParams.get("tipo"); // "MINISTERIO", "CANDIDATO", or null for all
 
   if (!iglesiaId) {
     return NextResponse.json({ error: "iglesiaId requerido" }, { status: 400 });
+  }
+  if (scope) {
+    const iglesia = await prisma.iglesia.findFirst({
+      where: {
+        id: Number(iglesiaId),
+        zona_id: scope.zonaId,
+        ...(scope.subzonaId ? { subzona_id: scope.subzonaId } : {}),
+      },
+      select: { id: true },
+    });
+    if (!iglesia) return NextResponse.json([]);
   }
 
   const where: Record<string, unknown> = { iglesia_id: Number(iglesiaId) };
@@ -160,6 +172,7 @@ export async function POST(req: Request) {
 }
 
 async function createMinisterio(req: Request) {
+  const scope = await resolverAlcanceZona(req);
   const data = await req.json();
   const {
     nombre,
@@ -192,6 +205,22 @@ async function createMinisterio(req: Request) {
       { error: `Faltan campos obligatorios: ${faltantes.join(", ")}` },
       { status: 400 }
     );
+  }
+  if (scope) {
+    const iglesia = await prisma.iglesia.findFirst({
+      where: {
+        id: Number(iglesia_id),
+        zona_id: scope.zonaId,
+        ...(scope.subzonaId ? { subzona_id: scope.subzonaId } : {}),
+      },
+      select: { id: true },
+    });
+    if (!iglesia) {
+      return NextResponse.json(
+        { error: "La iglesia está fuera de tu zona o subzona" },
+        { status: 403 }
+      );
+    }
   }
 
   // Validar y encriptar DNI si se proporciona

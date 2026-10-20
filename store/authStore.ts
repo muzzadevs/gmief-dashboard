@@ -98,6 +98,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     const user: UserInfo = JSON.parse(userStr);
     set({ token, user, isAuthenticated: true, isLoading: false });
+    void fetch("/api/auth/me", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const data: { ok: boolean; user?: UserInfo; error?: string } =
+          await response.json();
+        if (!data.ok || !data.user) {
+          throw new Error(data.error || "Respuesta de usuario no válida");
+        }
+        if (get().token !== token) return;
+        localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+        set({ user: data.user });
+      })
+      .catch((error: unknown) => {
+        console.error("No se pudo actualizar el perfil de la sesión:", error);
+      });
     return true;
   },
 

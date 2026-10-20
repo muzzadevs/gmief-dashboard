@@ -40,6 +40,8 @@ export async function GET(req: Request) {
       nombre: "Administrador",
       apellidos: "Sistema",
       isSuperAdmin: true,
+      zonaId: null,
+      subzonaId: null,
       permisos: allPermisos,
     };
     return NextResponse.json({ ok: true, user });
@@ -48,7 +50,14 @@ export async function GET(req: Request) {
   // Ministerio normal
   const ministerio = await prisma.ministerio.findUnique({
     where: { id: payload.ministerioId! },
-    select: { id: true, nombre: true, apellidos: true, username: true, must_change_password: true },
+    select: {
+      id: true,
+      nombre: true,
+      apellidos: true,
+      username: true,
+      must_change_password: true,
+      iglesia: { select: { zona_id: true, subzona_id: true } },
+    },
   });
 
   if (!ministerio) {
@@ -63,6 +72,8 @@ export async function GET(req: Request) {
     nombre: ministerio.nombre,
     apellidos: ministerio.apellidos,
     isSuperAdmin: false,
+    zonaId: ministerio.iglesia.zona_id,
+    subzonaId: ministerio.iglesia.subzona_id,
     permisos,
   };
 
