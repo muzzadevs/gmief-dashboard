@@ -11,13 +11,27 @@ export default function PermisosAdmin() {
   const { toast, showSuccess, showError, hideToast } = useToast();
   const [permisos, setPermisos] = useState<Permiso[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [newPerm, setNewPerm] = useState({ clave: "", nombre: "", descripcion: "" });
   const [creating, setCreating] = useState(false);
   useEffect(() => { restoreSession(); }, [restoreSession]);
   useEffect(() => { if (user && !user.isSuperAdmin) router.replace("/dashboard"); }, [user, router]);
   const fetchPermisos = useCallback(async () => {
-    try { setLoading(true); const r = await fetch("/api/permisos"); const d = await r.json(); if (d.ok) setPermisos(d.data); }
-    catch { showError("Error"); } finally { setLoading(false); }
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const r = await fetch("/api/permisos");
+      const d: { ok: boolean; data?: Permiso[]; error?: string } = await r.json();
+      if (!r.ok || !d.ok) throw new Error(d.error || `Error al cargar permisos (${r.status})`);
+      if (!Array.isArray(d.data)) throw new Error("La respuesta de permisos no es válida");
+      setPermisos(d.data);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Error al cargar permisos";
+      setLoadError(message);
+      showError(message);
+    } finally {
+      setLoading(false);
+    }
   }, [showError]);
   useEffect(() => { fetchPermisos(); }, [fetchPermisos]);
   const handleCreate = async (e: React.FormEvent) => {
@@ -50,7 +64,14 @@ export default function PermisosAdmin() {
         </form>
       </div></div></div>
       <div className="w-full flex justify-center px-3 pb-6"><div className="w-full max-w-4xl">
-        {loading ? <LoaderPersonalizado>Cargando...</LoaderPersonalizado> : (
+        {loading ? <LoaderPersonalizado>Cargando...</LoaderPersonalizado> : loadError ? (
+          <div className="glass-card-solid p-5 text-center">
+            <p className="text-sm text-red-600">{loadError}</p>
+            <button type="button" onClick={fetchPermisos} className="mt-3 text-sm font-medium text-blue-700 hover:text-blue-800">Reintentar</button>
+          </div>
+        ) : permisos.length === 0 ? (
+          <div className="glass-card-solid p-5 text-center text-sm text-slate-500">No hay permisos registrados.</div>
+        ) : (
           <div className="space-y-2">{permisos.map(p => (
             <div key={p.id} className="glass-card-solid p-4 flex items-center justify-between">
               <div>
