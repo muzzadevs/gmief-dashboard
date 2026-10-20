@@ -53,7 +53,7 @@ export default function UsuariosAdmin() {
             <tbody>{filtered.map((u) => (
               <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50/50">
                 <td className="px-4 py-3 font-medium text-slate-800">{u.nombre}{u.apellidos ? ` ${u.apellidos}` : ""}</td>
-                <td className="px-4 py-3"><code className="text-xs bg-slate-100 px-2 py-1 rounded font-mono">{u.username||"—"}</code></td>
+                <td className="px-4 py-3"><code className="text-xs text-slate-700 bg-slate-100 px-2 py-1 rounded font-mono">{u.username||"—"}</code></td>
                 <td className="px-4 py-3"><span className={`text-xs px-2 py-1 rounded-full font-semibold ${u.tipo==="MINISTERIO"?"bg-blue-100 text-blue-700":"bg-amber-100 text-amber-700"}`}>{u.tipo==="MINISTERIO"?"Obrero":"Candidato"}</span></td>
                 <td className="px-4 py-3"><div className="flex flex-wrap gap-1">{u.roles.length>0?u.roles.map((r,i)=><span key={i} className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-medium">{r}</span>):<span className="text-xs text-slate-400">Sin rol</span>}</div></td>
                 <td className="px-4 py-3">{u.must_change_password?<span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">Cambiar pass</span>:u.tiene_password?<span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Activo</span>:<span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full">Sin pass</span>}</td>

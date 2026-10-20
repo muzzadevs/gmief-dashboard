@@ -75,7 +75,7 @@ export default function PermisosAdmin() {
           <div className="space-y-2">{permisos.map(p => (
             <div key={p.id} className="glass-card-solid p-4 flex items-center justify-between">
               <div>
-                <div className="flex items-center gap-2"><code className="text-sm font-mono bg-slate-100 px-2 py-0.5 rounded">{p.clave}</code><span className="font-semibold text-slate-800">{p.nombre}</span>{p.es_sistema && <span className="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded">Sistema</span>}</div>
+                <div className="flex items-center gap-2"><code className="text-sm text-slate-700 font-mono bg-slate-100 px-2 py-0.5 rounded">{p.clave}</code><span className="font-semibold text-slate-800">{p.nombre}</span>{p.es_sistema && <span className="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded">Sistema</span>}</div>
                 {p.descripcion && <p className="text-xs text-slate-500 mt-1">{p.descripcion}</p>}
               </div>
               {!p.es_sistema && <button type="button" onClick={() => handleDelete(p.id)} className="text-xs bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg font-medium">Eliminar</button>}
