@@ -421,7 +421,6 @@ async function createMinisterio(req: Request) {
       if (iglesia) {
         const codigoTemp = generarCodigoCandidato(
           iglesia.zona.codigo,
-          nombre,
           nuevoMinisterio.id
         );
         await tx.ministerio.update({

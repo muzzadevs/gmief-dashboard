@@ -179,7 +179,7 @@ export default function Iglesias({ busqueda = "", canEdit }: Props) {
                   </a>
                 )}
                 {socialLinks.some((link) => link.url) && (
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
                     {socialLinks.map(({ label, url, Icon }) =>
                       url ? (
                         <a
@@ -189,9 +189,10 @@ export default function Iglesias({ busqueda = "", canEdit }: Props) {
                           rel="noopener noreferrer"
                           aria-label={`Abrir ${label} de ${iglesia.nombre}`}
                           title={label}
-                          className="text-slate-500 hover:text-blue-700 transition-colors"
+                          className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-700 transition-colors"
                         >
-                          <Icon className="w-5 h-5" />
+                          <Icon className="w-4 h-4" />
+                          <span>{label}</span>
                         </a>
                       ) : null
                     )}

@@ -163,24 +163,11 @@ export async function ministerioDentroDeAlcance(
 // ── Generar username para candidatos ──
 
 /**
- * Normaliza un nombre para usar como parte de username:
- * mayúsculas, sin acentos, sin caracteres especiales, sin espacios
- */
-export function normalizarNombre(nombre: string): string {
-  return nombre
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // quitar acentos
-    .replace(/[^A-Za-z0-9]/g, "")   // solo alfanuméricos
-    .toUpperCase();
-}
-
-/**
  * Genera el código/username temporal para un candidato.
- * Formato: CODIGOZONA + NOMBRE_NORMALIZADO + ID_EN_BD
+ * Formato: CODIGOZONA + C + ID_EN_BD
  */
-export function generarCodigoCandidato(codigoZona: string, nombre: string, idBdd: number): string {
-  const nombreNorm = normalizarNombre(nombre);
-  return `${codigoZona.toUpperCase()}${nombreNorm}${idBdd}`;
+export function generarCodigoCandidato(codigoZona: string, idBdd: number): string {
+  return `${codigoZona.toUpperCase()}C${idBdd}`;
 }
 
 // ── Cookie helpers ──

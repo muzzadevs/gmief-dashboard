@@ -58,6 +58,25 @@ que todos los registros cifrados con ella se hayan vuelto a cifrar.
 `JWT_SECRET` debe ser una clave aleatoria y mantenerse estable entre reinicios; si
 se cambia, los tokens de sesión emitidos previamente dejan de ser válidos.
 
+### Actualizar códigos de candidatos
+
+El script calcula los nuevos códigos con el formato `CODZONA + C + ID` y se ejecuta
+primero en modo de simulación:
+
+```bash
+npm run migrate:candidate-codes
+```
+
+Revisa el resultado y, si la `DATABASE_URL` apunta a la base de datos deseada, aplica
+la actualización con:
+
+```bash
+npm run migrate:candidate-codes -- --apply
+```
+
+La actualización incluye los nombres de usuario asociados, conserva el historial
+del código y aborta sin modificar datos si detecta colisiones.
+
 ---
 
 ## 📁 Estructura principal

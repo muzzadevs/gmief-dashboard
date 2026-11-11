@@ -11,7 +11,7 @@ import {
 } from "@/lib/candidatoUtils";
 import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
 import { buscarDniDuplicado } from "@/lib/ministerioDni";
-import { resolverAlcanceZona } from "@/lib/auth";
+import { generarCodigoCandidato, resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
 // Obtener un ministerio por id (con cargos y candidato_detalle)
@@ -316,7 +316,9 @@ export async function PUT(
       ? iglesiaDestino
       : null;
 
-    let codigoFinal = codigoSolicitado;
+    let codigoFinal = tipo === "CANDIDATO"
+      ? generarCodigoCandidato(iglesiaDestino.zona.codigo, Number(id))
+      : codigoSolicitado;
     let codigoReasignado = false;
     if (codigoSolicitado) {
       if (
@@ -360,6 +362,23 @@ export async function PUT(
       }
     }
 
+    if (tipo === "CANDIDATO" && codigoFinal) {
+      const codigoExistente = await tx.ministerio.findFirst({
+        where: {
+          OR: [{ codigo: codigoFinal }, { username: codigoFinal }],
+          NOT: { id: Number(id) },
+        },
+        select: { id: true },
+      });
+      if (codigoExistente) {
+        return {
+          error: `El código ${codigoFinal} ya está asignado a otra persona`,
+          codigo: null,
+          codigoReasignado: false,
+        };
+      }
+    }
+
     await tx.ministerio.update({
       where: { id: Number(id) },
       data: {
@@ -370,6 +389,7 @@ export async function PUT(
         nie_encrypted: nieEncrypted,
         iglesia_id,
         codigo: codigoFinal,
+        username: tipo === "CANDIDATO" ? codigoFinal : undefined,
         estado_id,
         tipo: tipo || "MINISTERIO",
         aprob: aprob || null,
