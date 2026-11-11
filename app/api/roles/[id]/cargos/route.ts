@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, COOKIE_NAME } from "@/lib/auth";
+import { compararCargos } from "@/lib/cargos";
 
 function getToken(req: Request): string | null {
   const cookieHeader = req.headers.get("cookie") || "";
@@ -29,7 +30,7 @@ export async function GET(
   const rolId = Number(id);
 
   const [todosCargos, asignados] = await Promise.all([
-    prisma.cargo.findMany({ orderBy: { id: "asc" } }),
+    prisma.cargo.findMany(),
     prisma.rolCargo.findMany({
       where: { rol_id: rolId },
       select: { cargo_id: true },
@@ -41,11 +42,13 @@ export async function GET(
   return NextResponse.json({
     ok: true,
     data: {
-      cargos: todosCargos.map((c) => ({
-        id: c.id,
-        cargo: c.cargo,
-        asignado: asignadoIds.has(c.id),
-      })),
+      cargos: [...todosCargos]
+        .sort((a, b) => compararCargos(a.cargo, b.cargo))
+        .map((c) => ({
+          id: c.id,
+          cargo: c.cargo,
+          asignado: asignadoIds.has(c.id),
+        })),
     },
   });
 }

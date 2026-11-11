@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, COOKIE_NAME } from "@/lib/auth";
+import { compararCargos } from "@/lib/cargos";
 
 function getToken(req: Request): string | null {
   const cookieHeader = req.headers.get("cookie") || "";
@@ -32,7 +33,15 @@ export async function GET(req: Request) {
     orderBy: { id: "asc" },
   });
 
-  return NextResponse.json({ ok: true, data: roles });
+  return NextResponse.json({
+    ok: true,
+    data: roles.map((rol) => ({
+      ...rol,
+      cargos: [...rol.cargos].sort((a, b) =>
+        compararCargos(a.cargo.cargo, b.cargo.cargo)
+      ),
+    })),
+  });
 }
 
 // POST: Crear un nuevo rol

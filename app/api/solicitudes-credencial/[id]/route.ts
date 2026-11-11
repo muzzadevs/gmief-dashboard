@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { decrypt } from "@/lib/encryption";
 import { requireCredencialesPermission } from "@/lib/credencialesPermissions";
+import { compararCargos } from "@/lib/cargos";
 
 // GET: Obtener solicitud con detalle completo de ministerios
 export async function GET(
@@ -87,7 +88,7 @@ export async function GET(
             iglesia_nombre: m.iglesia.nombre,
             zona_nombre: m.iglesia.zona.nombre,
             zona_codigo: m.iglesia.zona.codigo.toUpperCase(),
-            cargos: m.cargos.map((c) => c.cargo.cargo),
+            cargos: m.cargos.map((c) => c.cargo.cargo).sort(compararCargos),
           },
         };
       }),

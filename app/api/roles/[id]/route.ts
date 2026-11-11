@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, COOKIE_NAME } from "@/lib/auth";
+import { compararCargos } from "@/lib/cargos";
 
 function getToken(req: Request): string | null {
   const cookieHeader = req.headers.get("cookie") || "";
@@ -45,7 +46,15 @@ export async function GET(
     return NextResponse.json({ ok: false, error: "Rol no encontrado" }, { status: 404 });
   }
 
-  return NextResponse.json({ ok: true, data: rol });
+  return NextResponse.json({
+    ok: true,
+    data: {
+      ...rol,
+      cargos: [...rol.cargos].sort((a, b) =>
+        compararCargos(a.cargo.cargo, b.cargo.cargo)
+      ),
+    },
+  });
 }
 
 // PUT: Actualizar nombre y descripción del rol

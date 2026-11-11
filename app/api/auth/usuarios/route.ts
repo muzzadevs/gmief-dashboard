@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, COOKIE_NAME } from "@/lib/auth";
+import { compararCargos } from "@/lib/cargos";
 
 function getToken(req: Request): string | null {
   const cookieHeader = req.headers.get("cookie") || "";
@@ -54,7 +55,9 @@ export async function GET(req: Request) {
   }
 
   const result = ministerios.map((m) => {
-    const cargoNames = m.cargos.map((c) => c.cargo.cargo);
+    const cargoNames = m.cargos
+      .map((c) => c.cargo.cargo)
+      .sort(compararCargos);
     const rolesSet = new Set<string>();
     for (const c of m.cargos) {
       const roles = cargoRolMap.get(c.cargo.id) || [];

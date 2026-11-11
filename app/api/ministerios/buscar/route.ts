@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireCredencialesPermission } from "@/lib/credencialesPermissions";
+import { compararCargos } from "@/lib/cargos";
 
 // GET: Buscar ministerios globalmente por nombre, apellidos, alias o código
 export async function GET(req: Request) {
@@ -61,7 +62,7 @@ export async function GET(req: Request) {
       iglesia_nombre: m.iglesia.nombre,
       zona_nombre: m.iglesia.zona.nombre,
       zona_codigo: m.iglesia.zona.codigo.toUpperCase(),
-      cargos: m.cargos.map((c) => c.cargo.cargo),
+      cargos: m.cargos.map((c) => c.cargo.cargo).sort(compararCargos),
     }));
 
     return NextResponse.json({ ok: true, data: result });
