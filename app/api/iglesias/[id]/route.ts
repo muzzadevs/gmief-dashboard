@@ -3,6 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { geocodeIglesia, addressFieldsChanged } from "@/lib/geocode";
 import { resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
+import {
+  IGLESIA_SOCIAL_NETWORKS,
+  isValidIglesiaSocialUrl,
+  normalizeIglesiaSocialUrl,
+} from "@/lib/iglesiaSocialLinks";
 
 export async function GET(
   _request: NextRequest,
@@ -106,8 +111,37 @@ export async function PUT(
       return NextResponse.json({ error: "ID inválido" }, { status: 400 });
     }
 
-    const { nombre, direccion, municipio, provincia, cp, zona_id, subzona_id } =
-      await request.json();
+    const {
+      nombre,
+      direccion,
+      municipio,
+      provincia,
+      cp,
+      zona_id,
+      subzona_id,
+      facebook_url,
+      youtube_url,
+      tiktok_url,
+      instagram_url,
+    } = await request.json();
+    const socialUrls = {
+      facebook: facebook_url,
+      youtube: youtube_url,
+      tiktok: tiktok_url,
+      instagram: instagram_url,
+    };
+
+    for (const network of IGLESIA_SOCIAL_NETWORKS) {
+      if (
+        socialUrls[network] !== undefined &&
+        !isValidIglesiaSocialUrl(socialUrls[network], network)
+      ) {
+        return NextResponse.json(
+          { error: `La URL de ${network} no es válida` },
+          { status: 400 }
+        );
+      }
+    }
 
     if (!nombre || !zona_id) {
       return NextResponse.json(
@@ -197,6 +231,18 @@ export async function PUT(
         subzona_id: subzona_id || null,
         latitud,
         longitud,
+        ...(facebook_url !== undefined && {
+          facebook_url: normalizeIglesiaSocialUrl(facebook_url),
+        }),
+        ...(youtube_url !== undefined && {
+          youtube_url: normalizeIglesiaSocialUrl(youtube_url),
+        }),
+        ...(tiktok_url !== undefined && {
+          tiktok_url: normalizeIglesiaSocialUrl(tiktok_url),
+        }),
+        ...(instagram_url !== undefined && {
+          instagram_url: normalizeIglesiaSocialUrl(instagram_url),
+        }),
       },
     });
 

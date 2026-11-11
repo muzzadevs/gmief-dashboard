@@ -8,6 +8,17 @@ import ModalConfirmarEliminar from "../../../../components/ModalConfirmarElimina
 import { useRouter } from "next/navigation";
 import GestionMinisteriosSinPermisoEdicion from "../../../../components/GestionMinisteriosSinPermisoEdicion";
 import { useGestionMinisteriosPermissions } from "@/app/hooks/useGestionMinisteriosPermissions";
+import {
+  IGLESIA_SOCIAL_NETWORKS,
+  isValidIglesiaSocialUrl,
+  type IglesiaSocialNetwork,
+} from "@/lib/iglesiaSocialLinks";
+import {
+  FaFacebookF,
+  FaInstagram,
+  FaYoutube,
+} from "react-icons/fa";
+import { FaTiktok } from "react-icons/fa6";
 
 type Zona = { id: number; nombre: string; activo: boolean };
 type Subzona = { id: number; nombre: string; zona_id: number; activo: boolean };
@@ -20,6 +31,10 @@ type Iglesia = {
   cp: string;
   zona_id: number;
   subzona_id: number | null;
+  facebook_url: string | null;
+  youtube_url: string | null;
+  tiktok_url: string | null;
+  instagram_url: string | null;
 };
 
 interface Props {
@@ -44,6 +59,10 @@ export default function EditarIglesia({ params }: Props) {
     cp: "",
     zona_id: "",
     subzona_id: "",
+    facebook_url: "",
+    youtube_url: "",
+    tiktok_url: "",
+    instagram_url: "",
   });
   const [loading, setLoading] = useState(false);
   const [loadingSubzonas, setLoadingSubzonas] = useState(false);
@@ -97,6 +116,10 @@ export default function EditarIglesia({ params }: Props) {
               cp: cleanValue(iglesiadata.cp),
               zona_id: String(iglesiadata.zona_id),
               subzona_id: iglesiadata.subzona_id ? String(iglesiadata.subzona_id) : "",
+              facebook_url: cleanValue(iglesiadata.facebook_url),
+              youtube_url: cleanValue(iglesiadata.youtube_url),
+              tiktok_url: cleanValue(iglesiadata.tiktok_url),
+              instagram_url: cleanValue(iglesiadata.instagram_url),
             });
           }
         }
@@ -189,6 +212,15 @@ export default function EditarIglesia({ params }: Props) {
       return;
     }
 
+    const invalidNetwork = IGLESIA_SOCIAL_NETWORKS.find(
+      (network) =>
+        !isValidIglesiaSocialUrl(form[`${network}_url`], network)
+    );
+    if (invalidNetwork) {
+      showError(`Introduce una URL válida de ${invalidNetwork}`);
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch(`/api/iglesias/${id}`, {
@@ -202,6 +234,10 @@ export default function EditarIglesia({ params }: Props) {
           cp: form.cp ? parseInt(form.cp, 10) : null,
           zona_id: parseInt(form.zona_id, 10),
           subzona_id: form.subzona_id ? parseInt(form.subzona_id, 10) : null,
+          facebook_url: form.facebook_url.trim() || null,
+          youtube_url: form.youtube_url.trim() || null,
+          tiktok_url: form.tiktok_url.trim() || null,
+          instagram_url: form.instagram_url.trim() || null,
         }),
       });
 
@@ -241,6 +277,19 @@ export default function EditarIglesia({ params }: Props) {
     value: String(subzona.id),
     label: subzona.nombre,
   }));
+
+  const socialNetworkLabels: Record<IglesiaSocialNetwork, string> = {
+    facebook: "Facebook",
+    youtube: "YouTube",
+    tiktok: "TikTok",
+    instagram: "Instagram",
+  };
+  const socialNetworkIcons = {
+    facebook: FaFacebookF,
+    youtube: FaYoutube,
+    tiktok: FaTiktok,
+    instagram: FaInstagram,
+  };
 
   return (
     <>
@@ -397,6 +446,46 @@ export default function EditarIglesia({ params }: Props) {
                 />
               </div>
             </div>
+
+            <fieldset className="flex flex-col gap-3">
+              <legend className="font-medium text-slate-700 text-sm">
+                Redes sociales oficiales
+              </legend>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {IGLESIA_SOCIAL_NETWORKS.map((network) => {
+                  const Icon = socialNetworkIcons[network];
+                  const label = socialNetworkLabels[network];
+                  const field = `${network}_url` as const;
+                  return (
+                    <div key={network} className="flex flex-col gap-1.5">
+                      <label
+                        htmlFor={field}
+                        className="font-medium text-slate-700 text-sm"
+                      >
+                        {label}
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <Icon
+                          aria-hidden="true"
+                          className="w-5 h-5 flex-shrink-0 text-slate-600"
+                        />
+                        <input
+                          id={field}
+                          name={field}
+                          type="url"
+                          maxLength={2048}
+                          value={form[field]}
+                          onChange={handleChange}
+                          className="input-glass w-full"
+                          autoComplete="url"
+                          placeholder={`https://${network}.com/...`}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </fieldset>
 
             <div className="flex flex-col sm:flex-row gap-3 mt-2">
               <button

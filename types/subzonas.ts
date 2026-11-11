@@ -14,5 +14,9 @@ export type Iglesia = {
   zona_id: number;
   subzona_id: number | null;
   cp: number | null;
+  facebook_url: string | null;
+  youtube_url: string | null;
+  tiktok_url: string | null;
+  instagram_url: string | null;
   activo: boolean;
 };

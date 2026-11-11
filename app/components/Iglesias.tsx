@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from "react";
 import LoaderPersonalizado from "./LoaderPersonalizado";
-import { FaUsers, FaEdit } from "react-icons/fa";
+import {
+  FaUsers,
+  FaEdit,
+  FaFacebookF,
+  FaInstagram,
+  FaYoutube,
+} from "react-icons/fa";
+import { FaTiktok } from "react-icons/fa6";
 import { useRouter } from "next/navigation";
 import type { Iglesia } from "@/types/subzonas";
 import { useZonasStore } from "@/store/zonasStore";
@@ -101,6 +108,12 @@ export default function Iglesias({ busqueda = "", canEdit }: Props) {
         const canEditIglesia = canEditInZone
           ? zoneId === iglesia.zona_id
           : canEdit;
+        const socialLinks = [
+          { label: "Facebook", url: iglesia.facebook_url, Icon: FaFacebookF },
+          { label: "YouTube", url: iglesia.youtube_url, Icon: FaYoutube },
+          { label: "TikTok", url: iglesia.tiktok_url, Icon: FaTiktok },
+          { label: "Instagram", url: iglesia.instagram_url, Icon: FaInstagram },
+        ];
 
         return (
           <div
@@ -164,6 +177,25 @@ export default function Iglesias({ busqueda = "", canEdit }: Props) {
                     </svg>
                     {direccion}
                   </a>
+                )}
+                {socialLinks.some((link) => link.url) && (
+                  <div className="flex items-center gap-2 mt-2">
+                    {socialLinks.map(({ label, url, Icon }) =>
+                      url ? (
+                        <a
+                          key={label}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`Abrir ${label} de ${iglesia.nombre}`}
+                          title={label}
+                          className="text-slate-500 hover:text-blue-700 transition-colors"
+                        >
+                          <Icon className="w-5 h-5" />
+                        </a>
+                      ) : null
+                    )}
+                  </div>
                 )}
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
