@@ -14,6 +14,7 @@ import { useZonasStore } from "@/store/zonasStore";
 import {
   calcularFase,
   calcularFechasCandidato,
+  formatearFechaCandidato,
   type FaseFechaCandidato,
 } from "@/lib/candidatoUtils";
 
@@ -862,7 +863,7 @@ export default function EditarMinisterio() {
                       <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
                         <span className="font-semibold text-slate-800">{cambio.campo}</span>
                         <time className="text-xs text-slate-500">
-                          Fecha: {new Date(`${cambio.fecha.slice(0, 10)}T12:00:00`).toLocaleDateString("es-ES")}
+                          Fecha: {formatearFechaCandidato(cambio.fecha.slice(0, 10))}
                         </time>
                       </div>
                       <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">

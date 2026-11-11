@@ -20,6 +20,12 @@ export type FaseFechaCandidato = (typeof FASES_CANDIDATO)[number];
 const MESES_HASTA_LOCAL = 6;
 const MESES_HASTA_NACIONAL = 18;
 const MESES_NACIONAL_A_OBRERO = 60;
+const FORMATO_FECHA_CANDIDATO = new Intl.DateTimeFormat("es-ES", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  timeZone: "UTC",
+});
 const DESPLAZAMIENTOS_MESES: Record<
   FaseFechaCandidato,
   { inicio: number; local: number; nacional: number }
@@ -100,6 +106,13 @@ export function calcularFechaAptoObrero(fechaInicio: string | Date): string {
 
 export function obtenerFechaHoy(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+export function formatearFechaCandidato(fecha: string | Date): string {
+  const fechaValida = fechaUTC(fecha);
+  return FORMATO_FECHA_CANDIDATO.format(
+    new Date(`${fechaValida}T00:00:00.000Z`)
+  );
 }
 
 export function calcularFechasCandidato(

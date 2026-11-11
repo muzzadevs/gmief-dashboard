@@ -4,6 +4,7 @@ import {
   calcularFechaAptoObrero,
   calcularFechasCandidato,
   calcularFase,
+  formatearFechaCandidato,
   FASES_CANDIDATO,
   type FaseFechaCandidato,
   type FaseCandidato,
@@ -118,7 +119,7 @@ export default function CandidatoFechas({
                 <p className="font-medium">{etapa.etiqueta}</p>
                 <p>
                   {fecha
-                    ? new Date(`${fecha}T12:00:00`).toLocaleDateString("es-ES")
+                    ? formatearFechaCandidato(fecha)
                     : "—"}
                 </p>
               </div>
