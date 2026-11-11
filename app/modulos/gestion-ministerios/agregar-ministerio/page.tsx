@@ -118,7 +118,7 @@ export default function AgregarMinisterio() {
 
   const [candidatoForm, setCandidatoForm] = useState({
     fase_referencia: "ENSAYISTA" as FaseFechaCandidato,
-    fecha_referencia: new Date().toISOString().split("T")[0],
+    fecha_referencia: "",
     notas: "",
   });
 
@@ -533,6 +533,11 @@ export default function AgregarMinisterio() {
             <h2 className="text-2xl font-bold text-slate-800 tracking-tight text-center sm:text-left flex-1">
               {activeTab === "MINISTERIO" ? "Agregar Ministerio" : "Agregar Candidato"}
             </h2>
+            {activeTab === "CANDIDATO" && (
+              <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider">
+                Candidato
+              </span>
+            )}
             <button
               type="button"
               className="btn-primary bg-slate-800 text-white hover:bg-slate-900 shadow-lg shadow-slate-800/20"
@@ -687,6 +692,19 @@ export default function AgregarMinisterio() {
               </div>
             </div>
 
+            {activeTab === "CANDIDATO" && (
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="telefono" className="font-medium text-slate-700 text-sm">Teléfono</label>
+                  <input id="telefono" name="telefono" value={form.telefono} onChange={handleChange} inputMode="numeric" pattern="[0-9]*" className="input-glass w-full" autoComplete="off" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="email" className="font-medium text-slate-700 text-sm">Email</label>
+                  <input id="email" name="email" value={form.email} onChange={handleChange} type="email" className="input-glass w-full" autoComplete="off" />
+                </div>
+              </div>
+            )}
+
             {/* Sección condicional según tab */}
             {activeTab === "MINISTERIO" ? (
               <>
@@ -741,17 +759,18 @@ export default function AgregarMinisterio() {
               </>
             )}
 
-            {/* Teléfono, Email */}
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="telefono" className="font-medium text-slate-700 text-sm">Teléfono</label>
-                <input id="telefono" name="telefono" value={form.telefono} onChange={handleChange} inputMode="numeric" pattern="[0-9]*" className="input-glass w-full" autoComplete="off" />
+            {activeTab === "MINISTERIO" && (
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="telefono" className="font-medium text-slate-700 text-sm">Teléfono</label>
+                  <input id="telefono" name="telefono" value={form.telefono} onChange={handleChange} inputMode="numeric" pattern="[0-9]*" className="input-glass w-full" autoComplete="off" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="email" className="font-medium text-slate-700 text-sm">Email</label>
+                  <input id="email" name="email" value={form.email} onChange={handleChange} type="email" className="input-glass w-full" autoComplete="off" />
+                </div>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="email" className="font-medium text-slate-700 text-sm">Email</label>
-                <input id="email" name="email" value={form.email} onChange={handleChange} type="email" className="input-glass w-full" autoComplete="off" />
-              </div>
-            </div>
+            )}
 
             {/* Cargos */}
             {activeTab === "MINISTERIO" && filteredCargos.length > 0 && (

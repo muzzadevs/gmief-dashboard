@@ -14,7 +14,6 @@ import { useZonasStore } from "@/store/zonasStore";
 import {
   calcularFase,
   calcularFechasCandidato,
-  formatDiasRestantes,
   type FaseFechaCandidato,
 } from "@/lib/candidatoUtils";
 
@@ -599,7 +598,6 @@ export default function EditarMinisterio() {
   }));
 
   const isCandidato = form.tipo === "CANDIDATO";
-  const faseInfo = isCandidato && form.fecha_inicio ? calcularFase(form.fecha_inicio) : null;
   const filteredCargos = isCandidato ? cargos.filter((c) => c.id !== 4) : cargos;
   const hasPastorCargo = form.cargos.includes(PASTOR_CARGO_ID);
 
@@ -633,21 +631,6 @@ export default function EditarMinisterio() {
               </button>
             </div>
           </div>
-
-          {isCandidato && faseInfo && (
-            <div className="mb-6 p-4 rounded-xl border border-blue-200 bg-blue-50/50">
-              <div className="flex items-center justify-between mb-2">
-                <span className={`text-sm font-bold ${faseInfo.textColor} flex items-center gap-2`}>
-                  {faseInfo.fase === "ENSAYISTA" && "🟡"}{faseInfo.fase === "CANDIDATO_LOCAL" && "🔵"}{faseInfo.fase === "CANDIDATO_NACIONAL" && "🟣"}{faseInfo.fase === "APTO_OBRERO" && "🟢"}{faseInfo.label}
-                </span>
-                <span className="text-xs text-slate-500">{faseInfo.fase === "APTO_OBRERO" ? "✅ Completado - Apto para ser aprobado como obrero" : `Plazo para la siguiente fase: ${formatDiasRestantes(faseInfo.diasRestantes)}`}</span>
-              </div>
-              <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
-                <div className={`h-2.5 rounded-full transition-all duration-500 ${faseInfo.fase === "ENSAYISTA" ? "bg-amber-500" : faseInfo.fase === "CANDIDATO_LOCAL" ? "bg-blue-500" : faseInfo.fase === "CANDIDATO_NACIONAL" ? "bg-purple-500" : "bg-emerald-500"}`} style={{ width: `${Math.round(faseInfo.progreso)}%` }} />
-              </div>
-              {form.fecha_candidato_nacional && (<p className="text-[10px] text-purple-600 mt-1.5 font-medium">📅 Candidato Nacional desde: {new Date(form.fecha_candidato_nacional).toLocaleDateString("es-ES")}</p>)}
-            </div>
-          )}
 
           <form className="flex flex-col gap-5 text-base" onSubmit={handleSubmit} noValidate>
             <div className="flex justify-center">
