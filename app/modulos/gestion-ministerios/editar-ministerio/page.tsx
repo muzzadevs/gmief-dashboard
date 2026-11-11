@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import LoaderPersonalizado from "../../../components/LoaderPersonalizado";
 import Combobox from "../../../components/ui/Combobox";
+import DatePickerES from "@/components/ui/DatePickerES";
 import Toast, { useToast } from "../../../components/Toast";
 import GestionMinisteriosSinPermisoEdicion from "../../../components/GestionMinisteriosSinPermisoEdicion";
 import { useGestionMinisteriosPermissions } from "@/app/hooks/useGestionMinisteriosPermissions";
@@ -14,7 +15,7 @@ import { useZonasStore } from "@/store/zonasStore";
 import {
   calcularFase,
   calcularFechasCandidato,
-  formatearFechaCandidato,
+  formatearFechaES,
   type FaseFechaCandidato,
 } from "@/lib/candidatoUtils";
 
@@ -713,7 +714,12 @@ export default function EditarMinisterio() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="fecha_nacimiento" className="font-medium text-slate-700 text-sm">Fecha de nacimiento</label>
-                <input id="fecha_nacimiento" name="fecha_nacimiento" type="date" value={form.fecha_nacimiento} onChange={handleChange} className="input-glass w-full" />
+                <DatePickerES
+                  id="fecha_nacimiento"
+                  name="fecha_nacimiento"
+                  value={form.fecha_nacimiento}
+                  onChange={(fecha) => setForm((f) => f && ({ ...f, fecha_nacimiento: fecha }))}
+                />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="direccion_particular" className="font-medium text-slate-700 text-sm">Dirección particular</label>
@@ -863,7 +869,7 @@ export default function EditarMinisterio() {
                       <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
                         <span className="font-semibold text-slate-800">{cambio.campo}</span>
                         <time className="text-xs text-slate-500">
-                          Fecha: {formatearFechaCandidato(cambio.fecha.slice(0, 10))}
+                          Fecha: {formatearFechaES(cambio.fecha.slice(0, 10))}
                         </time>
                       </div>
                       <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
@@ -877,8 +883,8 @@ export default function EditarMinisterio() {
                       >
                         <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                           Fecha del evento
-                          <input
-                            type="date"
+                          <DatePickerES
+                            id={`fecha-evento-${cambio.id}`}
                             name="fecha"
                             defaultValue={cambio.fecha.slice(0, 10)}
                             required

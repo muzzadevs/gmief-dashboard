@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, ChangeEvent, FormEvent } from "reac
 import LoaderPersonalizado from "../../../components/LoaderPersonalizado";
 import Toast, { useToast } from "../../../components/Toast";
 import Combobox from "../../../components/ui/Combobox";
+import DatePickerES from "@/components/ui/DatePickerES";
 import ImageUpload from "../../../components/ImageUpload";
 import CandidatoFechas from "@/components/CandidatoFechas";
 import { useRouter } from "next/navigation";
@@ -684,7 +685,12 @@ export default function AgregarMinisterio() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="fecha_nacimiento" className="font-medium text-slate-700 text-sm">Fecha de nacimiento</label>
-                <input id="fecha_nacimiento" name="fecha_nacimiento" type="date" value={form.fecha_nacimiento} onChange={handleChange} className="input-glass w-full" />
+                <DatePickerES
+                  id="fecha_nacimiento"
+                  name="fecha_nacimiento"
+                  value={form.fecha_nacimiento}
+                  onChange={(fecha) => setForm((f) => ({ ...f, fecha_nacimiento: fecha }))}
+                />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="direccion_particular" className="font-medium text-slate-700 text-sm">Dirección particular</label>

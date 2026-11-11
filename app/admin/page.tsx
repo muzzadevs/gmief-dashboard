@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAdminStore } from "@/store/adminStore";
 import Toast, { useToast } from "../components/Toast";
 import Combobox from "../components/ui/Combobox";
+import DatePickerES from "@/components/ui/DatePickerES";
 
 // Types
 interface ColumnDef {
@@ -403,10 +404,9 @@ export default function AdminPage() {
 
       case "DateTime":
         return (
-          <input
-            type="date"
+          <DatePickerES
             value={value === null || value === undefined ? "" : String(value).split("T")[0]}
-            onChange={(e) => onChange(e.target.value || null)}
+            onChange={(date) => onChange(date || null)}
             className={baseClass}
           />
         );

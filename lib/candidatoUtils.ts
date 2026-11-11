@@ -108,7 +108,7 @@ export function obtenerFechaHoy(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function formatearFechaCandidato(fecha: string | Date): string {
+export function formatearFechaES(fecha: string | Date): string {
   const fechaValida = fechaUTC(fecha);
   return FORMATO_FECHA_CANDIDATO.format(
     new Date(`${fechaValida}T00:00:00.000Z`)

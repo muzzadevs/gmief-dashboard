@@ -4,11 +4,12 @@ import {
   calcularFechaAptoObrero,
   calcularFechasCandidato,
   calcularFase,
-  formatearFechaCandidato,
+  formatearFechaES,
   FASES_CANDIDATO,
   type FaseFechaCandidato,
   type FaseCandidato,
 } from "@/lib/candidatoUtils";
+import DatePickerES from "@/components/ui/DatePickerES";
 
 const ETIQUETAS: Record<FaseFechaCandidato, string> = {
   ENSAYISTA: "Ensayista",
@@ -78,12 +79,12 @@ export default function CandidatoFechas({
           <label htmlFor="fecha_referencia" className="font-medium text-slate-700 text-sm">
             Inicio de {ETIQUETAS[faseReferencia]} <span className="text-red-500">*</span>
           </label>
-          <input
+          <DatePickerES
             id="fecha_referencia"
-            type="date"
             value={fechaReferencia}
-            onChange={(event) => onFechaChange(event.target.value)}
+            onChange={onFechaChange}
             className="input-glass w-full"
+            required
           />
         </div>
       </div>
@@ -119,7 +120,7 @@ export default function CandidatoFechas({
                 <p className="font-medium">{etapa.etiqueta}</p>
                 <p>
                   {fecha
-                    ? formatearFechaCandidato(fecha)
+                    ? formatearFechaES(fecha)
                     : "—"}
                 </p>
               </div>
