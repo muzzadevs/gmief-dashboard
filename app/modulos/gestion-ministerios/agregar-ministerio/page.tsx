@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, ChangeEvent, FormEvent } from "react";
+import React, { useEffect, useRef, useState, ChangeEvent, FormEvent } from "react";
 import LoaderPersonalizado from "../../../components/LoaderPersonalizado";
 import Toast, { useToast } from "../../../components/Toast";
 import Combobox from "../../../components/ui/Combobox";
@@ -71,6 +71,7 @@ function validarNIEFrontend(nie: string): { valid: boolean; error?: string } {
 
 export default function AgregarMinisterio() {
   const router = useRouter();
+  const submitLock = useRef(false);
   const { ready, canEdit, canEditInZone, zoneId } = useGestionMinisteriosPermissions();
   const iglesiaSelected = useZonasStore((s) => s.iglesiaSelected);
   const { toast, showSuccess, showError, hideToast } = useToast();
@@ -352,6 +353,8 @@ export default function AgregarMinisterio() {
       return;
     }
 
+    if (submitLock.current) return;
+    submitLock.current = true;
     setLoading(true);
     try {
       const iglesiaId = parseInt(form.iglesia_id, 10);
@@ -459,6 +462,7 @@ export default function AgregarMinisterio() {
         router.push("/modulos/gestion-ministerios/ministerios");
       }, 1500);
     } catch (err) {
+      submitLock.current = false;
       setLoading(false);
       showError(err instanceof Error ? err.message : `No se pudo crear el ${activeTab === "MINISTERIO" ? "ministerio" : "candidato"}`);
     }

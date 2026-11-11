@@ -14,6 +14,31 @@ import { buscarDniDuplicado } from "@/lib/ministerioDni";
 import { generarCodigoCandidato, resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 
+function esConflictoUnico(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "P2002"
+  );
+}
+
+async function reintentarConflictoUnico<T>(
+  operation: () => Promise<T>,
+  reintentos: number
+): Promise<T> {
+  let ultimoError: unknown;
+  for (let intento = 0; intento <= reintentos; intento++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!esConflictoUnico(error)) throw error;
+      ultimoError = error;
+    }
+  }
+  throw ultimoError;
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const iglesiaId = searchParams.get("iglesiaId");
@@ -304,6 +329,7 @@ async function createMinisterio(req: Request) {
   }
 
   let codigo: string | null = null;
+  let codigoZona = "";
 
   // Solo generar código para ministerios, no para candidatos
   if (tipo === "MINISTERIO") {
@@ -324,7 +350,7 @@ async function createMinisterio(req: Request) {
       );
     }
 
-    const codigoZona = iglesia.zona.codigo.toUpperCase();
+    codigoZona = iglesia.zona.codigo.toUpperCase();
 
     if (codigo_manual) {
       // Código manual: validar formato y unicidad
@@ -355,35 +381,26 @@ async function createMinisterio(req: Request) {
           { status: 409 }
         );
       }
-    } else {
-      // Auto-generar el código basado en la zona de la iglesia
-      const ministeriosConCodigo = await prisma.ministerio.findMany({
-        where: {
-          codigo: {
-            startsWith: codigoZona,
-          },
-        },
-        select: { codigo: true },
-        orderBy: { codigo: "desc" },
-      });
-
-      codigo = generarCodigoSiguiente(
-        codigoZona,
-        ministeriosConCodigo.map((ministerio) => ministerio.codigo)
-      );
-      if (!codigo) {
-        return NextResponse.json(
-          { error: "Se ha alcanzado el límite máximo de códigos para esta zona (9999)" },
-          { status: 409 }
-        );
-      }
     }
   }
 
   const fechasAlcanzadas = fechasCandidato
     ? calcularFechasCandidatoAlcanzadas(fechasCandidato.fecha_inicio)
     : null;
-  const ministerio = await prisma.$transaction(async (tx) => {
+  const codigoAutomatico = tipo === "MINISTERIO" && !codigo_manual;
+  const crearTransaccion = () => prisma.$transaction(async (tx) => {
+    if (codigoAutomatico) {
+      const ministeriosConCodigo = await tx.ministerio.findMany({
+        where: { codigo: { startsWith: codigoZona } },
+        select: { codigo: true },
+      });
+      codigo = generarCodigoSiguiente(
+        codigoZona,
+        ministeriosConCodigo.map((ministerio) => ministerio.codigo)
+      );
+      if (!codigo) return null;
+    }
+
     const nuevoMinisterio = await tx.ministerio.create({
       data: {
         nombre,
@@ -448,6 +465,30 @@ async function createMinisterio(req: Request) {
 
     return nuevoMinisterio;
   });
+  let ministerio: { id: number; codigo: string | null } | null;
+  try {
+    ministerio = await reintentarConflictoUnico(
+      crearTransaccion,
+      codigoAutomatico ? 5 : 0
+    );
+  } catch (error) {
+    if (!esConflictoUnico(error)) throw error;
+    return NextResponse.json(
+      {
+        error: codigoAutomatico
+          ? "No se pudo reservar un código automáticamente por concurrencia. Vuelve a intentarlo."
+          : `El código ${codigo} ya está asignado a otra persona`,
+      },
+      { status: 409 }
+    );
+  }
+
+  if (!ministerio) {
+    return NextResponse.json(
+      { error: "Se ha alcanzado el límite máximo de códigos para esta zona (9999)" },
+      { status: 409 }
+    );
+  }
 
   return NextResponse.json({ id: ministerio.id, codigo: ministerio.codigo });
 }

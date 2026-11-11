@@ -9,10 +9,18 @@ import {
   obtenerFechaHoy,
   type FaseFechaCandidato,
 } from "@/lib/candidatoUtils";
-import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
 import { buscarDniDuplicado } from "@/lib/ministerioDni";
 import { generarCodigoCandidato, resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
+
+function esConflictoUnico(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "P2002"
+  );
+}
 
 // Obtener un ministerio por id (con cargos y candidato_detalle)
 export async function GET(
@@ -290,7 +298,7 @@ export async function PUT(
   }
 
   const codigoSolicitado = tipo === "MINISTERIO" ? codigo : null;
-  const resultado = await prisma.$transaction(async (tx) => {
+  const transaccion = prisma.$transaction(async (tx) => {
     const ministerioActual = await tx.ministerio.findUnique({
       where: { id: Number(id) },
       select: {
@@ -323,10 +331,9 @@ export async function PUT(
       ? iglesiaDestino
       : null;
 
-    let codigoFinal = tipo === "CANDIDATO"
+    const codigoFinal = tipo === "CANDIDATO"
       ? generarCodigoCandidato(iglesiaDestino.zona.codigo, Number(id))
       : codigoSolicitado;
-    let codigoReasignado = false;
     if (codigoSolicitado) {
       if (
         codigoSolicitado !== ministerioActual.codigo &&
@@ -335,7 +342,6 @@ export async function PUT(
         return {
           error: "El número incremental del código debe empezar en 0001",
           codigo: null,
-          codigoReasignado: false,
         };
       }
 
@@ -348,24 +354,10 @@ export async function PUT(
       });
 
       if (codigoExistente) {
-        const codigoZona = iglesiaDestino.zona.codigo.toUpperCase();
-        const codigosZona = await tx.ministerio.findMany({
-          where: { codigo: { startsWith: codigoZona } },
-          select: { codigo: true },
-        });
-        codigoFinal = generarCodigoSiguiente(
-          codigoZona,
-          codigosZona.map((ministerio) => ministerio.codigo)
-        );
-
-        if (!codigoFinal) {
-          return {
-            error: `Se ha alcanzado el límite máximo de códigos para la zona ${codigoZona} (9999)`,
-            codigo: null,
-            codigoReasignado: false,
-          };
-        }
-        codigoReasignado = true;
+        return {
+          error: `El código ${codigoSolicitado} ya está asignado a otra persona`,
+          codigo: null,
+        };
       }
     }
 
@@ -381,7 +373,6 @@ export async function PUT(
         return {
           error: `El código ${codigoFinal} ya está asignado a otra persona`,
           codigo: null,
-          codigoReasignado: false,
         };
       }
     }
@@ -459,8 +450,18 @@ export async function PUT(
       });
     }
 
-    return { error: null, codigo: codigoFinal, codigoReasignado };
+    return { error: null, codigo: codigoFinal };
   });
+  let resultado;
+  try {
+    resultado = await transaccion;
+  } catch (error) {
+    if (!esConflictoUnico(error)) throw error;
+    return NextResponse.json(
+      { error: `El código ${codigoSolicitado} ya está asignado a otra persona` },
+      { status: 409 }
+    );
+  }
 
   if (resultado.error) {
     return NextResponse.json({ error: resultado.error }, { status: 409 });
@@ -469,7 +470,7 @@ export async function PUT(
   return NextResponse.json({
     ok: true,
     codigo: resultado.codigo,
-    codigo_reasignado: resultado.codigoReasignado,
+    codigo_reasignado: false,
   });
 }
 
