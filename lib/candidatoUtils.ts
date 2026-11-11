@@ -93,6 +93,11 @@ function obtenerFechasEtapas(fechaInicio: string): {
   };
 }
 
+export function calcularFechaAptoObrero(fechaInicio: string | Date): string {
+  const fechas = calcularFechasCandidato(fechaInicio, "ENSAYISTA");
+  return sumarMeses(fechas.fecha_candidato_nacional, MESES_NACIONAL_A_OBRERO);
+}
+
 export function obtenerFechaHoy(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -123,43 +128,46 @@ export function calcularFechasCandidatoAlcanzadas(
   };
 }
 
-export function calcularFase(fechaInicio: string | Date): FaseInfo {
+export function calcularFase(
+  fechaInicio: string | Date,
+  hoy = obtenerFechaHoy()
+): FaseInfo {
   const inicio = fechaUTC(fechaInicio);
-  const hoy = obtenerFechaHoy();
+  const fechaHoy = fechaUTC(hoy);
   const fechas = obtenerFechasEtapas(inicio);
 
-  if (hoy < fechas.fechaLocal) {
+  if (fechaHoy < fechas.fechaLocal) {
     const duracionDias = diferenciaDias(fechas.fechaInicio, fechas.fechaLocal);
-    const diasTranscurridos = diferenciaDias(fechas.fechaInicio, hoy);
+    const diasTranscurridos = diferenciaDias(fechas.fechaInicio, fechaHoy);
     return {
       fase: "ENSAYISTA",
       label: "Ensayista",
       progreso: Math.min(100, Math.max(0, (diasTranscurridos / duracionDias) * 100)),
-      diasRestantes: diferenciaDias(hoy, fechas.fechaLocal),
+      diasRestantes: diferenciaDias(fechaHoy, fechas.fechaLocal),
       color: "amber",
       bgColor: "bg-amber-50",
       textColor: "text-amber-700",
     };
-  } else if (hoy < fechas.fechaNacional) {
+  } else if (fechaHoy < fechas.fechaNacional) {
     const duracionDias = diferenciaDias(fechas.fechaLocal, fechas.fechaNacional);
-    const diasTranscurridos = diferenciaDias(fechas.fechaLocal, hoy);
+    const diasTranscurridos = diferenciaDias(fechas.fechaLocal, fechaHoy);
     return {
       fase: "CANDIDATO_LOCAL",
       label: "Candidato Local",
       progreso: Math.min(100, Math.max(0, (diasTranscurridos / duracionDias) * 100)),
-      diasRestantes: diferenciaDias(hoy, fechas.fechaNacional),
+      diasRestantes: diferenciaDias(fechaHoy, fechas.fechaNacional),
       color: "blue",
       bgColor: "bg-blue-50",
       textColor: "text-blue-700",
     };
-  } else if (hoy < fechas.fechaAptoObrero) {
+  } else if (fechaHoy < fechas.fechaAptoObrero) {
     const duracionDias = diferenciaDias(fechas.fechaNacional, fechas.fechaAptoObrero);
-    const diasTranscurridos = diferenciaDias(fechas.fechaNacional, hoy);
+    const diasTranscurridos = diferenciaDias(fechas.fechaNacional, fechaHoy);
     return {
       fase: "CANDIDATO_NACIONAL",
       label: "Candidato Nacional",
       progreso: Math.min(100, Math.max(0, (diasTranscurridos / duracionDias) * 100)),
-      diasRestantes: diferenciaDias(hoy, fechas.fechaAptoObrero),
+      diasRestantes: diferenciaDias(fechaHoy, fechas.fechaAptoObrero),
       color: "purple",
       bgColor: "bg-purple-50",
       textColor: "text-purple-700",

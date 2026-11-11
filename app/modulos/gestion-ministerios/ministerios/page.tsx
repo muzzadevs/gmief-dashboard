@@ -179,21 +179,18 @@ export default function Ministerios() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="h-11 w-11 shrink-0 rounded-xl border border-slate-200 bg-white shadow-sm transition hover:bg-slate-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="btn-primary bg-slate-800 text-white hover:bg-slate-900 shadow-lg shadow-slate-800/20"
               onClick={() => {
                 setZonaSelected(null);
                 router.push("/modulos/gestion-ministerios");
               }}
-              aria-label="Volver al selector de zonas"
-              title="Volver al selector de zonas"
-              style={{
-                backgroundImage: "url('/faviconFC.ico')",
-                backgroundPosition: "center",
-                backgroundRepeat: "no-repeat",
-                backgroundSize: "28px 28px",
-                filter: "invert(1)",
-              }}
-            />
+              aria-label="Volver a zonas"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+              </svg>
+              Zonas
+            </button>
             <button
               type="button"
               className="btn-primary bg-slate-800 text-white hover:bg-slate-900 shadow-lg shadow-slate-800/20"

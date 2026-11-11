@@ -260,7 +260,14 @@ export async function PUT(
     } catch {
       return NextResponse.json({ error: "La fecha de inicio no es válida" }, { status: 400 });
     }
-    if (fechasCandidato.fecha_inicio > obtenerFechaHoy()) {
+    const hoy = obtenerFechaHoy();
+    if (fecha > hoy) {
+      return NextResponse.json(
+        { error: "La fecha de referencia de la etapa no puede estar en el futuro" },
+        { status: 400 }
+      );
+    }
+    if (fechasCandidato.fecha_inicio > hoy) {
       return NextResponse.json(
         { error: "La fecha calculada de inicio como Ensayista no puede estar en el futuro" },
         { status: 400 }
