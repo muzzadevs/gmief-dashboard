@@ -4,6 +4,7 @@ import { ADMIN_TOKEN } from "@/store/adminStore";
 import { coerceValueByType, getAdminTableDefinition, INVALID_COERCION } from "@/lib/adminDynamicTables";
 import { decrypt, encrypt } from "@/lib/encryption";
 import { requireSuperAdmin } from "@/lib/adminPermissions";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 // Helper to get Prisma model dynamically
 function getPrismaModel(modelName: string) {
@@ -253,6 +254,14 @@ export async function PUT(
       data: updateData,
     });
 
+    await registrarAuditoria(request, {
+      accion: "EDITAR",
+      entidad: tableDef.label,
+      entidadId: String(id),
+      resumen: `Editó el registro ${String(id)} de ${tableDef.label}`,
+      campos: Object.keys(updateData),
+    });
+
     return NextResponse.json({
       ok: true,
       message: `Registro ${String(id)} actualizado correctamente en "${tableDef.label}"`,
@@ -382,6 +391,14 @@ export async function POST(
       data: createData,
     });
 
+    await registrarAuditoria(request, {
+      accion: "CREAR",
+      entidad: tableDef.label,
+      entidadId: created.id,
+      resumen: `Creó un registro en ${tableDef.label}`,
+      campos: Object.keys(createData),
+    });
+
     return NextResponse.json({
       ok: true,
       message: `Registro creado correctamente en "${tableDef.label}"`,
@@ -477,6 +494,14 @@ export async function DELETE(
       where: {
         [primaryColumn.name]: coercedPrimaryId,
       },
+    });
+
+    await registrarAuditoria(request, {
+      accion: "ELIMINAR",
+      entidad: tableDef.label,
+      entidadId: String(id),
+      resumen: `Eliminó permanentemente el registro ${String(id)} de ${tableDef.label}`,
+      campos: ["registro"],
     });
 
     return NextResponse.json({

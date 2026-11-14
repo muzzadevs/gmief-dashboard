@@ -57,6 +57,19 @@ export default function Administracion() {
       iconBg: "bg-purple-100",
       iconText: "text-purple-700",
     },
+    {
+      titulo: "Auditoría",
+      descripcion: "Consultar quién realizó cada cambio y cuándo",
+      href: "/modulos/administracion/auditoria",
+      icono: (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-7 h-7">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+        </svg>
+      ),
+      color: "from-amber-500 to-orange-600",
+      iconBg: "bg-amber-100",
+      iconText: "text-amber-700",
+    },
   ];
 
   return (

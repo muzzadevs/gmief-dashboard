@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { geocodeIglesia, addressFieldsChanged } from "@/lib/geocode";
 import { resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
+import { registrarAuditoria } from "@/lib/auditoria";
 import {
   IGLESIA_SOCIAL_NETWORKS,
   isValidIglesiaSocialUrl,
@@ -70,7 +71,7 @@ export async function DELETE(
     }
 
     // Soft delete en cascada: desactivar ministerios de esta iglesia
-    await prisma.ministerio.updateMany({
+    const ministeriosDesactivados = await prisma.ministerio.updateMany({
       where: { iglesia_id: id, activo: true },
       data: { activo: false },
     });
@@ -79,6 +80,15 @@ export async function DELETE(
     await prisma.iglesia.update({
       where: { id },
       data: { activo: false },
+    });
+
+    await registrarAuditoria(request, {
+      accion: "BAJA",
+      entidad: "Iglesia",
+      entidadId: id,
+      resumen: `Desactivó la iglesia con ID ${id} y ${ministeriosDesactivados.count} ministerios asociados`,
+      campos: ["activo"],
+      detalles: { ministerios_desactivados: ministeriosDesactivados.count },
     });
 
     return NextResponse.json({
@@ -244,6 +254,14 @@ export async function PUT(
           instagram_url: normalizeIglesiaSocialUrl(instagram_url),
         }),
       },
+    });
+
+    await registrarAuditoria(request, {
+      accion: "EDITAR",
+      entidad: "Iglesia",
+      entidadId: id,
+      resumen: `Actualizó la iglesia ${nombre}`,
+      campos: ["nombre", "direccion", "municipio", "provincia", "cp", "zona_id", "subzona_id", "facebook_url", "youtube_url", "tiktok_url", "instagram_url"],
     });
 
     return NextResponse.json({

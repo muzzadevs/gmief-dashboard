@@ -12,6 +12,7 @@ import {
 import { buscarDniDuplicado } from "@/lib/ministerioDni";
 import { generarCodigoCandidato, resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 function esConflictoUnico(error: unknown): boolean {
   return (
@@ -467,6 +468,14 @@ export async function PUT(
     return NextResponse.json({ error: resultado.error }, { status: 409 });
   }
 
+  await registrarAuditoria(req, {
+    accion: "EDITAR",
+    entidad: tipo === "CANDIDATO" ? "Candidato" : "Ministerio",
+    entidadId: id,
+    resumen: `Actualizó ${tipo === "CANDIDATO" ? "el candidato" : "el ministerio"} ${nombre}${apellidos ? ` ${apellidos}` : ""}`,
+    campos: Object.keys(data),
+  });
+
   return NextResponse.json({
     ok: true,
     codigo: resultado.codigo,
@@ -511,6 +520,15 @@ export async function DELETE(
   await prisma.ministerio.update({
     where: { id: numId },
     data: { activo: false },
+  });
+
+  await registrarAuditoria(req, {
+    accion: "BAJA",
+    entidad: "Ministerio",
+    entidadId: numId,
+    resumen: `Desactivó el ministerio con ID ${numId}`,
+    campos: ["activo"],
+    detalles: { activo: false },
   });
 
   return NextResponse.json({ success: true });

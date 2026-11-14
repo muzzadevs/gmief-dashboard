@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, COOKIE_NAME } from "@/lib/auth";
 import { compararCargos } from "@/lib/cargos";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 function getToken(req: Request): string | null {
   const cookieHeader = req.headers.get("cookie") || "";
@@ -91,6 +92,14 @@ export async function PUT(
     },
   });
 
+  await registrarAuditoria(req, {
+    accion: "EDITAR",
+    entidad: "Rol",
+    entidadId: updated.id,
+    resumen: `Actualizó el rol ${updated.nombre}`,
+    campos: ["nombre", "descripcion"],
+  });
+
   return NextResponse.json({ ok: true, data: updated });
 }
 
@@ -120,5 +129,12 @@ export async function DELETE(
   }
 
   await prisma.rol.delete({ where: { id: Number(id) } });
+  await registrarAuditoria(req, {
+    accion: "ELIMINAR",
+    entidad: "Rol",
+    entidadId: rol.id,
+    resumen: `Eliminó el rol ${rol.nombre}`,
+    campos: ["rol"],
+  });
   return NextResponse.json({ ok: true });
 }

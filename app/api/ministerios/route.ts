@@ -13,6 +13,7 @@ import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
 import { buscarDniDuplicado } from "@/lib/ministerioDni";
 import { generarCodigoCandidato, resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 function esConflictoUnico(error: unknown): boolean {
   return (
@@ -489,6 +490,14 @@ async function createMinisterio(req: Request) {
       { status: 409 }
     );
   }
+
+  await registrarAuditoria(req, {
+    accion: "CREAR",
+    entidad: tipo === "CANDIDATO" ? "Candidato" : "Ministerio",
+    entidadId: ministerio.id,
+    resumen: `Creó ${tipo === "CANDIDATO" ? "el candidato" : "el ministerio"} ${nombre}${apellidos ? ` ${apellidos}` : ""}`,
+    campos: Object.keys(data),
+  });
 
   return NextResponse.json({ id: ministerio.id, codigo: ministerio.codigo });
 }

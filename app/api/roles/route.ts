@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, COOKIE_NAME } from "@/lib/auth";
 import { compararCargos } from "@/lib/cargos";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 function getToken(req: Request): string | null {
   const cookieHeader = req.headers.get("cookie") || "";
@@ -67,6 +68,14 @@ export async function POST(req: Request) {
       nombre: nombre.trim(),
       descripcion: descripcion?.trim() || null,
     },
+  });
+
+  await registrarAuditoria(req, {
+    accion: "CREAR",
+    entidad: "Rol",
+    entidadId: rol.id,
+    resumen: `Creó el rol ${rol.nombre}`,
+    campos: ["nombre", "descripcion"],
   });
 
   return NextResponse.json({ ok: true, data: rol });

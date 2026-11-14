@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { geocodeIglesia } from "@/lib/geocode";
 import { resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 export async function GET(req: NextRequest) {
   const zonaId = req.nextUrl.searchParams.get("zonaId");
@@ -94,6 +95,14 @@ export async function POST(req: NextRequest) {
         latitud,
         longitud,
       },
+    });
+
+    await registrarAuditoria(req, {
+      accion: "CREAR",
+      entidad: "Iglesia",
+      entidadId: iglesia.id,
+      resumen: `Creó la iglesia ${nombre}`,
+      campos: ["nombre", "direccion", "municipio", "provincia", "cp", "zona_id", "subzona_id"],
     });
 
     return NextResponse.json({

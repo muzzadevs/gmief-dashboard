@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ministerioDentroDeAlcance, resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 export async function POST(req: Request) {
   const denied = await requireGestionMinisteriosPermission(req, "editar", {
@@ -24,6 +25,15 @@ export async function POST(req: Request) {
       ministerio_id,
       cargo_id,
     })),
+  });
+
+  await registrarAuditoria(req, {
+    accion: "ASIGNAR",
+    entidad: "Cargos de ministerio",
+    entidadId: ministerio_id,
+    resumen: `Asignó ${cargos.length} cargo(s) al ministerio con ID ${ministerio_id}`,
+    campos: ["cargos"],
+    detalles: { cantidad_cargos: cargos.length },
   });
 
   return NextResponse.json({ ok: true });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireCredencialesPermission } from "@/lib/credencialesPermissions";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 // GET: Obtener todas las solicitudes con conteo de items
 export async function GET(req: Request) {
@@ -103,6 +104,15 @@ export async function POST(req: Request) {
       include: {
         items: true,
       },
+    });
+
+    await registrarAuditoria(req, {
+      accion: "CREAR",
+      entidad: "Solicitud de credenciales",
+      entidadId: solicitud.id,
+      resumen: `Creó una solicitud de credenciales con ${ministerio_ids.length} persona(s)`,
+      campos: ["ministerio_ids", "notas"],
+      detalles: { cantidad_personas: ministerio_ids.length },
     });
 
     return NextResponse.json({ ok: true, data: solicitud }, { status: 201 });

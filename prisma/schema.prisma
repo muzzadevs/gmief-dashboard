@@ -254,3 +254,24 @@ model SolicitudCredencialItem {
   @@index([ministerio_id])
   @@map("solicitud_credencial_items")
 }
+
+model Auditoria {
+  id              Int      @id @default(autoincrement())
+  fecha           DateTime @default(now()) @db.DateTime(3)
+  actor_id        Int?
+  actor_username  String   @db.VarChar(50)
+  actor_nombre    String   @db.VarChar(150)
+  accion          String   @db.VarChar(30)
+  entidad         String   @db.VarChar(100)
+  entidad_id      String?  @db.VarChar(100)
+  resumen         String   @db.VarChar(500)
+  detalles        Json?
+  metodo          String   @db.VarChar(10)
+  ruta            String   @db.VarChar(255)
+
+  @@index([fecha])
+  @@index([actor_username, fecha])
+  @@index([accion, fecha])
+  @@index([entidad, fecha])
+  @@map("auditoria")
+}

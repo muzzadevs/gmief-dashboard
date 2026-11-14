@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, COOKIE_NAME } from "@/lib/auth";
 import { compararCargos } from "@/lib/cargos";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 function getToken(req: Request): string | null {
   const cookieHeader = req.headers.get("cookie") || "";
@@ -84,6 +85,15 @@ export async function PUT(
         })),
       });
     }
+  });
+
+  await registrarAuditoria(req, {
+    accion: "EDITAR",
+    entidad: "Cargos de rol",
+    entidadId: rolId,
+    resumen: `Actualizó los cargos asociados al rol con ID ${rolId}`,
+    campos: ["cargos"],
+    detalles: { cargos_asignados: cargoIds.length },
   });
 
   return NextResponse.json({ ok: true });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 export async function GET(req: NextRequest) {
   const zonaId = req.nextUrl.searchParams.get("zonaId");
@@ -47,6 +48,14 @@ export async function POST(req: NextRequest) {
 
     const subzona = await prisma.subzona.create({
       data: { nombre, zona_id },
+    });
+
+    await registrarAuditoria(req, {
+      accion: "CREAR",
+      entidad: "Subzona",
+      entidadId: subzona.id,
+      resumen: `Creó la subzona ${nombre}`,
+      campos: ["nombre", "zona_id"],
     });
 
     return NextResponse.json({
@@ -114,6 +123,16 @@ export async function PUT(req: NextRequest) {
       });
     }
 
+    await Promise.all(subzonas.map((subzona: { id: number; nombre: string }) =>
+      registrarAuditoria(req, {
+        accion: "EDITAR",
+        entidad: "Subzona",
+        entidadId: subzona.id,
+        resumen: `Actualizó la subzona ${subzona.nombre}`,
+        campos: ["nombre", "zona_id"],
+      })
+    ));
+
     return NextResponse.json({
       message: "Subzonas actualizadas exitosamente",
     });
@@ -154,13 +173,13 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Soft delete en cascada: ministerios de iglesias de esta subzona
-    await prisma.ministerio.updateMany({
+    const ministeriosDesactivados = await prisma.ministerio.updateMany({
       where: { iglesia: { subzona_id: id }, activo: true },
       data: { activo: false },
     });
 
     // Desactivar iglesias de esta subzona
-    await prisma.iglesia.updateMany({
+    const iglesiasDesactivadas = await prisma.iglesia.updateMany({
       where: { subzona_id: id, activo: true },
       data: { activo: false },
     });
@@ -169,6 +188,18 @@ export async function DELETE(req: NextRequest) {
     await prisma.subzona.update({
       where: { id },
       data: { activo: false },
+    });
+
+    await registrarAuditoria(req, {
+      accion: "BAJA",
+      entidad: "Subzona",
+      entidadId: id,
+      resumen: `Desactivó la subzona con ID ${id} y sus registros asociados`,
+      campos: ["activo"],
+      detalles: {
+        iglesias_desactivadas: iglesiasDesactivadas.count,
+        ministerios_desactivados: ministeriosDesactivados.count,
+      },
     });
 
     return NextResponse.json({

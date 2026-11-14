@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
 import { resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
+import { registrarAuditoria } from "@/lib/auditoria";
 import {
   calcularFase,
   calcularFechaAptoObrero,
@@ -173,6 +174,15 @@ export async function POST(
   if ("error" in resultado) {
     return NextResponse.json({ error: resultado.error }, { status: resultado.status });
   }
+
+  await registrarAuditoria(req, {
+    accion: "APROBAR",
+    entidad: "Candidato",
+    entidadId: numId,
+    resumen: `Aprobó al candidato con ID ${numId} como ministro con código ${resultado.codigo}`,
+    campos: ["tipo", "codigo", "username", "aprob", "cargos"],
+    detalles: { nuevo_tipo: "MINISTERIO", codigo: resultado.codigo },
+  });
 
   return NextResponse.json({
     ok: true,

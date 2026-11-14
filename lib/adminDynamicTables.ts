@@ -164,21 +164,23 @@ export async function getAdminTableDefinitions(): Promise<AdminTableDef[]> {
   const runtimeModels = getRuntimeModels();
 
   const definitions = await Promise.all(
-    runtimeModels.map(async ([modelName, model]) => {
-      const tableName = model.dbName || toDelegateName(modelName);
-      const scalarFields = (model.fields || []).filter((field) => field.kind === "scalar");
-      const columnMeta = await getTableColumnMeta(tableName);
-      const columns = buildColumns(scalarFields, columnMeta);
-      const primaryKey = columns.find((col) => col.primary)?.name ?? null;
+    runtimeModels
+      .filter(([modelName]) => modelName !== "Auditoria")
+      .map(async ([modelName, model]) => {
+        const tableName = model.dbName || toDelegateName(modelName);
+        const scalarFields = (model.fields || []).filter((field) => field.kind === "scalar");
+        const columnMeta = await getTableColumnMeta(tableName);
+        const columns = buildColumns(scalarFields, columnMeta);
+        const primaryKey = columns.find((col) => col.primary)?.name ?? null;
 
-      return {
-        key: tableName,
-        label: model.dbName ? tableNameToLabel(tableName) : modelNameToLabel(modelName),
-        model: toDelegateName(modelName),
-        columns,
-        primaryKey,
-      } satisfies AdminTableDef;
-    })
+        return {
+          key: tableName,
+          label: model.dbName ? tableNameToLabel(tableName) : modelNameToLabel(modelName),
+          model: toDelegateName(modelName),
+          columns,
+          primaryKey,
+        } satisfies AdminTableDef;
+      })
   );
 
   return definitions.sort((a, b) => a.label.localeCompare(b.label, "es", { sensitivity: "base" }));

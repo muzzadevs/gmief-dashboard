@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, COOKIE_NAME } from "@/lib/auth";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 function getToken(req: Request): string | null {
   const cookieHeader = req.headers.get("cookie") || "";
@@ -36,6 +37,14 @@ export async function PUT(
     },
   });
 
+  await registrarAuditoria(req, {
+    accion: "EDITAR",
+    entidad: "Permiso",
+    entidadId: updated.id,
+    resumen: `Actualizó el permiso ${updated.nombre}`,
+    campos: ["nombre", "descripcion"],
+  });
+
   return NextResponse.json({ ok: true, data: updated });
 }
 
@@ -68,6 +77,14 @@ export async function DELETE(
   await prisma.$transaction(async (tx) => {
     await tx.rolModuloPermiso.deleteMany({ where: { permiso_id: Number(id) } });
     await tx.permiso.delete({ where: { id: Number(id) } });
+  });
+
+  await registrarAuditoria(req, {
+    accion: "ELIMINAR",
+    entidad: "Permiso",
+    entidadId: permiso.id,
+    resumen: `Eliminó el permiso ${permiso.nombre} (${permiso.clave})`,
+    campos: ["permiso"],
   });
 
   return NextResponse.json({ ok: true });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 // GET: Obtener pastor de una iglesia específica, o comprobar si un ministerio es pastor
 export async function GET(req: NextRequest) {
@@ -268,6 +269,14 @@ export async function POST(req: NextRequest) {
       return nuevaAsignacion;
     });
 
+    await registrarAuditoria(req, {
+      accion: "ASIGNAR",
+      entidad: "Pastor de iglesia",
+      entidadId: pastor.id,
+      resumen: `Asignó el ministerio con ID ${ministerio_id} como pastor de la iglesia con ID ${iglesia_id}`,
+      campos: ["iglesia_id", "ministerio_id"],
+    });
+
     return NextResponse.json({ ok: true, id: pastor.id });
   } catch (error) {
     console.error("[POST /api/pastores] Error:", error);
@@ -344,6 +353,13 @@ export async function DELETE(req: NextRequest) {
           where: { ministerio_id: Number(ministerio_id) },
         });
       });
+      await registrarAuditoria(req, {
+        accion: "ELIMINAR",
+        entidad: "Pastor de iglesia",
+        entidadId: ministerio_id,
+        resumen: `Retiró al ministerio con ID ${ministerio_id} de sus asignaciones pastorales`,
+        campos: ["ministerio_id"],
+      });
       return NextResponse.json({ ok: true });
     }
 
@@ -375,6 +391,13 @@ export async function DELETE(req: NextRequest) {
         await tx.pastorIglesia.deleteMany({
           where: { iglesia_id: Number(iglesia_id) },
         });
+      });
+      await registrarAuditoria(req, {
+        accion: "ELIMINAR",
+        entidad: "Pastor de iglesia",
+        entidadId: iglesia_id,
+        resumen: `Retiró la asignación pastoral de la iglesia con ID ${iglesia_id}`,
+        campos: ["iglesia_id"],
       });
       return NextResponse.json({ ok: true });
     }

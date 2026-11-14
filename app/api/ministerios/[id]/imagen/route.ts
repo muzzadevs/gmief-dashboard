@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ministerioDentroDeAlcance, resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 // GET: Servir la imagen de un ministerio
 export async function GET(
@@ -94,6 +95,15 @@ export async function POST(
       data: { imagen: buffer },
     });
 
+    await registrarAuditoria(req, {
+      accion: "EDITAR",
+      entidad: "Imagen de ministerio",
+      entidadId: id,
+      resumen: `Actualizó la imagen del ministerio con ID ${id}`,
+      campos: ["imagen"],
+      detalles: { operacion: "subida de imagen", tamano_bytes: file.size },
+    });
+
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Error subiendo imagen:", error);
@@ -124,6 +134,14 @@ export async function DELETE(
   await prisma.ministerio.update({
     where: { id: Number(id) },
     data: { imagen: null },
+  });
+
+  await registrarAuditoria(req, {
+    accion: "ELIMINAR",
+    entidad: "Imagen de ministerio",
+    entidadId: id,
+    resumen: `Eliminó la imagen del ministerio con ID ${id}`,
+    campos: ["imagen"],
   });
 
   return NextResponse.json({ ok: true });

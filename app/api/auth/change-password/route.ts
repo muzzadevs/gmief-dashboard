@@ -9,6 +9,7 @@ import {
   COOKIE_NAME,
 } from "@/lib/auth";
 import type { UserInfo } from "@/types/auth";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 export async function POST(req: Request) {
   try {
@@ -56,6 +57,14 @@ export async function POST(req: Request) {
         password_hash: hash,
         must_change_password: false,
       },
+    });
+
+    await registrarAuditoria(req, {
+      accion: "CAMBIO_PASSWORD",
+      entidad: "Usuario",
+      entidadId: payload.ministerioId,
+      resumen: `Cambió su contraseña el usuario ${payload.username}`,
+      campos: ["password_hash", "must_change_password"],
     });
 
     // Generar nuevo token sin mustChangePassword

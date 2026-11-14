@@ -9,6 +9,7 @@
 - ⚡ **UI moderna y responsiva**: Menús flotantes, tarjetas estilizadas y experiencia mobile-first.
 - 🗺️ **Gestión visual**: Selecciona zonas y subzonas, visualiza iglesias, sus ministerios y navega fácilmente.
 - 🌍 **Mapa interactivo**: Visualización de zonas en el mapa de España.
+- 🧾 **Auditoría**: Registro de cambios con usuario, fecha, acción y filtros de consulta, disponible para superadministración. El registro no se puede alterar desde la administración dinámica y omite valores sensibles.
 
 ---
 

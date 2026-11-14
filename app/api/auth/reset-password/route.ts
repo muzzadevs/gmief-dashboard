@@ -6,6 +6,7 @@ import {
   DEFAULT_PASSWORD,
   COOKIE_NAME,
 } from "@/lib/auth";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 export async function POST(req: Request) {
   try {
@@ -49,6 +50,14 @@ export async function POST(req: Request) {
         password_hash: hash,
         must_change_password: true,
       },
+    });
+
+    await registrarAuditoria(req, {
+      accion: "PASSWORD_RESET",
+      entidad: "Usuario",
+      entidadId: ministerioId,
+      resumen: `Reinició la contraseña del usuario con ID ${ministerioId}`,
+      campos: ["password_hash", "must_change_password"],
     });
 
     return NextResponse.json({

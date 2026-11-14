@@ -2,6 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ministerioDentroDeAlcance, resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 // Actualizar los cargos de un ministerio: elimina los que no estén, añade los nuevos
 export async function PUT(
@@ -56,6 +57,15 @@ export async function PUT(
       })),
     });
   }
+
+  await registrarAuditoria(req, {
+    accion: "EDITAR",
+    entidad: "Cargos de ministerio",
+    entidadId: ministerioId,
+    resumen: `Actualizó los cargos del ministerio con ID ${ministerioId}`,
+    campos: ["cargos"],
+    detalles: { cargos_agregados: toAdd.length, cargos_eliminados: toDelete.length },
+  });
 
   return NextResponse.json({ ok: true });
 }

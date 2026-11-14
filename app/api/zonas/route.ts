@@ -4,6 +4,7 @@ import { cached, invalidateCachePrefix, CACHE_TTL } from "@/lib/cache";
 import { generarCodigoSiguiente } from "@/lib/codigoMinisterio";
 import { resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 export async function GET() {
   try {
@@ -102,11 +103,19 @@ export async function POST(request: Request) {
       );
     }
 
-    await prisma.zona.create({
+    const zona = await prisma.zona.create({
       data: {
         nombre: nombre.trim(),
         codigo: normalizedCodigo,
       },
+    });
+
+    await registrarAuditoria(request, {
+      accion: "CREAR",
+      entidad: "Zona",
+      entidadId: zona.id,
+      resumen: `Creó la zona ${nombre.trim()} (${normalizedCodigo})`,
+      campos: ["nombre", "codigo"],
     });
 
     // Invalidar caché de zonas y stats
@@ -267,6 +276,16 @@ export async function PUT(request: Request) {
           select: { codigo: true },
         });
 
+        await Promise.all(normalizedZonas.map((zona) =>
+          registrarAuditoria(request, {
+            accion: "EDITAR",
+            entidad: "Zona",
+            entidadId: zona.id,
+            resumen: `Actualizó la zona ${zona.nombre} (${zona.codigo})`,
+            campos: ["nombre", "codigo"],
+          })
+        ));
+
         if (!zonaActual) {
           throw new Error(`No se encontró la zona con id ${zona.id}`);
         }
@@ -385,19 +404,19 @@ export async function DELETE(request: Request) {
 
     // Soft delete: zona + subzonas + iglesias + ministerios en cascada
     // 1. Desactivar todos los ministerios de las iglesias de esta zona
-    await prisma.ministerio.updateMany({
+    const ministeriosDesactivados = await prisma.ministerio.updateMany({
       where: { iglesia: { zona_id: id }, activo: true },
       data: { activo: false },
     });
 
     // 2. Desactivar todas las iglesias de esta zona
-    await prisma.iglesia.updateMany({
+    const iglesiasDesactivadas = await prisma.iglesia.updateMany({
       where: { zona_id: id, activo: true },
       data: { activo: false },
     });
 
     // 3. Desactivar todas las subzonas de esta zona
-    await prisma.subzona.updateMany({
+    const subzonasDesactivadas = await prisma.subzona.updateMany({
       where: { zona_id: id, activo: true },
       data: { activo: false },
     });
@@ -406,6 +425,19 @@ export async function DELETE(request: Request) {
     await prisma.zona.update({
       where: { id },
       data: { activo: false },
+    });
+
+    await registrarAuditoria(request, {
+      accion: "BAJA",
+      entidad: "Zona",
+      entidadId: id,
+      resumen: `Desactivó la zona con ID ${id} y sus registros asociados`,
+      campos: ["activo"],
+      detalles: {
+        subzonas_desactivadas: subzonasDesactivadas.count,
+        iglesias_desactivadas: iglesiasDesactivadas.count,
+        ministerios_desactivados: ministeriosDesactivados.count,
+      },
     });
 
     // Invalidar caché de zonas y stats

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, COOKIE_NAME } from "@/lib/auth";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 function getToken(req: Request): string | null {
   const cookieHeader = req.headers.get("cookie") || "";
@@ -96,6 +97,15 @@ export async function PUT(
         })),
       });
     }
+  });
+
+  await registrarAuditoria(req, {
+    accion: "EDITAR",
+    entidad: "Permisos de rol",
+    entidadId: rolId,
+    resumen: `Actualizó los permisos del rol con ID ${rolId}`,
+    campos: ["permisos"],
+    detalles: { permisos_asignados: permisos.length },
   });
 
   return NextResponse.json({ ok: true });

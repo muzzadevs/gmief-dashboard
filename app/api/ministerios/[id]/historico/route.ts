@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ministerioDentroDeAlcance, resolverAlcanceZona } from "@/lib/auth";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 export async function GET(
   _request: Request,
@@ -98,6 +99,15 @@ export async function PATCH(
         valor_nuevo: true,
         fecha: true,
       },
+    });
+
+    await registrarAuditoria(request, {
+      accion: "EDITAR",
+      entidad: "Histórico de ministerio",
+      entidadId: historicoId,
+      resumen: `Cambió la fecha de un evento histórico del ministerio con ID ${ministerioId}`,
+      campos: ["fecha"],
+      detalles: { fecha_nueva: fecha },
     });
 
     return NextResponse.json(historicoActualizado);

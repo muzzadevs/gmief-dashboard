@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireCredencialesPermission } from "@/lib/credencialesPermissions";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 // POST: Marcar un item de solicitud como expedido
 export async function POST(
@@ -65,6 +66,15 @@ export async function POST(
         data: { estado: "EN_PROCESO" },
       });
     }
+
+    await registrarAuditoria(req, {
+      accion: "EXPEDIR",
+      entidad: "Credencial",
+      entidadId: item.id,
+      resumen: `Expidió la credencial del ministerio con ID ${item.ministerio_id}`,
+      campos: ["expedida", "fecha_expedicion", "estado"],
+      detalles: { solicitud_id: Number(id), estado_solicitud: allExpedidos ? "COMPLETADA" : someExpedidos ? "EN_PROCESO" : "PENDIENTE" },
+    });
 
     return NextResponse.json({ ok: true });
   } catch (error) {

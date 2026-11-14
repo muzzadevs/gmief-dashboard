@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, COOKIE_NAME } from "@/lib/auth";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 function getToken(req: Request): string | null {
   const cookieHeader = req.headers.get("cookie") || "";
@@ -57,6 +58,14 @@ export async function POST(req: Request) {
       descripcion: descripcion?.trim() || null,
       orden: (maxOrden._max.orden ?? 0) + 1,
     },
+  });
+
+  await registrarAuditoria(req, {
+    accion: "CREAR",
+    entidad: "Permiso",
+    entidadId: permiso.id,
+    resumen: `Creó el permiso ${permiso.nombre} (${permiso.clave})`,
+    campos: ["clave", "nombre", "descripcion"],
   });
 
   return NextResponse.json({ ok: true, data: permiso });
