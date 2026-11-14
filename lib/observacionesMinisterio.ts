@@ -4,8 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { PERMISOS_EDITAR_POR_ZONA } from "@/types/auth";
 
 type ContextoObservaciones = {
-  zonaId: number;
-  autorId: number;
+  zonaId: number | null;
+  autorId: number | null;
   autorNombre: string;
   autorUsername: string;
 };
@@ -40,7 +40,19 @@ export async function verificarAccesoObservaciones(
     };
   }
 
-  if (payload.isSuperAdmin || !payload.ministerioId) {
+  if (payload.isSuperAdmin) {
+    return {
+      ok: true,
+      contexto: {
+        zonaId: null,
+        autorId: null,
+        autorNombre: "Administrador Sistema",
+        autorUsername: payload.username,
+      },
+    };
+  }
+
+  if (!payload.ministerioId) {
     return {
       ok: false,
       response: NextResponse.json({ ok: false, error: "Sin permisos" }, { status: 403 }),

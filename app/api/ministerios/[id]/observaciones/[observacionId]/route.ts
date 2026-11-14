@@ -29,7 +29,9 @@ export async function PATCH(request: Request, { params }: Params) {
       where: {
         id: observacionId,
         ministerio_id: ministerioId,
-        ministerio: { iglesia: { zona_id: acceso.contexto.zonaId } },
+        ...(acceso.contexto.zonaId === null
+          ? {}
+          : { ministerio: { iglesia: { zona_id: acceso.contexto.zonaId } } }),
       },
       select: { id: true },
     });
@@ -99,7 +101,9 @@ export async function DELETE(request: Request, { params }: Params) {
       where: {
         id: observacionId,
         ministerio_id: ministerioId,
-        ministerio: { iglesia: { zona_id: acceso.contexto.zonaId } },
+        ...(acceso.contexto.zonaId === null
+          ? {}
+          : { ministerio: { iglesia: { zona_id: acceso.contexto.zonaId } } }),
       },
       select: { id: true },
     });

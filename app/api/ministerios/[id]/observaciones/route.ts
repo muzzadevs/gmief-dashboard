@@ -24,7 +24,12 @@ export async function GET(request: Request, { params }: Params) {
     }
 
     const ministerio = await prisma.ministerio.findFirst({
-      where: { id: ministerioId, iglesia: { zona_id: acceso.contexto.zonaId } },
+      where: {
+        id: ministerioId,
+        ...(acceso.contexto.zonaId === null
+          ? {}
+          : { iglesia: { zona_id: acceso.contexto.zonaId } }),
+      },
       select: { id: true },
     });
     if (!ministerio) {
@@ -34,7 +39,9 @@ export async function GET(request: Request, { params }: Params) {
     const observaciones = await prisma.observacion.findMany({
       where: {
         ministerio_id: ministerioId,
-        ministerio: { iglesia: { zona_id: acceso.contexto.zonaId } },
+        ...(acceso.contexto.zonaId === null
+          ? {}
+          : { ministerio: { iglesia: { zona_id: acceso.contexto.zonaId } } }),
       },
       orderBy: [{ fecha_creacion: "desc" }, { id: "desc" }],
       select: {
@@ -68,7 +75,12 @@ export async function POST(request: Request, { params }: Params) {
     }
 
     const ministerio = await prisma.ministerio.findFirst({
-      where: { id: ministerioId, iglesia: { zona_id: acceso.contexto.zonaId } },
+      where: {
+        id: ministerioId,
+        ...(acceso.contexto.zonaId === null
+          ? {}
+          : { iglesia: { zona_id: acceso.contexto.zonaId } }),
+      },
       select: { id: true },
     });
     if (!ministerio) {
@@ -95,7 +107,9 @@ export async function POST(request: Request, { params }: Params) {
         autor_nombre: acceso.contexto.autorNombre,
         autor_username: acceso.contexto.autorUsername,
         ministerio: { connect: { id: ministerioId } },
-        autor: { connect: { id: acceso.contexto.autorId } },
+        ...(acceso.contexto.autorId === null
+          ? {}
+          : { autor: { connect: { id: acceso.contexto.autorId } } }),
       },
       select: {
         id: true,

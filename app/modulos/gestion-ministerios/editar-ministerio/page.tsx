@@ -120,7 +120,9 @@ type MinisterioForm = {
 
 export default function EditarMinisterio() {
   const router = useRouter();
-  const { ready, canEdit, canEditInZone, zoneId } = useGestionMinisteriosPermissions();
+  const { ready, canEdit, canEditInZone, isSuperAdmin, zoneId } =
+    useGestionMinisteriosPermissions();
+  const canAccessObservaciones = isSuperAdmin || canEditInZone;
   const iglesiaSelected = useZonasStore((s) => s.iglesiaSelected);
   const ministerioEditId = useZonasStore((s) => s.ministerioEditId);
   const { toast, showSuccess, showError, hideToast } = useToast();
@@ -276,7 +278,7 @@ export default function EditarMinisterio() {
   }, [iglesiaSelected, router, ministerioEditId]);
 
   useEffect(() => {
-    if (!form?.id || !canEditInZone) {
+    if (!form?.id || !canAccessObservaciones) {
       setObservaciones([]);
       setObservacionesError("");
       setObservacionesLoading(false);
@@ -313,7 +315,7 @@ export default function EditarMinisterio() {
     return () => {
       active = false;
     };
-  }, [form?.id, canEditInZone]);
+  }, [form?.id, canAccessObservaciones]);
 
   // When iglesia changes in form, re-fetch codigo
   const handleIglesiaChange = async (val: string) => {
@@ -983,7 +985,7 @@ export default function EditarMinisterio() {
               </div>
             )}
 
-            {canEditInZone && (
+            {canAccessObservaciones && (
               <section
                 aria-labelledby="observaciones-title"
                 className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5"

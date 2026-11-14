@@ -61,6 +61,7 @@ export function useGestionMinisteriosPermissions() {
     canView: isSuperAdmin || permissions.includes("ver") || canEditInZone,
     canEdit: isSuperAdmin || permissions.includes("editar"),
     canEditInZone,
+    isSuperAdmin,
     canDelete: isSuperAdmin || permissions.includes("borrar"),
     zoneId: user?.zonaId ?? null,
   };
