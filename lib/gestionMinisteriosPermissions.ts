@@ -8,7 +8,7 @@ export type GestionMinisteriosPermission = "ver" | "editar" | "borrar";
 export async function requireGestionMinisteriosPermission(
   request: Request,
   permission: GestionMinisteriosPermission,
-  options: { allowZoneScopedEdit?: boolean } = {}
+  options: { allowZoneScopedEdit?: boolean; allowZoneScopedView?: boolean } = {}
 ): Promise<NextResponse | null> {
   const cookieToken = request.headers
     .get("cookie")
@@ -55,7 +55,11 @@ export async function requireGestionMinisteriosPermission(
     permission === "editar" &&
     options.allowZoneScopedEdit === true &&
     PERMISOS_EDITAR_POR_ZONA.some((clave) => modulePermissions.includes(clave));
-  if (!hasPermission && !hasZoneScopedEdit) {
+  const hasZoneScopedView =
+    permission === "ver" &&
+    options.allowZoneScopedView === true &&
+    PERMISOS_EDITAR_POR_ZONA.some((clave) => modulePermissions.includes(clave));
+  if (!hasPermission && !hasZoneScopedEdit && !hasZoneScopedView) {
     return NextResponse.json({ ok: false, error: "Sin permisos" }, { status: 403 });
   }
 

@@ -8,13 +8,14 @@ import ModalAgregarZona from "../../components/ModalAgregarZona";
 import ModalEditarZonas from "../../components/ModalEditarZonas";
 import { searchIncludes } from "@/lib/search";
 import { useGestionMinisteriosPermissions } from "@/app/hooks/useGestionMinisteriosPermissions";
+import BuscadorGlobal from "./BuscadorGlobal";
 
 type Zona = { id: number; nombre: string; codigo: string; activo: boolean };
 type ZonaStats = Record<number, { ministerios: number; candidatos: number }>;
 
 export default function GestionMinisteriosHome() {
   const router = useRouter();
-  const { canEdit, canEditInZone, canDelete } = useGestionMinisteriosPermissions();
+  const { canEdit, canEditInZone, canDelete, canView, ready } = useGestionMinisteriosPermissions();
   const setZonaSelected = useZonasStore((s) => s.setZonaSelected);
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,6 +119,14 @@ export default function GestionMinisteriosHome() {
           </div>
         </div>
       </div>
+
+      {ready && canView && (
+        <div className="w-full flex justify-center px-2 sm:px-4 pt-2">
+          <div className="w-full max-w-4xl">
+            <BuscadorGlobal />
+          </div>
+        </div>
+      )}
 
       {/* Listado de zonas */}
       <div className="flex-1 w-full flex justify-center px-2 sm:px-4 py-4">
