@@ -8,11 +8,11 @@ import {
   LoaderCircle,
   MapPin,
   Search,
-  Sparkles,
   UserRound,
   X,
 } from "lucide-react";
 import { useZonasStore } from "@/store/zonasStore";
+import { useAuthStore } from "@/store/authStore";
 import { useGestionMinisteriosPermissions } from "@/app/hooks/useGestionMinisteriosPermissions";
 
 type ResultadoPersona = {
@@ -73,6 +73,7 @@ const FILTROS: { valor: TipoFiltro; etiqueta: string }[] = [
 
 export default function BuscadorGlobal() {
   const router = useRouter();
+  const isSuperAdmin = useAuthStore((state) => state.user?.isSuperAdmin ?? false);
   const { ready, canView } = useGestionMinisteriosPermissions();
   const setZonaSelected = useZonasStore((state) => state.setZonaSelected);
   const setIglesiaSelected = useZonasStore((state) => state.setIglesiaSelected);
@@ -157,9 +158,14 @@ export default function BuscadorGlobal() {
       instagram_url: null,
       activo: iglesia.activo,
     });
-    setMinisterioEditId(persona.id);
     setAbierto(false);
-    router.push("/modulos/gestion-ministerios/editar-ministerio");
+    if (isSuperAdmin) {
+      setMinisterioEditId(persona.id);
+      router.push("/modulos/gestion-ministerios/editar-ministerio");
+    } else {
+      setMinisterioEditId(null);
+      router.push("/modulos/gestion-ministerios/ministerios");
+    }
   };
 
   const abrirIglesia = (iglesia: ResultadoIglesia) => {
@@ -185,18 +191,11 @@ export default function BuscadorGlobal() {
       <button
         type="button"
         onClick={() => setAbierto(true)}
-        className="group fixed bottom-5 right-5 z-[1100] flex h-14 w-14 items-center justify-center rounded-full border border-white/80 bg-gradient-to-br from-fuchsia-600 via-violet-600 to-indigo-700 text-white shadow-[0_8px_28px_rgba(79,70,229,0.5)] transition duration-200 hover:-translate-y-1 hover:scale-105 hover:shadow-[0_12px_34px_rgba(79,70,229,0.65)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-300 sm:bottom-7 sm:right-7 sm:h-16 sm:w-16"
+        className="group fixed bottom-5 right-5 z-[1100] flex h-14 w-14 items-center justify-center rounded-full border border-white/80 bg-violet-600 text-white shadow-[0_8px_28px_rgba(79,70,229,0.5)] transition duration-200 hover:-translate-y-1 hover:scale-105 hover:bg-violet-700 hover:shadow-[0_12px_34px_rgba(79,70,229,0.65)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-300 sm:bottom-7 sm:right-7 sm:h-16 sm:w-16"
         aria-label="Abrir superbuscador de Gestión de Ministerios"
         title="Buscar en todo Gestión de Ministerios"
       >
-        <span
-          aria-hidden="true"
-          className="absolute -inset-1 rounded-full bg-gradient-to-br from-fuchsia-400 to-indigo-400 opacity-40 blur-md transition-opacity group-hover:opacity-75"
-        />
         <Search className="relative h-6 w-6 drop-shadow sm:h-7 sm:w-7" strokeWidth={2.5} />
-        <span className="absolute -right-0.5 -top-0.5 grid h-6 w-6 place-items-center rounded-full border-2 border-white bg-amber-400 text-amber-950 shadow-md">
-          <Sparkles className="h-3.5 w-3.5" strokeWidth={2.5} />
-        </span>
         <span className="pointer-events-none absolute right-[calc(100%+0.75rem)] whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-visible:opacity-100">
           Buscador global
         </span>
