@@ -82,7 +82,12 @@ export async function PATCH(
 
     const evento = await prisma.ministerioHistorico.findFirst({
       where: { id: historicoId, ministerio_id: ministerioId },
-      select: { id: true },
+      select: {
+        id: true,
+        campo: true,
+        fecha: true,
+        ministerio: { select: { nombre: true, apellidos: true, codigo: true } },
+      },
     });
 
     if (!evento) {
@@ -105,9 +110,19 @@ export async function PATCH(
       accion: "EDITAR",
       entidad: "Histórico de ministerio",
       entidadId: historicoId,
-      resumen: `Cambió la fecha de un evento histórico del ministerio con ID ${ministerioId}`,
+      identificacion: [
+        [evento.ministerio.nombre, evento.ministerio.apellidos].filter(Boolean).join(" "),
+        evento.ministerio.codigo ? `Código ${evento.ministerio.codigo}` : null,
+      ].filter(Boolean).join(" · "),
+      resumen: `Cambió la fecha del evento «${evento.campo}» de ${[evento.ministerio.nombre, evento.ministerio.apellidos].filter(Boolean).join(" ")}`,
       campos: ["fecha"],
-      detalles: { fecha_nueva: fecha },
+      detalles: { evento: evento.campo },
+      cambios: {
+        fecha: {
+          anterior: evento.fecha.toISOString().slice(0, 10),
+          nuevo: fecha,
+        },
+      },
     });
 
     return NextResponse.json(historicoActualizado);

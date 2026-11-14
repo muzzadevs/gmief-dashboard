@@ -27,13 +27,36 @@ export async function POST(req: Request) {
     })),
   });
 
+  const [ministerio, cargosAsignados] = await Promise.all([
+    prisma.ministerio.findUnique({
+      where: { id: Number(ministerio_id) },
+      select: { nombre: true, apellidos: true, codigo: true },
+    }),
+    prisma.cargo.findMany({
+      where: { id: { in: cargos } },
+      select: { cargo: true },
+    }),
+  ]);
+  const nombreMinisterio = ministerio
+    ? [ministerio.nombre, ministerio.apellidos].filter(Boolean).join(" ")
+    : "la persona seleccionada";
+
   await registrarAuditoria(req, {
     accion: "ASIGNAR",
     entidad: "Cargos de ministerio",
     entidadId: ministerio_id,
-    resumen: `Asignó ${cargos.length} cargo(s) al ministerio con ID ${ministerio_id}`,
+    identificacion: ministerio
+      ? `${nombreMinisterio}${ministerio.codigo ? ` · Código ${ministerio.codigo}` : ""}`
+      : undefined,
+    resumen: `Asignó los cargos ${cargosAsignados.map((cargo) => cargo.cargo).join(", ")} a ${nombreMinisterio}`,
     campos: ["cargos"],
     detalles: { cantidad_cargos: cargos.length },
+    cambios: {
+      cargos: {
+        anterior: null,
+        nuevo: cargosAsignados.map((cargo) => cargo.cargo).sort().join(", ") || null,
+      },
+    },
   });
 
   return NextResponse.json({ ok: true });

@@ -39,11 +39,12 @@ export async function POST(
     }
 
     // Marcar como expedido
+    const fechaExpedicion = new Date();
     await prisma.solicitudCredencialItem.update({
       where: { id: Number(item_id) },
       data: {
         expedida: true,
-        fecha_expedicion: new Date(),
+        fecha_expedicion: fechaExpedicion,
       },
     });
 
@@ -71,9 +72,19 @@ export async function POST(
       accion: "EXPEDIR",
       entidad: "Credencial",
       entidadId: item.id,
-      resumen: `Expidió la credencial del ministerio con ID ${item.ministerio_id}`,
+      resumen: "Expidió la credencial",
       campos: ["expedida", "fecha_expedicion", "estado"],
       detalles: { solicitud_id: Number(id), estado_solicitud: allExpedidos ? "COMPLETADA" : someExpedidos ? "EN_PROCESO" : "PENDIENTE" },
+      cambios: {
+        expedida: {
+          anterior: item.expedida ? "Sí" : "No",
+          nuevo: "Sí",
+        },
+        fecha_expedicion: {
+          anterior: item.fecha_expedicion?.toISOString().slice(0, 10) ?? null,
+          nuevo: fechaExpedicion.toISOString().slice(0, 10),
+        },
+      },
     });
 
     return NextResponse.json({ ok: true });

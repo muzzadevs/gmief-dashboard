@@ -74,6 +74,23 @@ export async function PUT(
     return NextResponse.json({ ok: false, error: "Formato inválido" }, { status: 400 });
   }
 
+  const [cargosAnteriores, cargosNuevos] = await Promise.all([
+    prisma.rolCargo.findMany({
+      where: { rol_id: rolId },
+      include: { cargo: { select: { cargo: true } } },
+    }),
+    prisma.cargo.findMany({
+      where: { id: { in: cargoIds } },
+      select: { id: true, cargo: true },
+    }),
+  ]);
+  const nombresCargosNuevos = new Map(cargosNuevos.map((cargo) => [cargo.id, cargo.cargo]));
+  const listaCargosAnteriores = cargosAnteriores.map((item) => item.cargo.cargo).sort();
+  const listaCargosNuevos = cargoIds
+    .map((cargoId: number) => nombresCargosNuevos.get(cargoId))
+    .filter((cargo): cargo is string => cargo !== undefined)
+    .sort();
+
   await prisma.$transaction(async (tx) => {
     await tx.rolCargo.deleteMany({ where: { rol_id: rolId } });
 
@@ -94,6 +111,12 @@ export async function PUT(
     resumen: `Actualizó los cargos asociados al rol con ID ${rolId}`,
     campos: ["cargos"],
     detalles: { cargos_asignados: cargoIds.length },
+    cambios: {
+      cargos: {
+        anterior: listaCargosAnteriores.join(", ") || null,
+        nuevo: listaCargosNuevos.join(", ") || null,
+      },
+    },
   });
 
   return NextResponse.json({ ok: true });

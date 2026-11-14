@@ -268,6 +268,14 @@ export async function PUT(request: Request) {
       }
     }
 
+    const zonasAnteriores = await prisma.zona.findMany({
+      where: { id: { in: normalizedZonas.map((zona) => zona.id) } },
+      select: { id: true, nombre: true, codigo: true },
+    });
+    const zonasAnterioresPorId = new Map(
+      zonasAnteriores.map((zona) => [zona.id, zona])
+    );
+
     // Actualizar zonas, códigos ministeriales y su histórico atómicamente.
     await prisma.$transaction(async (tx) => {
       for (const zona of normalizedZonas) {
@@ -275,16 +283,6 @@ export async function PUT(request: Request) {
           where: { id: zona.id },
           select: { codigo: true },
         });
-
-        await Promise.all(normalizedZonas.map((zona) =>
-          registrarAuditoria(request, {
-            accion: "EDITAR",
-            entidad: "Zona",
-            entidadId: zona.id,
-            resumen: `Actualizó la zona ${zona.nombre} (${zona.codigo})`,
-            campos: ["nombre", "codigo"],
-          })
-        ));
 
         if (!zonaActual) {
           throw new Error(`No se encontró la zona con id ${zona.id}`);
@@ -355,6 +353,30 @@ export async function PUT(request: Request) {
         });
       }
     });
+
+    await Promise.all(normalizedZonas.map(async (zona) => {
+      const anterior = zonasAnterioresPorId.get(zona.id);
+      if (!anterior) throw new Error(`No se encontró la zona anterior con id ${zona.id}`);
+      const cambios = {
+        ...(anterior.nombre !== zona.nombre
+          ? { nombre: { anterior: anterior.nombre, nuevo: zona.nombre } }
+          : {}),
+        ...(anterior.codigo !== zona.codigo
+          ? { codigo: { anterior: anterior.codigo, nuevo: zona.codigo } }
+          : {}),
+      };
+      if (Object.keys(cambios).length === 0) return;
+
+      await registrarAuditoria(request, {
+        accion: "EDITAR",
+        entidad: "Zona",
+        entidadId: zona.id,
+        identificacion: `${zona.nombre} · Código ${zona.codigo}`,
+        resumen: `Actualizó la zona ${zona.nombre}`,
+        campos: Object.keys(cambios),
+        cambios,
+      });
+    }));
 
     // Invalidar caché de zonas
     invalidateCachePrefix("zonas:");

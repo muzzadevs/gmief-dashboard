@@ -250,6 +250,29 @@ export async function PUT(
     );
   }
 
+  const ministerioAntes = await prisma.ministerio.findUnique({
+    where: { id: Number(id) },
+    select: {
+      nombre: true,
+      apellidos: true,
+      alias: true,
+      codigo: true,
+      tipo: true,
+      aprob: true,
+      estado: { select: { id: true, nombre: true } },
+      iglesia: {
+        select: {
+          id: true,
+          nombre: true,
+          zona: { select: { codigo: true } },
+        },
+      },
+    },
+  });
+  if (!ministerioAntes) {
+    return NextResponse.json({ error: "Ministerio no encontrado" }, { status: 404 });
+  }
+
   let fechasCandidato: ReturnType<typeof calcularFechasCandidato> | null = null;
   if (tipo === "CANDIDATO") {
     const fase = fase_referencia ?? "ENSAYISTA";
@@ -468,12 +491,113 @@ export async function PUT(
     return NextResponse.json({ error: resultado.error }, { status: 409 });
   }
 
+  const ministerioDespues = await prisma.ministerio.findUnique({
+    where: { id: Number(id) },
+    select: {
+      nombre: true,
+      apellidos: true,
+      alias: true,
+      codigo: true,
+      tipo: true,
+      aprob: true,
+      estado: { select: { id: true, nombre: true } },
+      iglesia: {
+        select: {
+          id: true,
+          nombre: true,
+          zona: { select: { codigo: true } },
+        },
+      },
+    },
+  });
+  if (!ministerioDespues) {
+    throw new Error(`No se encontró el ministerio actualizado con id ${id}`);
+  }
+
+  const etiquetaIglesia = (iglesia: typeof ministerioAntes.iglesia) =>
+    `[${iglesia.zona.codigo.toUpperCase()}] ${iglesia.nombre}`;
+  const cambios = {
+    ...(ministerioAntes.nombre !== ministerioDespues.nombre
+      ? {
+          nombre: {
+            anterior: ministerioAntes.nombre,
+            nuevo: ministerioDespues.nombre,
+          },
+        }
+      : {}),
+    ...(ministerioAntes.apellidos !== ministerioDespues.apellidos
+      ? {
+          apellidos: {
+            anterior: ministerioAntes.apellidos,
+            nuevo: ministerioDespues.apellidos,
+          },
+        }
+      : {}),
+    ...(ministerioAntes.alias !== ministerioDespues.alias
+      ? {
+          alias: {
+            anterior: ministerioAntes.alias,
+            nuevo: ministerioDespues.alias,
+          },
+        }
+      : {}),
+    ...(ministerioAntes.codigo !== ministerioDespues.codigo
+      ? {
+          codigo: {
+            anterior: ministerioAntes.codigo,
+            nuevo: ministerioDespues.codigo,
+          },
+        }
+      : {}),
+    ...(ministerioAntes.tipo !== ministerioDespues.tipo
+      ? {
+          tipo: {
+            anterior: ministerioAntes.tipo === "CANDIDATO" ? "Candidato" : "Ministerio",
+            nuevo: ministerioDespues.tipo === "CANDIDATO" ? "Candidato" : "Ministerio",
+          },
+        }
+      : {}),
+    ...(ministerioAntes.estado.id !== ministerioDespues.estado.id
+      ? {
+          estado: {
+            anterior: ministerioAntes.estado.nombre,
+            nuevo: ministerioDespues.estado.nombre,
+          },
+        }
+      : {}),
+    ...(ministerioAntes.iglesia.id !== ministerioDespues.iglesia.id ||
+    ministerioAntes.iglesia.nombre !== ministerioDespues.iglesia.nombre ||
+    ministerioAntes.iglesia.zona.codigo !== ministerioDespues.iglesia.zona.codigo
+      ? {
+          iglesia: {
+            anterior: etiquetaIglesia(ministerioAntes.iglesia),
+            nuevo: etiquetaIglesia(ministerioDespues.iglesia),
+          },
+        }
+      : {}),
+    ...(ministerioAntes.aprob !== ministerioDespues.aprob
+      ? {
+          aprob: {
+            anterior:
+              ministerioAntes.aprob === null ? null : String(ministerioAntes.aprob),
+            nuevo:
+              ministerioDespues.aprob === null ? null : String(ministerioDespues.aprob),
+          },
+        }
+      : {}),
+  };
+
   await registrarAuditoria(req, {
     accion: "EDITAR",
     entidad: tipo === "CANDIDATO" ? "Candidato" : "Ministerio",
     entidadId: id,
     resumen: `Actualizó ${tipo === "CANDIDATO" ? "el candidato" : "el ministerio"} ${nombre}${apellidos ? ` ${apellidos}` : ""}`,
     campos: Object.keys(data),
+    identificacion: [
+      [ministerioDespues.nombre, ministerioDespues.apellidos].filter(Boolean).join(" "),
+      ministerioDespues.codigo ? `Código ${ministerioDespues.codigo}` : null,
+    ].filter(Boolean).join(" · "),
+    cambios,
   });
 
   return NextResponse.json({

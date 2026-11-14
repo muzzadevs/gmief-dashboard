@@ -33,6 +33,10 @@ export async function PUT(
   });
 
   const currentIds = currentCargos.map((c) => c.cargo_id);
+  const nombresCargosAnteriores = await prisma.cargo.findMany({
+    where: { id: { in: currentIds } },
+    select: { cargo: true },
+  });
 
   // Eliminar los que ya no estén
   const toDelete = currentIds.filter((cargoId) => !cargos.includes(cargoId));
@@ -58,13 +62,36 @@ export async function PUT(
     });
   }
 
+  const [ministerio, cargosNuevos] = await Promise.all([
+    prisma.ministerio.findUnique({
+      where: { id: ministerioId },
+      select: { nombre: true, apellidos: true, codigo: true },
+    }),
+    prisma.cargo.findMany({
+      where: { id: { in: cargos } },
+      select: { cargo: true },
+    }),
+  ]);
+  const nombreMinisterio = ministerio
+    ? [ministerio.nombre, ministerio.apellidos].filter(Boolean).join(" ")
+    : "la persona seleccionada";
+
   await registrarAuditoria(req, {
     accion: "EDITAR",
     entidad: "Cargos de ministerio",
     entidadId: ministerioId,
-    resumen: `Actualizó los cargos del ministerio con ID ${ministerioId}`,
+    identificacion: ministerio
+      ? `${nombreMinisterio}${ministerio.codigo ? ` · Código ${ministerio.codigo}` : ""}`
+      : undefined,
+    resumen: `Actualizó los cargos de ${nombreMinisterio}`,
     campos: ["cargos"],
     detalles: { cargos_agregados: toAdd.length, cargos_eliminados: toDelete.length },
+    cambios: {
+      cargos: {
+        anterior: nombresCargosAnteriores.map((cargo) => cargo.cargo).sort().join(", ") || null,
+        nuevo: cargosNuevos.map((cargo) => cargo.cargo).sort().join(", ") || null,
+      },
+    },
   });
 
   return NextResponse.json({ ok: true });

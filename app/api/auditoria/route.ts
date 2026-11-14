@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireSuperAdmin } from "@/lib/adminPermissions";
+import { resolverIdentificacionAuditoria } from "@/lib/auditoria";
 import { prisma } from "@/lib/prisma";
 
 const PAGE_SIZE = 25;
@@ -51,7 +52,6 @@ export async function GET(request: Request) {
             { resumen: { contains: busqueda } },
             { actor_nombre: { contains: busqueda } },
             { actor_username: { contains: busqueda } },
-            { entidad_id: { contains: busqueda } },
           ],
         }
       : {}),
@@ -77,11 +77,37 @@ export async function GET(request: Request) {
         orderBy: { entidad: "asc" },
       }),
     ]);
+    const registrosLegibles = await Promise.all(
+      registros.map(async (registro) => {
+        const detalles =
+          registro.detalles &&
+          typeof registro.detalles === "object" &&
+          !Array.isArray(registro.detalles)
+            ? Object.fromEntries(Object.entries(registro.detalles))
+            : {};
+        if (
+          typeof detalles.identificacion === "string" ||
+          !/\bID\s+\d+\b/i.test(registro.resumen)
+        ) {
+          return registro;
+        }
+        const ministerioRelacionado = detalles.ministerio_id;
+        const identificacion =
+          registro.entidad === "Observación de ministerio" &&
+          (typeof ministerioRelacionado === "number" ||
+            typeof ministerioRelacionado === "string")
+            ? await resolverIdentificacionAuditoria("Ministerio", ministerioRelacionado)
+            : await resolverIdentificacionAuditoria(registro.entidad, registro.entidad_id);
+        return identificacion
+          ? { ...registro, detalles: { ...detalles, identificacion } }
+          : registro;
+      })
+    );
 
     return NextResponse.json({
       ok: true,
       data: {
-        registros,
+        registros: registrosLegibles,
         total,
         pagina,
         paginas: Math.max(1, Math.ceil(total / PAGE_SIZE)),

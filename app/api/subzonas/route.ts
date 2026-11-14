@@ -113,6 +113,27 @@ export async function PUT(req: NextRequest) {
       }
     }
 
+    const subzonaIds = subzonas.map((subzona: { id: number }) => Number(subzona.id));
+    const zonaIds = [...new Set(subzonas.map((subzona: { zona_id: number }) => Number(subzona.zona_id)))];
+    const [subzonasAnteriores, zonasNuevas] = await Promise.all([
+      prisma.subzona.findMany({
+        where: { id: { in: subzonaIds } },
+        select: {
+          id: true,
+          nombre: true,
+          zona: { select: { nombre: true } },
+        },
+      }),
+      prisma.zona.findMany({
+        where: { id: { in: zonaIds } },
+        select: { id: true, nombre: true },
+      }),
+    ]);
+    const subzonasAnterioresPorId = new Map(
+      subzonasAnteriores.map((subzona) => [subzona.id, subzona])
+    );
+    const zonasNuevasPorId = new Map(zonasNuevas.map((zona) => [zona.id, zona.nombre]));
+
     for (const subzona of subzonas) {
       await prisma.subzona.update({
         where: { id: subzona.id },
@@ -123,15 +144,32 @@ export async function PUT(req: NextRequest) {
       });
     }
 
-    await Promise.all(subzonas.map((subzona: { id: number; nombre: string }) =>
-      registrarAuditoria(req, {
+    await Promise.all(subzonas.map(async (subzona: { id: number; nombre: string; zona_id: number }) => {
+      const anterior = subzonasAnterioresPorId.get(Number(subzona.id));
+      const zonaNueva = zonasNuevasPorId.get(Number(subzona.zona_id));
+      if (!anterior || !zonaNueva) {
+        throw new Error(`No se pudo identificar la subzona ${subzona.nombre} y su zona`);
+      }
+      const cambios = {
+        ...(anterior.nombre !== subzona.nombre
+          ? { nombre: { anterior: anterior.nombre, nuevo: subzona.nombre } }
+          : {}),
+        ...(anterior.zona.nombre !== zonaNueva
+          ? { zona: { anterior: anterior.zona.nombre, nuevo: zonaNueva } }
+          : {}),
+      };
+      if (Object.keys(cambios).length === 0) return;
+
+      await registrarAuditoria(req, {
         accion: "EDITAR",
         entidad: "Subzona",
         entidadId: subzona.id,
+        identificacion: `${subzona.nombre} · Zona ${zonaNueva}`,
         resumen: `Actualizó la subzona ${subzona.nombre}`,
-        campos: ["nombre", "zona_id"],
-      })
-    ));
+        campos: Object.keys(cambios),
+        cambios,
+      });
+    }));
 
     return NextResponse.json({
       message: "Subzonas actualizadas exitosamente",

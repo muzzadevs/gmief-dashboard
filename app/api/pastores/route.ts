@@ -269,12 +269,30 @@ export async function POST(req: NextRequest) {
       return nuevaAsignacion;
     });
 
+    const asignacion = await prisma.pastorIglesia.findUnique({
+      where: { id: pastor.id },
+      select: {
+        ministerio: { select: { nombre: true, apellidos: true, codigo: true } },
+        iglesia: {
+          select: { nombre: true, zona: { select: { nombre: true, codigo: true } } },
+        },
+      },
+    });
+    if (!asignacion) throw new Error("No se pudo identificar la asignación pastoral creada");
+    const persona = [
+      [asignacion.ministerio.nombre, asignacion.ministerio.apellidos].filter(Boolean).join(" "),
+      asignacion.ministerio.codigo ? `Código ${asignacion.ministerio.codigo}` : null,
+    ].filter(Boolean).join(" · ");
+    const iglesia = `[${asignacion.iglesia.zona.codigo.toUpperCase()}] ${asignacion.iglesia.nombre}`;
+
     await registrarAuditoria(req, {
       accion: "ASIGNAR",
       entidad: "Pastor de iglesia",
       entidadId: pastor.id,
-      resumen: `Asignó el ministerio con ID ${ministerio_id} como pastor de la iglesia con ID ${iglesia_id}`,
-      campos: ["iglesia_id", "ministerio_id"],
+      identificacion: `${persona} → ${iglesia}`,
+      resumen: `Asignó a ${persona} como pastor de ${iglesia}`,
+      campos: ["iglesia", "ministerio"],
+      cambios: { asignacion: { anterior: null, nuevo: `Pastor de ${iglesia}` } },
     });
 
     return NextResponse.json({ ok: true, id: pastor.id });
@@ -325,10 +343,11 @@ export async function DELETE(req: NextRequest) {
     }
 
     if (ministerio_id) {
-      await prisma.$transaction(async (tx) => {
+      const asignaciones = await prisma.$transaction(async (tx) => {
         const asignaciones = await tx.pastorIglesia.findMany({
           where: { ministerio_id: Number(ministerio_id) },
           include: {
+            ministerio: { select: { nombre: true, apellidos: true, codigo: true } },
             iglesia: {
               select: {
                 nombre: true,
@@ -352,22 +371,44 @@ export async function DELETE(req: NextRequest) {
         await tx.pastorIglesia.deleteMany({
           where: { ministerio_id: Number(ministerio_id) },
         });
+        return asignaciones;
       });
+      const ministerio = await prisma.ministerio.findUnique({
+        where: { id: Number(ministerio_id) },
+        select: { nombre: true, apellidos: true, codigo: true },
+      });
+      const nombreMinisterio = ministerio
+        ? [ministerio.nombre, ministerio.apellidos].filter(Boolean).join(" ")
+        : "la persona seleccionada";
+      const iglesiasAnteriores = asignaciones.map(
+        (asignacion) =>
+          `[${asignacion.iglesia.zona.codigo.toUpperCase()}] ${asignacion.iglesia.nombre}`
+      );
       await registrarAuditoria(req, {
         accion: "ELIMINAR",
         entidad: "Pastor de iglesia",
         entidadId: ministerio_id,
-        resumen: `Retiró al ministerio con ID ${ministerio_id} de sus asignaciones pastorales`,
-        campos: ["ministerio_id"],
+        identificacion: ministerio
+          ? `${nombreMinisterio}${ministerio.codigo ? ` · Código ${ministerio.codigo}` : ""}`
+          : undefined,
+        resumen: `Retiró las asignaciones pastorales de ${nombreMinisterio}`,
+        campos: ["iglesias"],
+        cambios: {
+          iglesias: {
+            anterior: iglesiasAnteriores.join(", ") || null,
+            nuevo: null,
+          },
+        },
       });
       return NextResponse.json({ ok: true });
     }
 
     if (iglesia_id) {
-      await prisma.$transaction(async (tx) => {
+      const asignacion = await prisma.$transaction(async (tx) => {
         const asignacion = await tx.pastorIglesia.findUnique({
           where: { iglesia_id: Number(iglesia_id) },
           include: {
+            ministerio: { select: { nombre: true, apellidos: true, codigo: true } },
             iglesia: {
               select: {
                 nombre: true,
@@ -391,13 +432,35 @@ export async function DELETE(req: NextRequest) {
         await tx.pastorIglesia.deleteMany({
           where: { iglesia_id: Number(iglesia_id) },
         });
+        return asignacion;
       });
+      const iglesia = await prisma.iglesia.findUnique({
+        where: { id: Number(iglesia_id) },
+        select: { nombre: true, zona: { select: { codigo: true } } },
+      });
+      const nombreIglesia = iglesia
+        ? `[${iglesia.zona.codigo.toUpperCase()}] ${iglesia.nombre}`
+        : "la iglesia seleccionada";
+      const nombreMinisterio = asignacion
+        ? [asignacion.ministerio.nombre, asignacion.ministerio.apellidos].filter(Boolean).join(" ")
+        : "el pastor asignado";
       await registrarAuditoria(req, {
         accion: "ELIMINAR",
         entidad: "Pastor de iglesia",
         entidadId: iglesia_id,
-        resumen: `Retiró la asignación pastoral de la iglesia con ID ${iglesia_id}`,
-        campos: ["iglesia_id"],
+        identificacion: `${nombreMinisterio} → ${nombreIglesia}`,
+        resumen: `Retiró a ${nombreMinisterio} como pastor de ${nombreIglesia}`,
+        campos: ["pastor"],
+        cambios: {
+          pastor: {
+            anterior: asignacion
+              ? [asignacion.ministerio.nombre, asignacion.ministerio.apellidos]
+                  .filter(Boolean)
+                  .join(" ")
+              : null,
+            nuevo: null,
+          },
+        },
       });
       return NextResponse.json({ ok: true });
     }

@@ -35,7 +35,6 @@ export async function GET(request: Request, { params }: Params) {
     if (!ministerio) {
       return NextResponse.json({ ok: false, error: "Ministerio no encontrado" }, { status: 404 });
     }
-
     const observaciones = await prisma.observacion.findMany({
       where: {
         ministerio_id: ministerioId,
@@ -81,11 +80,24 @@ export async function POST(request: Request, { params }: Params) {
           ? {}
           : { iglesia: { zona_id: acceso.contexto.zonaId } }),
       },
-      select: { id: true },
+      select: {
+        id: true,
+        nombre: true,
+        apellidos: true,
+        codigo: true,
+        iglesia: {
+          select: { nombre: true, zona: { select: { codigo: true } } },
+        },
+      },
     });
     if (!ministerio) {
       return NextResponse.json({ ok: false, error: "Ministerio no encontrado" }, { status: 404 });
     }
+    const identificacionMinisterio = [
+      [ministerio.nombre, ministerio.apellidos].filter(Boolean).join(" "),
+      ministerio.codigo ? `Código ${ministerio.codigo}` : null,
+      `${ministerio.iglesia.nombre} · Zona ${ministerio.iglesia.zona.codigo}`,
+    ].filter(Boolean).join(" · ");
 
     let body: unknown;
     try {
@@ -125,8 +137,10 @@ export async function POST(request: Request, { params }: Params) {
       accion: "CREAR",
       entidad: "Observación de ministerio",
       entidadId: creada.id,
-      resumen: `Añadió una observación al ministerio con ID ${ministerioId}`,
-      detalles: { ministerio_id: ministerioId },
+      identificacion: identificacionMinisterio,
+      resumen: `Añadió una observación a ${[ministerio.nombre, ministerio.apellidos].filter(Boolean).join(" ")}`,
+      campos: ["observacion"],
+      cambios: { observacion: { anterior: null, nuevo: observacion } },
     });
 
     return NextResponse.json({ ok: true, data: creada }, { status: 201 });

@@ -162,6 +162,10 @@ export async function PUT(
 
     const existingIglesia = await prisma.iglesia.findUnique({
       where: { id },
+      include: {
+        zona: { select: { nombre: true, codigo: true } },
+        subzona: { select: { nombre: true } },
+      },
     });
 
     if (!existingIglesia) {
@@ -177,11 +181,24 @@ export async function PUT(
       return NextResponse.json({ error: "Fuera de tu zona" }, { status: 403 });
     }
 
+    const [zonaNueva, subzonaNueva] = await Promise.all([
+      prisma.zona.findUnique({
+        where: { id: Number(zona_id) },
+        select: { nombre: true, codigo: true },
+      }),
+      subzona_id
+        ? prisma.subzona.findFirst({
+            where: { id: Number(subzona_id), zona_id: Number(zona_id) },
+            select: { id: true, nombre: true },
+          })
+        : Promise.resolve(null),
+    ]);
+    if (!zonaNueva) {
+      return NextResponse.json({ error: "Zona no encontrada" }, { status: 400 });
+    }
+
     if (subzona_id) {
-      const subzona = await prisma.subzona.findFirst({
-        where: { id: Number(subzona_id), zona_id: Number(zona_id) },
-        select: { id: true },
-      });
+      const subzona = subzonaNueva;
       if (!subzona) {
         return NextResponse.json({ error: "La subzona no pertenece a la zona" }, { status: 400 });
       }
@@ -256,12 +273,60 @@ export async function PUT(
       },
     });
 
+    const cambios = {
+      ...(existingIglesia.nombre !== nombre
+        ? { nombre: { anterior: existingIglesia.nombre, nuevo: nombre } }
+        : {}),
+      ...(existingIglesia.municipio !== (municipio || null)
+        ? {
+            municipio: {
+              anterior: existingIglesia.municipio,
+              nuevo: municipio || null,
+            },
+          }
+        : {}),
+      ...(existingIglesia.provincia !== (provincia || null)
+        ? {
+            provincia: {
+              anterior: existingIglesia.provincia,
+              nuevo: provincia || null,
+            },
+          }
+        : {}),
+      ...(existingIglesia.cp !== (cp ? Number(cp) : null)
+        ? {
+            cp: {
+              anterior: existingIglesia.cp === null ? null : String(existingIglesia.cp),
+              nuevo: cp ? String(cp) : null,
+            },
+          }
+        : {}),
+      ...(existingIglesia.zona_id !== Number(zona_id)
+        ? {
+            zona: {
+              anterior: `${existingIglesia.zona.nombre} · ${existingIglesia.zona.codigo}`,
+              nuevo: `${zonaNueva.nombre} · ${zonaNueva.codigo}`,
+            },
+          }
+        : {}),
+      ...(existingIglesia.subzona_id !== (subzona_id ? Number(subzona_id) : null)
+        ? {
+            subzona: {
+              anterior: existingIglesia.subzona?.nombre ?? null,
+              nuevo: subzonaNueva?.nombre ?? null,
+            },
+          }
+        : {}),
+    };
+
     await registrarAuditoria(request, {
       accion: "EDITAR",
       entidad: "Iglesia",
       entidadId: id,
       resumen: `Actualizó la iglesia ${nombre}`,
-      campos: ["nombre", "direccion", "municipio", "provincia", "cp", "zona_id", "subzona_id", "facebook_url", "youtube_url", "tiktok_url", "instagram_url"],
+      identificacion: `${nombre} · Zona ${zonaNueva.nombre}`,
+      campos: Object.keys(cambios),
+      cambios,
     });
 
     return NextResponse.json({

@@ -84,6 +84,37 @@ export async function PUT(
     return NextResponse.json({ ok: false, error: "Formato inválido" }, { status: 400 });
   }
 
+  const permisosAnteriores = await prisma.rolModuloPermiso.findMany({
+    where: { rol_id: rolId },
+    include: {
+      modulo: { select: { nombre: true } },
+      permiso: { select: { nombre: true } },
+    },
+  });
+  const [modulosNuevos, permisosNuevos] = await Promise.all([
+    prisma.modulo.findMany({
+      where: { id: { in: permisos.map((item: { modulo_id: number }) => item.modulo_id) } },
+      select: { id: true, nombre: true },
+    }),
+    prisma.permiso.findMany({
+      where: { id: { in: permisos.map((item: { permiso_id: number }) => item.permiso_id) } },
+      select: { id: true, nombre: true },
+    }),
+  ]);
+  const nombresModulos = new Map(modulosNuevos.map((item) => [item.id, item.nombre]));
+  const nombresPermisos = new Map(permisosNuevos.map((item) => [item.id, item.nombre]));
+  const listaPermisosAnteriores = permisosAnteriores
+    .map((item) => `${item.modulo.nombre}: ${item.permiso.nombre}`)
+    .sort();
+  const listaPermisosNuevos = permisos
+    .map((item: { modulo_id: number; permiso_id: number }) => {
+      const modulo = nombresModulos.get(item.modulo_id);
+      const permiso = nombresPermisos.get(item.permiso_id);
+      return modulo && permiso ? `${modulo}: ${permiso}` : null;
+    })
+    .filter((item): item is string => item !== null)
+    .sort();
+
   // Transacción: borrar todos los permisos actuales y re-crear
   await prisma.$transaction(async (tx) => {
     await tx.rolModuloPermiso.deleteMany({ where: { rol_id: rolId } });
@@ -106,6 +137,12 @@ export async function PUT(
     resumen: `Actualizó los permisos del rol con ID ${rolId}`,
     campos: ["permisos"],
     detalles: { permisos_asignados: permisos.length },
+    cambios: {
+      permisos: {
+        anterior: listaPermisosAnteriores.join(", ") || null,
+        nuevo: listaPermisosNuevos.join(", ") || null,
+      },
+    },
   });
 
   return NextResponse.json({ ok: true });

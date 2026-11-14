@@ -81,6 +81,37 @@ const ETIQUETAS_CAMPOS: Record<string, string> = {
   permisos: "Permisos",
   cargos: "Cargos",
   observacion: "Observación",
+  descripcion: "Descripción",
+  fecha_nacimiento: "Fecha de nacimiento",
+  fecha_inicio: "Fecha de inicio",
+  fecha_referencia: "Fecha de referencia",
+  fase_referencia: "Etapa de referencia",
+  aprob: "Aprobación",
+  nuevo_tipo: "Nuevo tipo",
+  fecha_expedicion: "Fecha de expedición",
+  expedida: "Credencial expedida",
+  estado_solicitud: "Estado de la solicitud",
+  estado: "Estado",
+  iglesia: "Iglesia",
+  zona: "Zona",
+  subzona: "Subzona",
+  fecha_actualizacion: "Fecha de actualización",
+  fecha_creacion: "Fecha de creación",
+  cantidad_personas: "Personas incluidas",
+  cantidad_cargos: "Cargos asignados",
+  cargos_agregados: "Cargos añadidos",
+  cargos_eliminados: "Cargos retirados",
+  ministerios_desactivados: "Personas desactivadas",
+  iglesias_desactivadas: "Iglesias desactivadas",
+  iglesias: "Iglesias",
+  asignacion: "Asignación",
+  pastor: "Pastor",
+  evento: "Evento histórico",
+  permisos_asignados: "Permisos asignados",
+  identificacion: "Registro afectado",
+  fecha_nueva: "Nueva fecha",
+  operacion: "Operación",
+  tamano_bytes: "Tamaño del archivo",
 };
 
 function etiquetaAccion(accion: string): string {
@@ -110,6 +141,67 @@ function camposAfectados(detalles: Record<string, unknown> | null): string[] {
   const campos = detalles?.campos;
   if (!Array.isArray(campos)) return [];
   return campos.filter((campo): campo is string => typeof campo === "string");
+}
+
+function etiquetaCampo(campo: string): string {
+  return ETIQUETAS_CAMPOS[campo] ?? campo.replace(/_/g, " ");
+}
+
+function mostrarValor(valor: unknown, campo?: string): string {
+  if (valor === null || valor === undefined || valor === "") return "Sin valor";
+  if (typeof valor === "boolean") return valor ? "Sí" : "No";
+  if (Array.isArray(valor)) return valor.map((item) => mostrarValor(item, campo)).join(", ");
+  if (typeof valor === "object") return "Detalle registrado";
+  if (typeof valor === "string") {
+    if ((campo === "tipo" || campo === "nuevo_tipo") && valor === "MINISTERIO") return "Ministerio";
+    if ((campo === "tipo" || campo === "nuevo_tipo") && valor === "CANDIDATO") return "Candidato";
+    if ((campo === "estado" || campo === "estado_solicitud") && valor === "EN_PROCESO") return "En proceso";
+    if ((campo === "estado" || campo === "estado_solicitud") && valor === "COMPLETADA") return "Completada";
+    if ((campo === "estado" || campo === "estado_solicitud") && valor === "PENDIENTE") return "Pendiente";
+    if (/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(valor)) {
+      const fecha = new Date(valor);
+      if (Number.isFinite(fecha.getTime())) {
+        return new Intl.DateTimeFormat("es-ES", {
+          dateStyle: "medium",
+          timeZone: "UTC",
+        }).format(fecha);
+      }
+    }
+  }
+  return String(valor);
+}
+
+function cambiosRegistrados(
+  detalles: Record<string, unknown> | null
+): [string, { anterior: unknown; nuevo: unknown }][] {
+  const cambios = detalles?.cambios;
+  if (typeof cambios !== "object" || cambios === null || Array.isArray(cambios)) return [];
+  const resultado: [string, { anterior: unknown; nuevo: unknown }][] = [];
+  for (const [campo, valor] of Object.entries(cambios)) {
+    if (typeof valor !== "object" || valor === null || Array.isArray(valor)) continue;
+    const cambio = valor as Record<string, unknown>;
+    if (!("anterior" in cambio) || !("nuevo" in cambio)) continue;
+    resultado.push([campo, { anterior: cambio.anterior, nuevo: cambio.nuevo }]);
+  }
+  return resultado;
+}
+
+function detallesLegibles(detalles: Record<string, unknown> | null): [string, unknown][] {
+  if (!detalles) return [];
+  return Object.entries(detalles).filter(([campo]) =>
+    campo !== "campos" &&
+    campo !== "cambios" &&
+    campo !== "identificacion" &&
+    !campo.endsWith("_id") &&
+    campo !== "id"
+  );
+}
+
+function resumenLegible(resumen: string): string {
+  return resumen
+    .replace(/\s+(?:con\s+)?ID\s+\d+/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 export default function AuditoriaPage() {
@@ -248,7 +340,7 @@ export default function AuditoriaPage() {
             </label>
             <label className="text-xs font-semibold text-slate-600">
               Búsqueda
-              <input type="search" value={filtros.busqueda} onChange={(e) => actualizarFiltro("busqueda", e.target.value)} placeholder="Descripción, usuario o ID" className="input-glass mt-1 w-full" />
+              <input type="search" value={filtros.busqueda} onChange={(e) => actualizarFiltro("busqueda", e.target.value)} placeholder="Descripción, persona o registro" className="input-glass mt-1 w-full" />
             </label>
           </div>
           <div className="mt-4 flex flex-wrap gap-2 justify-end">
@@ -281,6 +373,12 @@ export default function AuditoriaPage() {
               <div className="space-y-3">
                 {registros.map((registro) => {
                   const campos = camposAfectados(registro.detalles);
+                  const cambios = cambiosRegistrados(registro.detalles);
+                  const otrosDetalles = detallesLegibles(registro.detalles);
+                  const identificacion =
+                    typeof registro.detalles?.identificacion === "string"
+                      ? registro.detalles.identificacion
+                      : null;
                   const detalleAbierto = abierto === registro.id;
                   return (
                     <article key={registro.id} className="glass-card-solid overflow-hidden">
@@ -295,9 +393,9 @@ export default function AuditoriaPage() {
                             {etiquetaAccion(registro.accion)}
                           </span>
                           <div className="min-w-0">
-                            <p className="font-semibold text-slate-800">{registro.resumen}</p>
+                            <p className="font-semibold text-slate-800">{resumenLegible(registro.resumen)}</p>
                             <p className="text-xs text-slate-500 mt-1">
-                              {registro.entidad}{registro.entidad_id ? ` · ID ${registro.entidad_id}` : ""}
+                              {registro.entidad}{identificacion ? ` · ${identificacion}` : ""}
                               {campos.length > 0 ? ` · ${campos.map((campo) => ETIQUETAS_CAMPOS[campo] ?? campo).join(", ")}` : ""}
                             </p>
                           </div>
@@ -323,20 +421,40 @@ export default function AuditoriaPage() {
                       </div>
                       {detalleAbierto && (
                         <div className="border-t border-slate-100 bg-slate-50/70 px-4 py-3 sm:px-5">
-                          <p className="text-xs text-slate-500 mb-2">
-                            Operación: <code>{registro.metodo} {registro.ruta}</code>
-                          </p>
-                          {campos.length > 0 && (
-                            <p className="text-sm text-slate-700 mb-2">
-                              Campos afectados: {campos.map((campo) => ETIQUETAS_CAMPOS[campo] ?? campo).join(", ")}
+                          {cambios.length > 0 && (
+                            <div>
+                              <h3 className="mb-2 text-sm font-semibold text-slate-700">Cambios realizados</h3>
+                              <ul className="space-y-2">
+                                {cambios.map(([campo, cambio]) => (
+                                  <li key={campo} className="rounded-lg bg-white px-3 py-2 text-sm text-slate-700">
+                                    <span className="font-semibold">{etiquetaCampo(campo)}:</span>{" "}
+                                    <span>{mostrarValor(cambio.anterior, campo)}</span>
+                                    <span className="mx-2 text-slate-400">→</span>
+                                    <span>{mostrarValor(cambio.nuevo, campo)}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {cambios.length === 0 && campos.length > 0 && (
+                            <p className="mb-2 text-sm text-slate-700">
+                              Campos afectados: {campos.map(etiquetaCampo).join(", ")}
                             </p>
                           )}
-                          {Object.keys(registro.detalles ?? {}).length > 0 ? (
-                            <pre className="overflow-x-auto rounded-lg bg-white p-3 text-xs text-slate-600">
-                              {JSON.stringify(registro.detalles, null, 2)}
-                            </pre>
-                          ) : (
-                            <p className="text-sm text-slate-500">Sin datos adicionales.</p>
+                          {otrosDetalles.length > 0 && (
+                            <dl className="mt-2 grid gap-2 sm:grid-cols-2">
+                              {otrosDetalles.map(([campo, valor]) => (
+                                <div key={campo} className="rounded-lg bg-white px-3 py-2 text-sm">
+                                  <dt className="font-semibold text-slate-700">{etiquetaCampo(campo)}</dt>
+                                  <dd className="text-slate-600">{mostrarValor(valor, campo)}</dd>
+                                </div>
+                              ))}
+                            </dl>
+                          )}
+                          {cambios.length === 0 && campos.length === 0 && otrosDetalles.length === 0 && (
+                            <p className="text-sm text-slate-500">
+                              Este movimiento no contiene más detalles.
+                            </p>
                           )}
                         </div>
                       )}

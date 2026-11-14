@@ -98,6 +98,19 @@ export async function PUT(
     entidadId: updated.id,
     resumen: `Actualizó el rol ${updated.nombre}`,
     campos: ["nombre", "descripcion"],
+    cambios: {
+      ...(rol.nombre !== updated.nombre
+        ? { nombre: { anterior: rol.nombre, nuevo: updated.nombre } }
+        : {}),
+      ...(rol.descripcion !== updated.descripcion
+        ? {
+            descripcion: {
+              anterior: rol.descripcion,
+              nuevo: updated.descripcion,
+            },
+          }
+        : {}),
+    },
   });
 
   return NextResponse.json({ ok: true, data: updated });

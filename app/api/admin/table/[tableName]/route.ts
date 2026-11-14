@@ -12,6 +12,27 @@ function getPrismaModel(modelName: string) {
   return (prisma as any)[modelName];
 }
 
+function valorAuditoria(value: unknown): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  if (value instanceof Date) return value.toLocaleDateString("es-ES");
+  if (typeof value === "boolean") return value ? "Sí" : "No";
+  if (typeof value === "string" || typeof value === "number" || typeof value === "bigint") {
+    return String(value);
+  }
+  return null;
+}
+
+function identificacionRegistro(
+  record: Record<string, unknown> | null | undefined
+): string | undefined {
+  if (!record) return undefined;
+  const campos = ["nombre", "apellidos", "codigo", "username", "cargo", "clave", "titulo"];
+  const partes = campos
+    .map((campo) => record[campo])
+    .filter((valor): valor is string => typeof valor === "string" && valor.trim() !== "");
+  return partes.length > 0 ? partes.join(" · ") : undefined;
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ tableName: string }> }
@@ -247,19 +268,40 @@ export async function PUT(
     }
 
     // Perform update
-    await model.update({
+    const where = {
+      [primaryColumn.name]: coercedPrimaryId,
+    };
+    const registroAnterior = await model.findUnique({ where });
+    const registroActualizado = await model.update({
       where: {
         [primaryColumn.name]: coercedPrimaryId,
       },
       data: updateData,
     });
 
+    const cambios = Object.fromEntries(
+      Object.entries(updateData)
+        .filter(([campo]) => !campo.endsWith("_id") && campo !== "id")
+        .map(([campo, valorNuevo]) => [
+          campo,
+          {
+            anterior: valorAuditoria(registroAnterior?.[campo]),
+            nuevo: valorAuditoria(valorNuevo),
+          },
+        ])
+    );
+    const identificacion =
+      identificacionRegistro(registroActualizado) ??
+      identificacionRegistro(registroAnterior);
+
     await registrarAuditoria(request, {
       accion: "EDITAR",
       entidad: tableDef.label,
       entidadId: String(id),
-      resumen: `Editó el registro ${String(id)} de ${tableDef.label}`,
+      identificacion,
+      resumen: `Editó ${identificacion ?? "un registro"} de ${tableDef.label}`,
       campos: Object.keys(updateData),
+      cambios,
     });
 
     return NextResponse.json({
@@ -390,12 +432,14 @@ export async function POST(
     const created = await model.create({
       data: createData,
     });
+    const identificacion = identificacionRegistro(created);
 
     await registrarAuditoria(request, {
       accion: "CREAR",
       entidad: tableDef.label,
       entidadId: created.id,
-      resumen: `Creó un registro en ${tableDef.label}`,
+      identificacion,
+      resumen: `Creó ${identificacion ?? "un registro"} en ${tableDef.label}`,
       campos: Object.keys(createData),
     });
 
@@ -489,18 +533,17 @@ export async function DELETE(
       );
     }
 
-    // Hard delete
-    await model.delete({
-      where: {
-        [primaryColumn.name]: coercedPrimaryId,
-      },
-    });
+    const where = { [primaryColumn.name]: coercedPrimaryId };
+    const registroAEliminar = await model.findUnique({ where });
+    const identificacion = identificacionRegistro(registroAEliminar);
+    await model.delete({ where });
 
     await registrarAuditoria(request, {
       accion: "ELIMINAR",
       entidad: tableDef.label,
       entidadId: String(id),
-      resumen: `Eliminó permanentemente el registro ${String(id)} de ${tableDef.label}`,
+      identificacion,
+      resumen: `Eliminó permanentemente ${identificacion ?? "un registro"} de ${tableDef.label}`,
       campos: ["registro"],
     });
 

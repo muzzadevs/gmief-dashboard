@@ -33,7 +33,18 @@ export async function PATCH(request: Request, { params }: Params) {
           ? {}
           : { ministerio: { iglesia: { zona_id: acceso.contexto.zonaId } } }),
       },
-      select: { id: true },
+      select: {
+        id: true,
+        observacion: true,
+        ministerio: {
+          select: {
+            nombre: true,
+            apellidos: true,
+            codigo: true,
+            iglesia: { select: { nombre: true, zona: { select: { codigo: true } } } },
+          },
+        },
+      },
     });
     if (!existente) {
       return NextResponse.json({ ok: false, error: "Observación no encontrada" }, { status: 404 });
@@ -70,9 +81,16 @@ export async function PATCH(request: Request, { params }: Params) {
       accion: "EDITAR",
       entidad: "Observación de ministerio",
       entidadId: observacionId,
-      resumen: `Editó una observación del ministerio con ID ${ministerioId}`,
+      identificacion: [
+        [existente.ministerio.nombre, existente.ministerio.apellidos].filter(Boolean).join(" "),
+        existente.ministerio.codigo ? `Código ${existente.ministerio.codigo}` : null,
+        `${existente.ministerio.iglesia.nombre} · Zona ${existente.ministerio.iglesia.zona.codigo}`,
+      ].filter(Boolean).join(" · "),
+      resumen: `Editó una observación de ${[existente.ministerio.nombre, existente.ministerio.apellidos].filter(Boolean).join(" ")}`,
       campos: ["observacion"],
-      detalles: { ministerio_id: ministerioId },
+      cambios: {
+        observacion: { anterior: existente.observacion, nuevo: observacion },
+      },
     });
 
     return NextResponse.json({ ok: true, data: actualizada });
@@ -105,7 +123,18 @@ export async function DELETE(request: Request, { params }: Params) {
           ? {}
           : { ministerio: { iglesia: { zona_id: acceso.contexto.zonaId } } }),
       },
-      select: { id: true },
+      select: {
+        id: true,
+        observacion: true,
+        ministerio: {
+          select: {
+            nombre: true,
+            apellidos: true,
+            codigo: true,
+            iglesia: { select: { nombre: true, zona: { select: { codigo: true } } } },
+          },
+        },
+      },
     });
     if (!existente) {
       return NextResponse.json({ ok: false, error: "Observación no encontrada" }, { status: 404 });
@@ -116,8 +145,15 @@ export async function DELETE(request: Request, { params }: Params) {
       accion: "ELIMINAR",
       entidad: "Observación de ministerio",
       entidadId: observacionId,
-      resumen: `Eliminó una observación del ministerio con ID ${ministerioId}`,
-      detalles: { ministerio_id: ministerioId },
+      identificacion: [
+        [existente.ministerio.nombre, existente.ministerio.apellidos].filter(Boolean).join(" "),
+        existente.ministerio.codigo ? `Código ${existente.ministerio.codigo}` : null,
+        `${existente.ministerio.iglesia.nombre} · Zona ${existente.ministerio.iglesia.zona.codigo}`,
+      ].filter(Boolean).join(" · "),
+      resumen: `Eliminó una observación de ${[existente.ministerio.nombre, existente.ministerio.apellidos].filter(Boolean).join(" ")}`,
+      cambios: {
+        observacion: { anterior: existente.observacion, nuevo: null },
+      },
     });
 
     return NextResponse.json({ ok: true });
