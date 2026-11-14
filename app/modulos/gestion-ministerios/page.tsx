@@ -8,14 +8,13 @@ import ModalAgregarZona from "../../components/ModalAgregarZona";
 import ModalEditarZonas from "../../components/ModalEditarZonas";
 import { searchIncludes } from "@/lib/search";
 import { useGestionMinisteriosPermissions } from "@/app/hooks/useGestionMinisteriosPermissions";
-import BuscadorGlobal from "./BuscadorGlobal";
 
 type Zona = { id: number; nombre: string; codigo: string; activo: boolean };
 type ZonaStats = Record<number, { ministerios: number; candidatos: number }>;
 
 export default function GestionMinisteriosHome() {
   const router = useRouter();
-  const { canEdit, canEditInZone, canDelete, canView, ready } = useGestionMinisteriosPermissions();
+  const { canEdit, canEditInZone, canDelete } = useGestionMinisteriosPermissions();
   const setZonaSelected = useZonasStore((s) => s.setZonaSelected);
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +76,6 @@ export default function GestionMinisteriosHome() {
               <h2 className="text-lg font-bold text-slate-800 tracking-tight">
                 Gestión de Ministerios
               </h2>
-              {ready && canView && <BuscadorGlobal />}
             </div>
           </div>
 
