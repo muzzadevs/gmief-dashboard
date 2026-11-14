@@ -26,42 +26,6 @@ export function obtenerVariantesBusqueda(termino: string): string[] {
   return [...new Set(variantes)];
 }
 
-export function obtenerFragmentosBusqueda(termino: string): string[] {
-  if (termino.length < 4) return [];
-  const fragmentos = new Set<string>();
-  for (let inicio = 0; inicio <= termino.length - 3; inicio++) {
-    fragmentos.add(termino.slice(inicio, inicio + 3));
-  }
-  return [...fragmentos];
-}
-
-function distanciaMaximaUno(a: string, b: string): boolean {
-  if (Math.abs(a.length - b.length) > 1) return false;
-
-  let i = 0;
-  let j = 0;
-  let diferencias = 0;
-  while (i < a.length && j < b.length) {
-    if (a[i] === b[j]) {
-      i++;
-      j++;
-      continue;
-    }
-
-    diferencias++;
-    if (diferencias > 1) return false;
-    if (a.length > b.length) i++;
-    else if (b.length > a.length) j++;
-    else {
-      i++;
-      j++;
-    }
-  }
-
-  if (i < a.length || j < b.length) diferencias++;
-  return diferencias <= 1;
-}
-
 export function puntuarCoincidencia(consulta: string, texto: string): number {
   const consultaNormalizada = normalizarBusquedaDifusa(consulta);
   const textoNormalizado = normalizarBusquedaDifusa(texto);
@@ -76,9 +40,6 @@ export function puntuarCoincidencia(consulta: string, texto: string): number {
       if (palabra === termino) mejorPuntuacion = Math.max(mejorPuntuacion, 100);
       else if (palabra.startsWith(termino)) mejorPuntuacion = Math.max(mejorPuntuacion, 90);
       else if (palabra.includes(termino)) mejorPuntuacion = Math.max(mejorPuntuacion, 80);
-      else if (termino.length >= 5 && distanciaMaximaUno(termino, palabra)) {
-        mejorPuntuacion = Math.max(mejorPuntuacion, 65);
-      }
     }
     if (mejorPuntuacion === 0) return 0;
     total += mejorPuntuacion;

@@ -73,9 +73,12 @@ export default function GestionMinisteriosHome() {
               </svg>
               Menú principal
             </button>
-            <h2 className="text-lg font-bold text-slate-800 tracking-tight">
-              Gestión de Ministerios
-            </h2>
+            <div className="flex flex-1 items-center justify-between gap-3">
+              <h2 className="text-lg font-bold text-slate-800 tracking-tight">
+                Gestión de Ministerios
+              </h2>
+              {ready && canView && <BuscadorGlobal />}
+            </div>
           </div>
 
           {/* Segunda fila: Buscador + Botones */}
@@ -119,14 +122,6 @@ export default function GestionMinisteriosHome() {
           </div>
         </div>
       </div>
-
-      {ready && canView && (
-        <div className="w-full flex justify-center px-2 sm:px-4 pt-2">
-          <div className="w-full max-w-4xl">
-            <BuscadorGlobal />
-          </div>
-        </div>
-      )}
 
       {/* Listado de zonas */}
       <div className="flex-1 w-full flex justify-center px-2 sm:px-4 py-4">

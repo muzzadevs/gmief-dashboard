@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BriefcaseBusiness, Church, LoaderCircle, MapPin, Search, UserRound } from "lucide-react";
+import { BriefcaseBusiness, Church, LoaderCircle, MapPin, Search, UserRound, X } from "lucide-react";
 import { useZonasStore } from "@/store/zonasStore";
 
 type ResultadoPersona = {
@@ -66,11 +66,23 @@ export default function BuscadorGlobal() {
   const setZonaSelected = useZonasStore((state) => state.setZonaSelected);
   const setIglesiaSelected = useZonasStore((state) => state.setIglesiaSelected);
   const setMinisterioEditId = useZonasStore((state) => state.setMinisterioEditId);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [abierto, setAbierto] = useState(false);
   const [consulta, setConsulta] = useState("");
   const [tipo, setTipo] = useState<TipoFiltro>("todos");
   const [resultados, setResultados] = useState<Resultado[]>([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!abierto) return;
+    inputRef.current?.focus();
+    const cerrarConEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setAbierto(false);
+    };
+    window.addEventListener("keydown", cerrarConEscape);
+    return () => window.removeEventListener("keydown", cerrarConEscape);
+  }, [abierto]);
 
   useEffect(() => {
     const texto = consulta.trim();
@@ -135,6 +147,7 @@ export default function BuscadorGlobal() {
       activo: iglesia.activo,
     });
     setMinisterioEditId(persona.id);
+    setAbierto(false);
     router.push("/modulos/gestion-ministerios/editar-ministerio");
   };
 
@@ -145,6 +158,7 @@ export default function BuscadorGlobal() {
       codigo: iglesia.zonaCodigo,
       activo: true,
     });
+    setAbierto(false);
     router.push(`/modulos/gestion-ministerios/editar-iglesia/${iglesia.id}`);
   };
 
@@ -154,130 +168,158 @@ export default function BuscadorGlobal() {
   };
 
   return (
-    <section className="glass-card-solid w-full p-4 sm:p-5" aria-label="Buscador global">
-      <div className="flex items-center gap-2 mb-3">
-        <Search className="h-5 w-5 text-indigo-600" />
-        <div>
-          <h2 className="font-bold text-slate-800">Buscador global</h2>
-          <p className="text-xs text-slate-500">
-            Busca obreros, candidatos, iglesias o cargos en las zonas a las que tienes acceso.
-          </p>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Ignora mayúsculas y tildes, y admite variantes como g/j.
-          </p>
-        </div>
-      </div>
+    <>
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        className="rounded-xl border border-slate-200 bg-white/80 p-2.5 text-slate-700 shadow-sm transition hover:bg-indigo-50 hover:text-indigo-700"
+        aria-label="Abrir buscador global"
+        title="Buscar en Gestión de Ministerios"
+      >
+        <Search className="h-5 w-5" />
+      </button>
 
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <input
-          type="search"
-          value={consulta}
-          onChange={(event) => setConsulta(event.target.value)}
-          placeholder="Nombre, iglesia, municipio, cargo o código..."
-          className="input-glass w-full pl-10"
-          autoComplete="off"
-          aria-label="Buscar en Gestión de Ministerios"
-        />
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Filtrar resultados">
-        {FILTROS.map((filtro) => (
-          <button
-            key={filtro.valor}
-            type="button"
-            onClick={() => setTipo(filtro.valor)}
-            aria-pressed={tipo === filtro.valor}
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-              tipo === filtro.valor
-                ? "bg-indigo-600 text-white"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-            }`}
+      {abierto && (
+        <div
+          className="fixed inset-0 z-[1200] flex items-start justify-center overflow-y-auto bg-slate-950/50 p-3 pt-[8vh] sm:p-6 sm:pt-[10vh]"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setAbierto(false);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="buscador-global-titulo"
+            className="glass-card-solid w-full max-w-2xl p-4 shadow-2xl sm:p-6"
           >
-            {filtro.etiqueta}
-          </button>
-        ))}
-      </div>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 id="buscador-global-titulo" className="text-lg font-bold text-slate-800">
+                Buscar
+              </h2>
+              <button
+                type="button"
+                onClick={() => setAbierto(false)}
+                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                aria-label="Cerrar buscador"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
-      {consulta.trim().length > 0 && consulta.trim().length < 2 && (
-        <p className="mt-3 text-xs text-slate-500">Escribe al menos 2 caracteres.</p>
-      )}
-      {cargando && (
-        <p className="mt-3 flex items-center gap-2 text-sm text-slate-500" role="status">
-          <LoaderCircle className="h-4 w-4 animate-spin" /> Buscando...
-        </p>
-      )}
-      {error && <p className="mt-3 text-sm text-red-600" role="alert">{error}</p>}
-      {!cargando && !error && consulta.trim().length >= 2 && resultados.length === 0 && (
-        <p className="mt-3 text-sm text-slate-500">No se encontraron resultados.</p>
-      )}
+            <div className="flex items-center rounded-xl border border-slate-200 bg-white shadow-sm focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100">
+              <Search className="ml-3 h-5 w-5 shrink-0 text-slate-400" aria-hidden="true" />
+              <input
+                ref={inputRef}
+                type="search"
+                value={consulta}
+                onChange={(event) => setConsulta(event.target.value)}
+                placeholder="Buscar personas, iglesias o cargos..."
+                className="min-w-0 flex-1 bg-transparent px-3 py-3 text-sm text-slate-800 outline-none placeholder:text-slate-400"
+                autoComplete="off"
+                aria-label="Buscar en Gestión de Ministerios"
+              />
+            </div>
 
-      {resultados.length > 0 && (
-        <ul className="mt-3 max-h-[28rem] divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-100">
-          {resultados.map((resultado) => (
-            <li key={`${resultado.tipo}-${resultado.id}`}>
-              {resultado.tipo === "persona" ? (
+            <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Filtrar resultados">
+              {FILTROS.map((filtro) => (
                 <button
+                  key={filtro.valor}
                   type="button"
-                  onClick={() => abrirPersona(resultado)}
-                  className="flex w-full items-start gap-3 p-3 text-left hover:bg-indigo-50/60"
+                  onClick={() => setTipo(filtro.valor)}
+                  aria-pressed={tipo === filtro.valor}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    tipo === filtro.valor
+                      ? "bg-indigo-600 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
                 >
-                  <UserRound className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold text-slate-800">{resultado.nombre}</span>
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                        resultado.subtipo === "Candidato"
-                          ? "bg-amber-100 text-amber-700"
-                          : "bg-emerald-100 text-emerald-700"
-                      }`}>{resultado.subtipo}</span>
-                    </span>
-                    <span className="mt-1 block text-xs text-slate-500">
-                      {resultado.alias ? `«${resultado.alias}» · ` : ""}
-                      {resultado.iglesia} · {resultado.zona}
-                      {resultado.municipio ? ` · ${resultado.municipio}` : ""}
-                    </span>
-                    <span className="mt-1 block text-xs text-slate-500">
-                      {resultado.codigo ? `Código: ${resultado.codigo}` : ""}
-                      {resultado.cargos.length > 0 ? `${resultado.codigo ? " · " : ""}Cargos: ${resultado.cargos.join(", ")}` : ""}
-                    </span>
-                  </span>
-                  <MapPin className="h-4 w-4 shrink-0 text-slate-300" />
+                  {filtro.etiqueta}
                 </button>
-              ) : resultado.tipo === "iglesia" ? (
-                <button
-                  type="button"
-                  onClick={() => abrirIglesia(resultado)}
-                  className="flex w-full items-start gap-3 p-3 text-left hover:bg-indigo-50/60"
-                >
-                  <Church className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
-                  <span className="min-w-0 flex-1">
-                    <span className="font-semibold text-slate-800">{resultado.nombre}</span>
-                    <span className="mt-1 block text-xs text-slate-500">
-                      {resultado.zona}
-                      {resultado.municipio ? ` · ${resultado.municipio}` : ""}
-                      {resultado.provincia ? ` · ${resultado.provincia}` : ""}
-                    </span>
-                  </span>
-                  <MapPin className="h-4 w-4 shrink-0 text-slate-300" />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => abrirCargo(resultado)}
-                  className="flex w-full items-start gap-3 p-3 text-left hover:bg-indigo-50/60"
-                >
-                  <BriefcaseBusiness className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-                  <span className="min-w-0 flex-1">
-                    <span className="font-semibold text-slate-800">{resultado.nombre}</span>
-                    <span className="mt-1 block text-xs text-slate-500">Buscar personas con este cargo</span>
-                  </span>
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
+              ))}
+            </div>
+
+            {consulta.trim().length > 0 && consulta.trim().length < 2 && (
+              <p className="mt-3 text-xs text-slate-500">Escribe al menos 2 caracteres.</p>
+            )}
+            {cargando && (
+              <p className="mt-3 flex items-center gap-2 text-sm text-slate-500" role="status">
+                <LoaderCircle className="h-4 w-4 animate-spin" /> Buscando...
+              </p>
+            )}
+            {error && <p className="mt-3 text-sm text-red-600" role="alert">{error}</p>}
+            {!cargando && !error && consulta.trim().length >= 2 && resultados.length === 0 && (
+              <p className="mt-3 text-sm text-slate-500">No hay resultados.</p>
+            )}
+
+            {resultados.length > 0 && (
+              <ul className="mt-3 max-h-[60vh] divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-100">
+                {resultados.map((resultado) => (
+                  <li key={`${resultado.tipo}-${resultado.id}`}>
+                    {resultado.tipo === "persona" ? (
+                      <button
+                        type="button"
+                        onClick={() => abrirPersona(resultado)}
+                        className="flex w-full items-start gap-3 p-3 text-left hover:bg-indigo-50/60"
+                      >
+                        <UserRound className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-slate-800">{resultado.nombre}</span>
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                              resultado.subtipo === "Candidato"
+                                ? "bg-amber-100 text-amber-700"
+                                : "bg-emerald-100 text-emerald-700"
+                            }`}>{resultado.subtipo}</span>
+                          </span>
+                          <span className="mt-1 block text-xs text-slate-500">
+                            {resultado.alias ? `«${resultado.alias}» · ` : ""}
+                            {resultado.iglesia} · {resultado.zona}
+                            {resultado.municipio ? ` · ${resultado.municipio}` : ""}
+                          </span>
+                          <span className="mt-1 block text-xs text-slate-500">
+                            {resultado.codigo ? `Código: ${resultado.codigo}` : ""}
+                            {resultado.cargos.length > 0 ? `${resultado.codigo ? " · " : ""}Cargos: ${resultado.cargos.join(", ")}` : ""}
+                          </span>
+                        </span>
+                        <MapPin className="h-4 w-4 shrink-0 text-slate-300" />
+                      </button>
+                    ) : resultado.tipo === "iglesia" ? (
+                      <button
+                        type="button"
+                        onClick={() => abrirIglesia(resultado)}
+                        className="flex w-full items-start gap-3 p-3 text-left hover:bg-indigo-50/60"
+                      >
+                        <Church className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+                        <span className="min-w-0 flex-1">
+                          <span className="font-semibold text-slate-800">{resultado.nombre}</span>
+                          <span className="mt-1 block text-xs text-slate-500">
+                            {resultado.zona}
+                            {resultado.municipio ? ` · ${resultado.municipio}` : ""}
+                            {resultado.provincia ? ` · ${resultado.provincia}` : ""}
+                          </span>
+                        </span>
+                        <MapPin className="h-4 w-4 shrink-0 text-slate-300" />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => abrirCargo(resultado)}
+                        className="flex w-full items-start gap-3 p-3 text-left hover:bg-indigo-50/60"
+                      >
+                        <BriefcaseBusiness className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                        <span className="min-w-0 flex-1">
+                          <span className="font-semibold text-slate-800">{resultado.nombre}</span>
+                          <span className="mt-1 block text-xs text-slate-500">Buscar personas con este cargo</span>
+                        </span>
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
       )}
-    </section>
+    </>
   );
 }

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
 import { requireGestionMinisteriosPermission } from "@/lib/gestionMinisteriosPermissions";
 import {
-  obtenerFragmentosBusqueda,
   obtenerTerminosBusqueda,
   obtenerVariantesBusqueda,
   puntuarCoincidencia,
@@ -11,8 +10,7 @@ import { resolverAlcanceZona } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 function terminosAmpliados(termino: string): string[] {
-  const variantes = obtenerVariantesBusqueda(termino);
-  return [...new Set([...variantes, ...obtenerFragmentosBusqueda(termino)])];
+  return obtenerVariantesBusqueda(termino);
 }
 
 function ministerioTerminoWhere(termino: string): Prisma.MinisterioWhereInput[] {
