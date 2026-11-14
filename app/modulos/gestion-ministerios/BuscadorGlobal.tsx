@@ -48,8 +48,13 @@ type ResultadoIglesia = {
   tipo: "iglesia";
   id: number;
   nombre: string;
+  direccion: string | null;
   municipio: string | null;
   provincia: string | null;
+  zona_id: number;
+  subzona_id: number | null;
+  cp: number | null;
+  activo: boolean;
   zona: string;
   zonaId: number;
   zonaCodigo: string;
@@ -176,7 +181,27 @@ export default function BuscadorGlobal() {
       activo: true,
     });
     setAbierto(false);
-    router.push(`/modulos/gestion-ministerios/editar-iglesia/${iglesia.id}`);
+    if (isSuperAdmin) {
+      router.push(`/modulos/gestion-ministerios/editar-iglesia/${iglesia.id}`);
+    } else {
+      setIglesiaSelected({
+        id: iglesia.id,
+        nombre: iglesia.nombre,
+        direccion: iglesia.direccion,
+        municipio: iglesia.municipio,
+        provincia: iglesia.provincia,
+        zona_id: iglesia.zona_id,
+        subzona_id: iglesia.subzona_id,
+        cp: iglesia.cp,
+        facebook_url: null,
+        youtube_url: null,
+        tiktok_url: null,
+        instagram_url: null,
+        activo: iglesia.activo,
+      });
+      setMinisterioEditId(null);
+      router.push("/modulos/gestion-ministerios/ministerios");
+    }
   };
 
   const abrirCargo = (cargo: ResultadoCargo) => {
