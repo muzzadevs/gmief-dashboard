@@ -29,6 +29,14 @@ type MinisterioHistorico = {
   valor_nuevo: string | null;
   fecha: string;
 };
+type ObservacionMinisterio = {
+  id: number;
+  observacion: string;
+  fecha_creacion: string | null;
+  autor_id: number | null;
+  autor_nombre: string | null;
+  autor_username: string | null;
+};
 type IglesiaTodas = {
   id: number;
   nombre: string;
@@ -44,6 +52,14 @@ const DOC_TYPE_OPTIONS = [
 ] as const;
 
 const PASTOR_CARGO_ID = 1;
+
+function formatearFechaObservacion(fecha: string | null): string {
+  if (!fecha) return "Fecha no registrada";
+  return new Intl.DateTimeFormat("es-ES", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(fecha));
+}
 
 const DNI_LETTERS = "TRWAGMYFPDXBNJZSQVHLCKE";
 function validarDNIFrontend(dni: string): { valid: boolean; error?: string } {
@@ -126,6 +142,17 @@ export default function EditarMinisterio() {
   const [historicoError, setHistoricoError] = useState("");
   const [historico, setHistorico] = useState<MinisterioHistorico[]>([]);
   const [historicoSavingId, setHistoricoSavingId] = useState<number | null>(null);
+  const [observaciones, setObservaciones] = useState<ObservacionMinisterio[]>([]);
+  const [observacionesLoading, setObservacionesLoading] = useState(false);
+  const [observacionesError, setObservacionesError] = useState("");
+  const [nuevaObservacion, setNuevaObservacion] = useState("");
+  const [observacionEditando, setObservacionEditando] = useState<{
+    id: number;
+    texto: string;
+  } | null>(null);
+  const [observacionAEliminarId, setObservacionAEliminarId] = useState<number | null>(null);
+  const [observacionGuardando, setObservacionGuardando] = useState(false);
+  const [observacionEliminandoId, setObservacionEliminandoId] = useState<number | null>(null);
   const [docType, setDocType] = useState<DocType>("DNI");
 
   // Pastor state
@@ -247,6 +274,46 @@ export default function EditarMinisterio() {
     };
     fetchData();
   }, [iglesiaSelected, router, ministerioEditId]);
+
+  useEffect(() => {
+    if (!form?.id || !canEditInZone) {
+      setObservaciones([]);
+      setObservacionesError("");
+      setObservacionesLoading(false);
+      return;
+    }
+
+    let active = true;
+    const cargarObservaciones = async () => {
+      setObservacionesLoading(true);
+      setObservacionesError("");
+      try {
+        const response = await fetch(`/api/ministerios/${form.id}/observaciones`);
+        const result: {
+          ok: boolean;
+          data?: ObservacionMinisterio[];
+          error?: string;
+        } = await response.json();
+        if (!response.ok || !result.ok || !result.data) {
+          throw new Error(result.error || "No se pudieron obtener las observaciones");
+        }
+        if (active) setObservaciones(result.data);
+      } catch (error) {
+        if (active) {
+          setObservacionesError(
+            error instanceof Error ? error.message : "No se pudieron obtener las observaciones"
+          );
+        }
+      } finally {
+        if (active) setObservacionesLoading(false);
+      }
+    };
+
+    void cargarObservaciones();
+    return () => {
+      active = false;
+    };
+  }, [form?.id, canEditInZone]);
 
   // When iglesia changes in form, re-fetch codigo
   const handleIglesiaChange = async (val: string) => {
@@ -457,6 +524,110 @@ export default function EditarMinisterio() {
       showError(error instanceof Error ? error.message : "No se pudo actualizar la fecha");
     } finally {
       setHistoricoSavingId(null);
+    }
+  };
+
+  const handleCrearObservacion = async () => {
+    if (!form) return;
+    const texto = nuevaObservacion.trim();
+    if (!texto) {
+      setObservacionesError("Escribe una observación antes de guardarla");
+      return;
+    }
+
+    setObservacionGuardando(true);
+    setObservacionesError("");
+    try {
+      const response = await fetch(`/api/ministerios/${form.id}/observaciones`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ observacion: texto }),
+      });
+      const result: {
+        ok: boolean;
+        data?: ObservacionMinisterio;
+        error?: string;
+      } = await response.json();
+      if (!response.ok || !result.ok || !result.data) {
+        throw new Error(result.error || "No se pudo crear la observación");
+      }
+      const creada = result.data;
+      setObservaciones((actuales) => [creada, ...actuales]);
+      setNuevaObservacion("");
+      showSuccess("Observación añadida");
+    } catch (error) {
+      const mensaje = error instanceof Error ? error.message : "No se pudo crear la observación";
+      setObservacionesError(mensaje);
+      showError(mensaje);
+    } finally {
+      setObservacionGuardando(false);
+    }
+  };
+
+  const handleGuardarObservacionEditada = async () => {
+    if (!form || !observacionEditando) return;
+    const texto = observacionEditando.texto.trim();
+    if (!texto) {
+      setObservacionesError("La observación no puede estar vacía");
+      return;
+    }
+
+    setObservacionGuardando(true);
+    setObservacionesError("");
+    try {
+      const response = await fetch(
+        `/api/ministerios/${form.id}/observaciones/${observacionEditando.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ observacion: texto }),
+        }
+      );
+      const result: {
+        ok: boolean;
+        data?: ObservacionMinisterio;
+        error?: string;
+      } = await response.json();
+      if (!response.ok || !result.ok || !result.data) {
+        throw new Error(result.error || "No se pudo actualizar la observación");
+      }
+      const actualizada = result.data;
+      setObservaciones((actuales) =>
+        actuales.map((item) => (item.id === actualizada.id ? actualizada : item))
+      );
+      setObservacionEditando(null);
+      showSuccess("Observación actualizada");
+    } catch (error) {
+      const mensaje = error instanceof Error ? error.message : "No se pudo actualizar la observación";
+      setObservacionesError(mensaje);
+      showError(mensaje);
+    } finally {
+      setObservacionGuardando(false);
+    }
+  };
+
+  const handleEliminarObservacion = async (observacionId: number) => {
+    if (!form) return;
+    setObservacionEliminandoId(observacionId);
+    setObservacionesError("");
+    try {
+      const response = await fetch(
+        `/api/ministerios/${form.id}/observaciones/${observacionId}`,
+        { method: "DELETE" }
+      );
+      const result: { ok: boolean; error?: string } = await response.json();
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || "No se pudo eliminar la observación");
+      }
+      setObservaciones((actuales) => actuales.filter((item) => item.id !== observacionId));
+      setObservacionAEliminarId(null);
+      showSuccess("Observación eliminada");
+    } catch (error) {
+      const mensaje = error instanceof Error ? error.message : "No se pudo eliminar la observación";
+      setObservacionesError(mensaje);
+      showError(mensaje);
+    } finally {
+      setObservacionEliminandoId(null);
     }
   };
 
@@ -810,6 +981,159 @@ export default function EditarMinisterio() {
                   )}
                 </div>
               </div>
+            )}
+
+            {canEditInZone && (
+              <section
+                aria-labelledby="observaciones-title"
+                className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5"
+              >
+                <h3 id="observaciones-title" className="text-base font-bold text-slate-800">
+                  Observaciones
+                </h3>
+
+                <div className="mt-3 flex flex-col gap-2">
+                  <textarea
+                    value={nuevaObservacion}
+                    onChange={(event) => setNuevaObservacion(event.target.value)}
+                    maxLength={255}
+                    rows={3}
+                    className="input-glass w-full resize-y"
+                    placeholder="Escribe una observación..."
+                    aria-label="Nueva observación"
+                  />
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs text-slate-500">{nuevaObservacion.length}/255</span>
+                    <button
+                      type="button"
+                      onClick={() => void handleCrearObservacion()}
+                      disabled={observacionGuardando || !nuevaObservacion.trim()}
+                      className="btn-primary bg-violet-600 text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {observacionGuardando ? "Guardando..." : "Añadir observación"}
+                    </button>
+                  </div>
+                </div>
+
+                {observacionesError && (
+                  <p className="mt-3 text-sm text-red-600" role="alert">
+                    {observacionesError}
+                  </p>
+                )}
+                {observacionesLoading ? (
+                  <p className="mt-4 text-sm text-slate-500" role="status">
+                    Cargando observaciones...
+                  </p>
+                ) : observaciones.length === 0 ? (
+                  <p className="mt-4 text-sm text-slate-500">Todavía no hay observaciones.</p>
+                ) : (
+                  <ul className="mt-4 flex flex-col gap-3">
+                    {observaciones.map((item) => (
+                      <li
+                        key={item.id}
+                        className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4"
+                      >
+                        {observacionEditando?.id === item.id ? (
+                          <div className="flex flex-col gap-2">
+                            <textarea
+                              value={observacionEditando.texto}
+                              onChange={(event) =>
+                                setObservacionEditando((actual) =>
+                                  actual ? { ...actual, texto: event.target.value } : actual
+                                )
+                              }
+                              maxLength={255}
+                              rows={3}
+                              className="input-glass w-full resize-y"
+                              aria-label="Editar observación"
+                            />
+                            <div className="flex justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setObservacionEditando(null)}
+                                disabled={observacionGuardando}
+                                className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void handleGuardarObservacionEditada()}
+                                disabled={observacionGuardando || !observacionEditando.texto.trim()}
+                                className="rounded-lg bg-violet-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {observacionGuardando ? "Guardando..." : "Guardar"}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="whitespace-pre-wrap break-words text-sm text-slate-800">
+                              {item.observacion}
+                            </p>
+                            <div className="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-2 sm:flex-row sm:items-center sm:justify-between">
+                              <span className="text-xs text-slate-500">
+                                {item.autor_nombre || item.autor_username || "Autor no registrado"}
+                                {item.autor_nombre && item.autor_username
+                                  ? ` (@${item.autor_username})`
+                                  : ""}
+                                {" · Creada "}
+                                {formatearFechaObservacion(item.fecha_creacion)}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                {observacionAEliminarId === item.id ? (
+                                  <>
+                                    <span className="text-xs text-slate-600">¿Eliminar?</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => void handleEliminarObservacion(item.id)}
+                                      disabled={observacionEliminandoId === item.id}
+                                      className="rounded-lg bg-red-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                                    >
+                                      {observacionEliminandoId === item.id ? "Eliminando..." : "Confirmar"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setObservacionAEliminarId(null)}
+                                      disabled={observacionEliminandoId === item.id}
+                                      className="rounded-lg px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+                                    >
+                                      Cancelar
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setObservacionAEliminarId(null);
+                                        setObservacionEditando({
+                                          id: item.id,
+                                          texto: item.observacion,
+                                        });
+                                      }}
+                                      className="rounded-lg px-2.5 py-1 text-xs font-semibold text-violet-700 hover:bg-violet-50"
+                                    >
+                                      Editar
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setObservacionAEliminarId(item.id)}
+                                      className="rounded-lg px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
+                                    >
+                                      Eliminar
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
             )}
 
             <div className="flex flex-col sm:flex-row gap-3 mt-2">

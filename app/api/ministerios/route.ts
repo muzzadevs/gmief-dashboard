@@ -65,7 +65,6 @@ export async function GET(req: Request) {
             fecha_inicio: true,
             fecha_candidato_local: true,
             fecha_candidato_nacional: true,
-            notas: true,
           },
         },
       },
@@ -166,7 +165,6 @@ export async function GET(req: Request) {
         ? new Date(m.candidato_detalle.fecha_candidato_nacional).toISOString().split("T")[0]
         : null,
       activo: m.activo,
-      notas: m.candidato_detalle?.notas || null,
     };
   });
 

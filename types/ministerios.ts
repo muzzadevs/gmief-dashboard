@@ -22,7 +22,6 @@ export type Ministerio = {
   fecha_inicio: string | null;
   fecha_candidato_local: string | null;
   fecha_candidato_nacional: string | null;
-  notas: string | null;
 };
 
 export type Cargo = {

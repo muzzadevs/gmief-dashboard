@@ -165,7 +165,7 @@ export async function getAdminTableDefinitions(): Promise<AdminTableDef[]> {
 
   const definitions = await Promise.all(
     runtimeModels
-      .filter(([modelName]) => modelName !== "Auditoria")
+      .filter(([modelName]) => modelName !== "Auditoria" && modelName !== "Observacion")
       .map(async ([modelName, model]) => {
         const tableName = model.dbName || toDelegateName(modelName);
         const scalarFields = (model.fields || []).filter((field) => field.kind === "scalar");

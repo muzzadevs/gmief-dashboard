@@ -1,0 +1,126 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { registrarAuditoria } from "@/lib/auditoria";
+import {
+  leerTextoObservacion,
+  verificarAccesoObservaciones,
+} from "@/lib/observacionesMinisterio";
+
+type Params = { params: Promise<{ id: string }> };
+
+function validarMinisterioId(id: string): number | null {
+  const ministerioId = Number(id);
+  return Number.isInteger(ministerioId) && ministerioId > 0 ? ministerioId : null;
+}
+
+export async function GET(request: Request, { params }: Params) {
+  try {
+    const acceso = await verificarAccesoObservaciones(request);
+    if (!acceso.ok) return acceso.response;
+
+    const ministerioId = validarMinisterioId((await params).id);
+    if (!ministerioId) {
+      return NextResponse.json({ ok: false, error: "ID de ministerio no válido" }, { status: 400 });
+    }
+
+    const ministerio = await prisma.ministerio.findFirst({
+      where: { id: ministerioId, iglesia: { zona_id: acceso.contexto.zonaId } },
+      select: { id: true },
+    });
+    if (!ministerio) {
+      return NextResponse.json({ ok: false, error: "Ministerio no encontrado" }, { status: 404 });
+    }
+
+    const observaciones = await prisma.observacion.findMany({
+      where: {
+        ministerio_id: ministerioId,
+        ministerio: { iglesia: { zona_id: acceso.contexto.zonaId } },
+      },
+      orderBy: [{ fecha_creacion: "desc" }, { id: "desc" }],
+      select: {
+        id: true,
+        observacion: true,
+        fecha_creacion: true,
+        autor_id: true,
+        autor_nombre: true,
+        autor_username: true,
+      },
+    });
+
+    return NextResponse.json({ ok: true, data: observaciones });
+  } catch (error) {
+    console.error("[GET /api/ministerios/[id]/observaciones] Error:", error);
+    return NextResponse.json(
+      { ok: false, error: "No se pudieron obtener las observaciones" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request, { params }: Params) {
+  try {
+    const acceso = await verificarAccesoObservaciones(request);
+    if (!acceso.ok) return acceso.response;
+
+    const ministerioId = validarMinisterioId((await params).id);
+    if (!ministerioId) {
+      return NextResponse.json({ ok: false, error: "ID de ministerio no válido" }, { status: 400 });
+    }
+
+    const ministerio = await prisma.ministerio.findFirst({
+      where: { id: ministerioId, iglesia: { zona_id: acceso.contexto.zonaId } },
+      select: { id: true },
+    });
+    if (!ministerio) {
+      return NextResponse.json({ ok: false, error: "Ministerio no encontrado" }, { status: 404 });
+    }
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ ok: false, error: "Solicitud JSON no válida" }, { status: 400 });
+    }
+    const observacion = leerTextoObservacion(body);
+    if (!observacion) {
+      return NextResponse.json(
+        { ok: false, error: "La observación es obligatoria y no puede superar 255 caracteres" },
+        { status: 400 }
+      );
+    }
+
+    const creada = await prisma.observacion.create({
+      data: {
+        observacion,
+        autor_nombre: acceso.contexto.autorNombre,
+        autor_username: acceso.contexto.autorUsername,
+        ministerio: { connect: { id: ministerioId } },
+        autor: { connect: { id: acceso.contexto.autorId } },
+      },
+      select: {
+        id: true,
+        observacion: true,
+        fecha_creacion: true,
+        autor_id: true,
+        autor_nombre: true,
+        autor_username: true,
+      },
+    });
+
+    await registrarAuditoria(request, {
+      accion: "CREAR",
+      entidad: "Observación de ministerio",
+      entidadId: creada.id,
+      resumen: `Añadió una observación al ministerio con ID ${ministerioId}`,
+      detalles: { ministerio_id: ministerioId },
+    });
+
+    return NextResponse.json({ ok: true, data: creada }, { status: 201 });
+  } catch (error) {
+    console.error("[POST /api/ministerios/[id]/observaciones] Error:", error);
+    return NextResponse.json(
+      { ok: false, error: "No se pudo crear la observación" },
+      { status: 500 }
+    );
+  }
+}

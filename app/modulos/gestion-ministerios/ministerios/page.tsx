@@ -588,11 +588,6 @@ export default function Ministerios() {
                         {cargo.cargo}
                       </span>
                     ))}
-                    {isCandidato && min.notas && (
-                      <span className="px-2.5 py-1 rounded-lg bg-yellow-50 text-xs font-medium text-yellow-700" title={min.notas}>
-                        📝 {min.notas.length > 40 ? min.notas.slice(0, 40) + "..." : min.notas}
-                      </span>
-                    )}
                   </div>
 
                   {/* Botones en móvil */}

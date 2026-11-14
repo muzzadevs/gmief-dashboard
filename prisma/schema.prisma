@@ -80,7 +80,8 @@ model Ministerio {
   iglesia              Iglesia          @relation(fields: [iglesia_id], references: [id])
   estado               Estado           @relation(fields: [estado_id], references: [id])
   cargos               MinisterioCargo[]
-  observaciones        Observacion[]
+  observaciones         Observacion[] @relation("MinisterioObservaciones")
+  observacionesEscritas Observacion[] @relation("AutorObservaciones")
   candidato_detalle    CandidatoDetalle?
   pastor_iglesia       PastorIglesia?
   solicitud_items      SolicitudCredencialItem[]
@@ -135,12 +136,19 @@ model MinisterioCargo {
 }
 
 model Observacion {
-  id            Int        @id @default(autoincrement())
-  ministerio_id Int
-  observacion   String     @db.VarChar(255)
-  ministerio    Ministerio @relation(fields: [ministerio_id], references: [id])
+  id                  Int         @id @default(autoincrement())
+  ministerio_id       Int
+  autor_id            Int?
+  autor_nombre        String?     @db.VarChar(100)
+  autor_username      String?     @db.VarChar(50)
+  observacion         String      @db.VarChar(255)
+  fecha_creacion      DateTime?   @default(now()) @db.DateTime(3)
+  fecha_actualizacion DateTime    @updatedAt @db.DateTime(3)
+  ministerio          Ministerio  @relation("MinisterioObservaciones", fields: [ministerio_id], references: [id])
+  autor               Ministerio? @relation("AutorObservaciones", fields: [autor_id], references: [id], onDelete: SetNull)
 
   @@index([ministerio_id])
+  @@index([autor_id])
   @@map("observaciones")
 }
 
