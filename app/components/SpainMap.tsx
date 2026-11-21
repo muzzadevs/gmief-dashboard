@@ -20,6 +20,16 @@ type IglesiaMapa = {
   subzona: { nombre: string } | null;
 };
 
+type MinisterioMapa = {
+  id: number;
+  nombre: string;
+  apellidos: string | null;
+  alias: string | null;
+  tipo: string;
+  codigo: string | null;
+  iglesia_id: number;
+};
+
 function buildFullAddress(iglesia: IglesiaMapa): string {
   const parts: string[] = [];
   if (iglesia.direccion) parts.push(iglesia.direccion);
@@ -79,6 +89,7 @@ function FlyToHandler({
 
 export default function SpainMap({ onLoadingChange }: SpainMapProps) {
   const [iglesias, setIglesias] = useState<IglesiaMapa[]>([]);
+  const [ministerios, setMinisterios] = useState<MinisterioMapa[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedIglesia, setSelectedIglesia] = useState<IglesiaMapa | null>(null);
@@ -93,8 +104,9 @@ export default function SpainMap({ onLoadingChange }: SpainMapProps) {
       const res = await fetch("/api/iglesias/mapa");
       if (!res.ok) throw new Error("Error al cargar las iglesias");
       const data = await res.json();
-      if (data.ok && data.data) {
-        setIglesias(data.data);
+      if (data.ok && data.iglesias) {
+        setIglesias(data.iglesias);
+        setMinisterios(data.ministerios ?? []);
       } else {
         throw new Error(data.message || "Error desconocido");
       }
@@ -155,7 +167,7 @@ export default function SpainMap({ onLoadingChange }: SpainMapProps) {
 
       {/* Floating search bar */}
       {!loading && iglesias.length > 0 && (
-        <MapSearchBar iglesias={iglesias} onSelect={handleSearchSelect} />
+        <MapSearchBar iglesias={iglesias} ministerios={ministerios} onSelect={handleSearchSelect} />
       )}
 
       <MapContainer
@@ -210,25 +222,21 @@ export default function SpainMap({ onLoadingChange }: SpainMapProps) {
                     >
                       {fullAddress || "Sin dirección"}
                     </div>
-                    {fullAddress && (
-                      <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                          fullAddress
-                        )}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-block px-3 py-1 bg-black rounded hover:cursor-pointer transition"
-                        style={{
-                          color: "#fff",
-                          fontFamily: "Poppins, sans-serif",
-                          fontWeight: 500,
-                          textDecoration: "none",
-                          fontSize: "1em",
-                        }}
-                      >
-                        Abrir en maps
-                      </a>
-                    )}
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${iglesia.latitud},${iglesia.longitud}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block px-3 py-1 bg-black rounded hover:cursor-pointer transition"
+                      style={{
+                        color: "#fff",
+                        fontFamily: "Poppins, sans-serif",
+                        fontWeight: 500,
+                        textDecoration: "none",
+                        fontSize: "1em",
+                      }}
+                    >
+                      Abrir en maps
+                    </a>
                   </div>
                 </Popup>
               </Marker>

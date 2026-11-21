@@ -39,9 +39,10 @@ model Iglesia {
   zona_id     Int
   subzona_id  Int?
   cp          Int?
-  latitud     Float?
-  longitud    Float?
-  facebook_url  String? @db.VarChar(2048)
+  latitud          Float?
+  longitud         Float?
+  ubicacion_manual Boolean  @default(false)
+  facebook_url     String?  @db.VarChar(2048)
   youtube_url   String? @db.VarChar(2048)
   tiktok_url    String? @db.VarChar(2048)
   instagram_url String? @db.VarChar(2048)

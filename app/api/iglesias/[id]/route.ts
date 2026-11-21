@@ -205,6 +205,7 @@ export async function PUT(
     }
 
     // Verificar si los campos de dirección cambiaron para re-geocodificar
+    // Si la ubicación fue establecida manualmente, NO re-geocodificar
     let latitud = existingIglesia.latitud;
     let longitud = existingIglesia.longitud;
 
@@ -222,8 +223,8 @@ export async function PUT(
       cp: existingIglesia.cp,
     };
 
-    if (addressFieldsChanged(newAddress, oldAddress)) {
-      // Los campos de dirección cambiaron, re-geocodificar
+    if (!existingIglesia.ubicacion_manual && addressFieldsChanged(newAddress, oldAddress)) {
+      // Los campos de dirección cambiaron y la ubicación NO es manual, re-geocodificar
       if (municipio && provincia) {
         try {
           const coords = await geocodeIglesia(newAddress);

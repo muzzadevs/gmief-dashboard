@@ -17,8 +17,15 @@ import {
   FaFacebookF,
   FaInstagram,
   FaYoutube,
+  FaMapMarkerAlt,
 } from "react-icons/fa";
 import { FaTiktok } from "react-icons/fa6";
+import dynamic from "next/dynamic";
+
+const ModalUbicacionMapa = dynamic(
+  () => import("../../../../components/ModalUbicacionMapa"),
+  { ssr: false }
+);
 
 type Zona = { id: number; nombre: string; activo: boolean };
 type Subzona = { id: number; nombre: string; zona_id: number; activo: boolean };
@@ -31,6 +38,9 @@ type Iglesia = {
   cp: string;
   zona_id: number;
   subzona_id: number | null;
+  latitud: number | null;
+  longitud: number | null;
+  ubicacion_manual: boolean;
   facebook_url: string | null;
   youtube_url: string | null;
   tiktok_url: string | null;
@@ -69,6 +79,10 @@ export default function EditarIglesia({ params }: Props) {
   const [loadingData, setLoadingData] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [ubicacionModalOpen, setUbicacionModalOpen] = useState(false);
+  const [ubicacionSaving, setUbicacionSaving] = useState(false);
+  const [iglesiaLatitud, setIglesiaLatitud] = useState<number | null>(null);
+  const [iglesiaLongitud, setIglesiaLongitud] = useState<number | null>(null);
 
   const cleanValue = (value: unknown): string =>
     value === null || value === undefined || value === "null"
@@ -92,6 +106,8 @@ export default function EditarIglesia({ params }: Props) {
         const iglesiadata: Iglesia = await iglesiasRes.json();
         if (aborted) return;
         setIglesia(iglesiadata);
+        setIglesiaLatitud(iglesiadata.latitud ?? null);
+        setIglesiaLongitud(iglesiadata.longitud ?? null);
 
         if (zonasRes.ok) {
           const zonasResponse = await zonasRes.json();
@@ -196,6 +212,32 @@ export default function EditarIglesia({ params }: Props) {
     } finally {
       setDeleteLoading(false);
       setDeleteModalOpen(false);
+    }
+  };
+
+  const handleSaveUbicacion = async (latitud: number, longitud: number) => {
+    setUbicacionSaving(true);
+    try {
+      const res = await fetch(`/api/iglesias/${id}/ubicacion`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ latitud, longitud }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "No se pudo guardar la ubicación");
+      }
+
+      setIglesiaLatitud(latitud);
+      setIglesiaLongitud(longitud);
+      setUbicacionModalOpen(false);
+      showSuccess("Ubicación guardada correctamente");
+    } catch (error) {
+      console.error("Error saving ubicacion:", error);
+      showError(error instanceof Error ? error.message : "No se pudo guardar la ubicación");
+    } finally {
+      setUbicacionSaving(false);
     }
   };
 
@@ -487,6 +529,31 @@ export default function EditarIglesia({ params }: Props) {
               </div>
             </fieldset>
 
+            {/* Ubicación en el mapa */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setUbicacionModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-slate-700 to-slate-600 text-white font-semibold text-sm shadow-lg shadow-slate-700/25 hover:from-slate-800 hover:to-slate-700 transition-all"
+                >
+                  <FaMapMarkerAlt className="w-4 h-4" />
+                  Ubicación en el Mapa
+                </button>
+                {iglesiaLatitud !== null && iglesiaLongitud !== null ? (
+                  <span className="inline-flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    Ubicación registrada
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    Sin ubicación
+                  </span>
+                )}
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-3 mt-2">
               <button
                 type="submit"
@@ -516,6 +583,17 @@ export default function EditarIglesia({ params }: Props) {
         loading={deleteLoading}
         onConfirm={handleDelete}
         onCancel={() => setDeleteModalOpen(false)}
+      />
+
+      {/* Modal ubicación en el mapa */}
+      <ModalUbicacionMapa
+        isOpen={ubicacionModalOpen}
+        onClose={() => setUbicacionModalOpen(false)}
+        onSave={handleSaveUbicacion}
+        latitud={iglesiaLatitud}
+        longitud={iglesiaLongitud}
+        nombreIglesia={iglesia?.nombre ?? ""}
+        saving={ubicacionSaving}
       />
     </>
   );
