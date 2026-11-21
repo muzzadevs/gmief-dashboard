@@ -104,7 +104,7 @@ export default function GenerarCredenciales() {
   return (
     <main className="min-h-screen min-h-dvh flex flex-col">
       {/* Header */}
-      <div className="w-full flex justify-center z-[1000] px-2 sm:px-0">
+      <div className="w-full flex justify-center z-header px-2 sm:px-0">
         <div className="mt-3 sm:mt-4 w-full sm:w-[95%] max-w-4xl glass-card-solid px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex flex-col sm:flex-row items-center gap-3">
             <button
@@ -153,7 +153,7 @@ export default function GenerarCredenciales() {
                     onClick={() =>
                       router.push(`/modulos/gestor-credenciales/generar/${sol.id}`)
                     }
-                    className={`glass-card-solid px-5 py-4 flex flex-col gap-2 animate-fadein transition-all duration-150 cursor-pointer text-left w-full hover:shadow-lg ${
+                    className={`glass-card-solid px-5 py-4 flex flex-col gap-2 transition-all duration-150 cursor-pointer text-left w-full hover:shadow-lg ${
                       isCompleted ? "opacity-60" : ""
                     }`}
                   >

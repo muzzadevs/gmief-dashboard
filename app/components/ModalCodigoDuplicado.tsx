@@ -16,8 +16,8 @@ const ModalCodigoDuplicado: React.FC<ModalCodigoDuplicadoProps> = ({
   if (!open) return null;
   const mensaje = `El código introducido ya existe y le pertenece a `;
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="glass-card-solid p-8 max-w-md w-full text-center animate-fadein">
+    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="glass-card-solid p-8 max-w-md w-full text-center">
         <p className="mb-8 text-lg text-slate-800">
           {mensaje}
           <span className="font-bold">

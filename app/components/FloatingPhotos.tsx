@@ -64,7 +64,7 @@ export default function FloatingPhotos() {
   }, []);
 
   return (
-    <div className="absolute inset-0 z-[1] overflow-hidden pointer-events-none">
+    <div className="absolute inset-0 z-base overflow-hidden pointer-events-none">
       {photos.map((photo) => (
         <div
           key={photo.id}

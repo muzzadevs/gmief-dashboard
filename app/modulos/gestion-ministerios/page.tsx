@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useZonasStore } from "@/store/zonasStore";
 import LoaderPersonalizado from "../../components/LoaderPersonalizado";
+import { SkeletonCardList } from "../../components/Skeleton";
+import EmptyState from "../../components/EmptyState";
 import ModalAgregarZona from "../../components/ModalAgregarZona";
 import ModalEditarZonas from "../../components/ModalEditarZonas";
 import { searchIncludes } from "@/lib/search";
@@ -57,7 +59,7 @@ export default function GestionMinisteriosHome() {
   return (
     <main className="min-h-screen min-h-dvh flex flex-col">
       {/* Menú superior */}
-      <div className="w-full flex justify-center z-[1000] px-2 sm:px-0">
+      <div className="w-full flex justify-center z-header px-2 sm:px-0">
         <div className="mt-3 sm:mt-4 w-full sm:w-[95%] max-w-4xl glass-card-solid px-4 sm:px-6 py-3 sm:py-4">
           {/* Primera fila: Botón volver + Título */}
           <div className="flex flex-col sm:flex-row items-center gap-3 mb-3">
@@ -125,13 +127,14 @@ export default function GestionMinisteriosHome() {
       <div className="flex-1 w-full flex justify-center px-2 sm:px-4 py-4">
         <div className="w-full max-w-4xl">
           {loading ? (
-            <LoaderPersonalizado>Cargando zonas...</LoaderPersonalizado>
+            <SkeletonCardList count={5} />
           ) : zonasFiltradas.length === 0 ? (
-            <div className="text-center text-white/60 py-12 text-sm">
-              {busqueda.trim().length > 0
+            <EmptyState
+              title={busqueda.trim().length > 0 ? "Sin resultados" : "Sin zonas"}
+              description={busqueda.trim().length > 0
                 ? "No se encontraron zonas con esa búsqueda"
                 : "No hay zonas disponibles"}
-            </div>
+            />
           ) : (
             <div className="flex flex-col gap-3">
               {zonasFiltradas
@@ -151,7 +154,7 @@ export default function GestionMinisteriosHome() {
                   return (
                     <div
                       key={zona.id}
-                      className={`glass-card-solid px-5 py-4 flex flex-col animate-fadein ${
+                      className={`glass-card-solid px-5 py-4 flex flex-col ${
                         isInactive ? "opacity-50 grayscale" : ""
                       }`}
                     >

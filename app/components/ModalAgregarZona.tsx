@@ -108,8 +108,8 @@ export default function ModalAgregarZona({
         show={toast.show}
         onClose={hideToast}
       />
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
-        <div className="glass-card-solid w-full max-w-md overflow-hidden animate-fadein">
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-modal p-4">
+        <div className="glass-card-solid w-full max-w-md overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-slate-200">
             <h2 className="text-xl font-bold text-slate-800">

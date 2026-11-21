@@ -151,7 +151,7 @@ export default function SpainMap({ onLoadingChange }: SpainMapProps) {
     <div className="relative w-full h-full">
       {/* Loader overlay */}
       {loading && (
-        <div className="absolute inset-0 z-[1000] flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-sm transition-opacity duration-300">
+        <div className="absolute inset-0 z-header flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-sm transition-opacity duration-300">
           <div className="relative w-12 h-12 mb-4">
             <div className="absolute inset-0 rounded-full border-2 border-white/20"></div>
             <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-400 animate-spin"></div>
@@ -246,7 +246,7 @@ export default function SpainMap({ onLoadingChange }: SpainMapProps) {
 
       {/* Contador de iglesias */}
       {!loading && iglesias.length > 0 && (
-        <div className="fixed bottom-8 right-3 z-[1000] bg-slate-800/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs font-medium shadow-lg">
+        <div className="fixed bottom-8 right-3 z-header bg-slate-800/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs font-medium shadow-lg">
           📍 {iglesias.length} iglesias en el mapa
         </div>
       )}

@@ -174,7 +174,7 @@ export default function Ministerios() {
       />
 
       {/* Menú superior */}
-      <div className="w-full flex justify-center z-[1000] mb-4 sm:sticky sm:top-0 px-2 sm:px-0">
+      <div className="w-full flex justify-center z-header mb-4 sm:sticky sm:top-0 px-2 sm:px-0">
         <div className="mt-3 sm:mt-4 w-full sm:w-[95%] flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-6 glass-card-solid px-4 sm:px-6 py-3">
           <div className="flex items-center gap-2">
             <button
@@ -337,7 +337,7 @@ export default function Ministerios() {
               return (
                 <div
                   key={min.id}
-                  className={`glass-card-solid px-5 py-4 flex flex-col gap-2 animate-fadein ${
+                  className={`glass-card-solid px-5 py-4 flex flex-col gap-2 ${
                     isCandidato && !isInactive ? "border-l-4 border-l-blue-400" : ""
                   } ${isInactive ? "opacity-50 grayscale" : ""}`}
                 >
@@ -644,11 +644,11 @@ export default function Ministerios() {
       {/* Modal de avatar */}
       {avatarModal.open && (
         <div
-          className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-modal flex items-center justify-center bg-black/70 backdrop-blur-sm"
           onClick={() => setAvatarModal({ open: false, letra: null, ministerioId: null })}
         >
           <div
-            className="flex flex-col items-center animate-fadein"
+            className="flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-72 h-72 sm:w-80 sm:h-80 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-8xl font-bold text-white shadow-2xl ring-4 ring-white/20">
@@ -672,11 +672,11 @@ export default function Ministerios() {
       {/* Modal de eliminar */}
       {deleteModal.open && deleteModal.ministerio && (
         <div
-          className="fixed inset-0 z-[2100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-modal flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
           onClick={() => setDeleteModal({ open: false, ministerio: null })}
         >
           <div
-            className={`glass-card-solid p-8 max-w-sm w-full flex flex-col gap-6 transition-all duration-500 relative animate-fadein ${
+            className={`glass-card-solid p-8 max-w-sm w-full flex flex-col gap-6 transition-all duration-500 relative ${
               deleteExplode
                 ? "ring-4 ring-red-500 shadow-[0_0_40px_20px_rgba(220,38,38,0.3)]"
                 : ""
@@ -752,11 +752,11 @@ export default function Ministerios() {
       {/* Modal de aprobar candidato */}
       {aprobarModal.open && aprobarModal.ministerio && (
         <div
-          className="fixed inset-0 z-[2100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-modal flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
           onClick={() => setAprobarModal({ open: false, ministerio: null })}
         >
           <div
-            className="glass-card-solid p-8 max-w-sm w-full flex flex-col gap-6 animate-fadein"
+            className="glass-card-solid p-8 max-w-sm w-full flex flex-col gap-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center">
@@ -809,11 +809,11 @@ export default function Ministerios() {
       {/* Modal info pastor */}
       {pastorModalOpen && pastorInfo && pastorInfo.ministerio && (
         <div
-          className="fixed inset-0 z-[2100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-modal flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
           onClick={() => setPastorModalOpen(false)}
         >
           <div
-            className="glass-card-solid p-8 max-w-sm w-full flex flex-col gap-5 animate-fadein"
+            className="glass-card-solid p-8 max-w-sm w-full flex flex-col gap-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center">

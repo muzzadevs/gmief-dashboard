@@ -112,7 +112,7 @@ export default function Combobox({
             align="start"
             sideOffset={6}
             className={cn(
-              "z-[9999] w-[var(--radix-popover-trigger-width)]",
+              "z-modal w-[var(--radix-popover-trigger-width)]",
               "rounded-xl overflow-hidden",
               theme === "dark"
                 ? [

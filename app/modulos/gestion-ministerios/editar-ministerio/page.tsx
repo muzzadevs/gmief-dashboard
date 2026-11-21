@@ -18,6 +18,7 @@ import {
   formatearFechaES,
   type FaseFechaCandidato,
 } from "@/lib/candidatoUtils";
+import { validarDNIFrontend, validarNIEFrontend } from "@/lib/validaciones";
 
 type Estado = { id: number; nombre: string };
 type Cargo = { id: number; cargo: string };
@@ -59,38 +60,6 @@ function formatearFechaObservacion(fecha: string | null): string {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(fecha));
-}
-
-const DNI_LETTERS = "TRWAGMYFPDXBNJZSQVHLCKE";
-function validarDNIFrontend(dni: string): { valid: boolean; error?: string } {
-  if (!dni) return { valid: true };
-  const trimmed = dni.trim();
-  if (trimmed.length !== 9) return { valid: false, error: "El DNI debe tener 9 caracteres (8 dígitos + 1 letra)" };
-  const numberPart = trimmed.slice(0, 8);
-  const letterPart = trimmed.slice(8, 9).toUpperCase();
-  if (!/^\d{8}$/.test(numberPart)) return { valid: false, error: "Los 8 primeros caracteres del DNI deben ser numéricos" };
-  if (!/^[A-Z]$/.test(letterPart)) return { valid: false, error: "El último carácter del DNI debe ser una letra" };
-  const expected = DNI_LETTERS[parseInt(numberPart, 10) % 23];
-  if (letterPart !== expected) return { valid: false, error: `Letra del DNI incorrecta. Para ${numberPart} la letra debe ser «${expected}»` };
-  return { valid: true };
-}
-
-function validarNIEFrontend(nie: string): { valid: boolean; error?: string } {
-  if (!nie) return { valid: true };
-  const trimmed = nie.trim().toUpperCase();
-  if (trimmed.length !== 9) return { valid: false, error: "El NIE debe tener 9 caracteres (1 letra + 7 dígitos + 1 letra)" };
-  const firstLetter = trimmed.charAt(0);
-  const numberPart = trimmed.slice(1, 8);
-  const controlLetter = trimmed.charAt(8);
-  if (!/^[XYZ]$/.test(firstLetter)) return { valid: false, error: "El NIE debe comenzar con X, Y o Z" };
-  if (!/^\d{7}$/.test(numberPart)) return { valid: false, error: "El NIE debe tener 7 dígitos después de la letra inicial" };
-  if (!/^[A-Z]$/.test(controlLetter)) return { valid: false, error: "El último carácter del NIE debe ser una letra" };
-  const prefixMap: Record<string, string> = { X: "0", Y: "1", Z: "2" };
-  const fullNumber = prefixMap[firstLetter] + numberPart;
-  const num = parseInt(fullNumber, 10);
-  const expected = DNI_LETTERS[num % 23];
-  if (controlLetter !== expected) return { valid: false, error: `Letra de control del NIE incorrecta. Para ${trimmed.slice(0, 8)} la letra debe ser «${expected}»` };
-  return { valid: true };
 }
 
 type MinisterioForm = {
@@ -785,7 +754,7 @@ export default function EditarMinisterio() {
     <>
       <Toast message={toast.message} type={toast.type} show={toast.show} onClose={hideToast} />
       <main className="min-h-screen flex flex-col items-center justify-center px-3 py-8">
-        <div className="w-full max-w-3xl lg:max-w-5xl glass-card-solid p-5 sm:p-8 animate-fadein">
+        <div className="w-full max-w-3xl lg:max-w-5xl glass-card-solid p-5 sm:p-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-3 flex-1">
               <h2 className="text-2xl font-bold text-slate-800 tracking-tight text-center sm:text-left">Editar {isCandidato ? "Candidato" : "Ministerio"}</h2>
@@ -1157,14 +1126,14 @@ export default function EditarMinisterio() {
 
       {historicoModalOpen && (
         <div
-          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-modal flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
           onClick={() => setHistoricoModalOpen(false)}
         >
           <section
             role="dialog"
             aria-modal="true"
             aria-labelledby="historico-title"
-            className="glass-card-solid w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col animate-fadein"
+            className="glass-card-solid w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col"
             onClick={(event) => event.stopPropagation()}
           >
             <header className="flex items-center justify-between gap-4 p-5 border-b border-slate-200">
@@ -1247,13 +1216,13 @@ export default function EditarMinisterio() {
       {/* Modal confirmar cambio de pastor */}
       {pastorConfirmModal.open && pastorConfirmModal.pastorActual && (
         <div
-          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-modal flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
           onClick={() => {
             setPastorConfirmModal({ open: false, iglesiaId: 0, iglesiaNombre: "", pastorActual: null });
           }}
         >
           <div
-            className="glass-card-solid p-8 max-w-md w-full flex flex-col gap-6 animate-fadein"
+            className="glass-card-solid p-8 max-w-md w-full flex flex-col gap-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center">

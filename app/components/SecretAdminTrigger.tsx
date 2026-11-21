@@ -133,7 +133,7 @@ export default function SecretAdminTrigger() {
     <>
       {/* Mobile/Tablet message */}
       {showMobileMsg && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[99999] animate-fadein">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-toast">
           <div className="bg-slate-900/95 backdrop-blur-xl text-white px-5 py-3 rounded-xl shadow-2xl border border-slate-700/50 flex items-center gap-3 max-w-sm">
             <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
               <svg
@@ -160,16 +160,16 @@ export default function SecretAdminTrigger() {
 
       {/* Password Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center">
+        <div className="fixed inset-0 z-toast flex items-center justify-center">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-slate-950/90 backdrop-blur-xl animate-fadein"
+            className="absolute inset-0 bg-slate-950/90 backdrop-blur-xl"
             onClick={handleClose}
           />
 
           {/* Modal card */}
           <div
-            className={`relative w-full max-w-sm mx-4 animate-fadein ${
+            className={`relative w-full max-w-sm mx-4 ${
               shake ? "animate-shake" : ""
             }`}
           >
@@ -289,7 +289,7 @@ export default function SecretAdminTrigger() {
                   </div>
 
                   {error && (
-                    <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 flex items-center gap-2 animate-fadein">
+                    <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 flex items-center gap-2">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"

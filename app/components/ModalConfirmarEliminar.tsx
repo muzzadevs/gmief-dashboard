@@ -23,11 +23,11 @@ export default function ModalConfirmarEliminar({
 
   return (
     <div
-      className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-modal flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
       onClick={onCancel}
     >
       <div
-        className="glass-card-solid p-8 max-w-sm w-full flex flex-col gap-6 animate-fadein"
+        className="glass-card-solid p-8 max-w-sm w-full flex flex-col gap-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-center">

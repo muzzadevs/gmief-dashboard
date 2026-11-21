@@ -23,7 +23,7 @@ export default function ZonasSubZonas() {
   return (
     <main className="min-h-screen max-h-screen flex flex-col">
       {/* Menú superior */}
-      <div className="w-full flex justify-center z-[1000] mb-4 sm:sticky sm:top-0 px-2 sm:px-0">
+      <div className="w-full flex justify-center z-header mb-4 sm:sticky sm:top-0 px-2 sm:px-0">
         <div className="mt-3 sm:mt-4 w-full sm:w-[95%] glass-card-solid px-4 sm:px-6 py-4">
           {/* Primera fila: Botón volver + Input búsqueda */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-3">

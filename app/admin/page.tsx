@@ -502,9 +502,9 @@ export default function AdminPage() {
 
       {/* Delete confirmation modal */}
       {deleteConfirm?.show && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+        <div className="fixed inset-0 z-modal flex items-center justify-center">
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={cancelDelete} />
-          <div className="relative bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl shadow-black/50 p-6 max-w-sm w-full mx-4 animate-fadein">
+          <div className="relative bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl shadow-black/50 p-6 max-w-sm w-full mx-4">
             <div className="flex flex-col items-center text-center">
               <div className="w-12 h-12 rounded-full bg-red-500/15 flex items-center justify-center mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-red-400">
@@ -553,9 +553,9 @@ export default function AdminPage() {
 
       {/* Create modal */}
       {showCreateModal && tableData && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+        <div className="fixed inset-0 z-modal flex items-center justify-center">
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => !creating && setShowCreateModal(false)} />
-          <div className="relative bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl shadow-black/50 max-w-lg w-full mx-4 animate-fadein max-h-[85vh] flex flex-col">
+          <div className="relative bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl shadow-black/50 max-w-lg w-full mx-4 max-h-[85vh] flex flex-col">
             {/* Header */}
             <div className="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between flex-shrink-0">
               <div>
@@ -761,7 +761,7 @@ export default function AdminPage() {
 
         {/* Data Table */}
         {tableData && !loading && (
-          <div ref={tableRef} className="animate-fadein">
+          <div ref={tableRef}>
             <div className="bg-slate-900/50 border border-slate-800/50 rounded-2xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left">

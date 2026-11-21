@@ -21,6 +21,17 @@ const config: Config = {
       boxShadow: {
         "explode-red": "0 0 40px 20px rgba(220,38,38,0.7)",
       },
+      zIndex: {
+        base: "1",
+        header: "100",
+        dropdown: "200",
+        "bottom-nav": "300",
+        sidebar: "300",
+        "modal-backdrop": "400",
+        modal: "500",
+        toast: "600",
+        "admin-secret": "700",
+      },
     },
   },
   important: true,

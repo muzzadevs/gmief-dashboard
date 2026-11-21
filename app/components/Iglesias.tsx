@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import LoaderPersonalizado from "./LoaderPersonalizado";
+import { SkeletonCardList } from "./Skeleton";
+import EmptyState from "./EmptyState";
 import {
   FaUsers,
   FaEdit,
@@ -78,7 +80,7 @@ export default function Iglesias({ busqueda = "", canEdit }: Props) {
     });
 
   if (loading) {
-    return <LoaderPersonalizado>Cargando iglesias...</LoaderPersonalizado>;
+    return <SkeletonCardList count={6} />;
   }
 
   return (
@@ -118,7 +120,7 @@ export default function Iglesias({ busqueda = "", canEdit }: Props) {
         return (
           <div
             key={iglesia.id}
-            className={`glass-card-solid px-5 py-4 flex flex-col animate-fadein ${
+            className={`glass-card-solid px-5 py-4 flex flex-col ${
               isInactive ? "opacity-50 grayscale" : ""
             }`}
           >
@@ -241,9 +243,10 @@ export default function Iglesias({ busqueda = "", canEdit }: Props) {
         );
       })}
       {iglesiasFiltradas.length === 0 && (
-        <div className="text-center text-white/60 py-12 text-sm">
-          No hay iglesias para mostrar
-        </div>
+        <EmptyState
+          title="Sin iglesias"
+          description="No hay iglesias para mostrar en esta selección"
+        />
       )}
     </div>
   );

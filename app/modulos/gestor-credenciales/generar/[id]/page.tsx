@@ -176,7 +176,7 @@ export default function SolicitudDetalle() {
       <Toast message={toast.message} type={toast.type} show={toast.show} onClose={hideToast} />
 
       {/* Header */}
-      <div className="w-full flex justify-center z-[1000] px-2 sm:px-0">
+      <div className="w-full flex justify-center z-header px-2 sm:px-0">
         <div className="mt-3 sm:mt-4 w-full sm:w-[95%] max-w-4xl glass-card-solid px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex flex-col sm:flex-row items-center gap-3">
             <button
@@ -230,7 +230,7 @@ export default function SolicitudDetalle() {
             return (
               <div
                 key={item.id}
-                className={`glass-card-solid px-5 py-4 flex flex-col gap-3 animate-fadein ${
+                className={`glass-card-solid px-5 py-4 flex flex-col gap-3 ${
                   item.expedida ? "opacity-60" : ""
                 }`}
               >
@@ -333,11 +333,11 @@ export default function SolicitudDetalle() {
       {/* 3D Preview Modal */}
       {previewItem && (
         <div
-          className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/90 backdrop-blur-md p-4"
+          className="fixed inset-0 z-modal flex items-center justify-center bg-black/90 backdrop-blur-md p-4"
           onClick={() => setPreviewItem(null)}
         >
           <div
-            className="w-full max-w-3xl flex flex-col gap-4 animate-fadein"
+            className="w-full max-w-3xl flex flex-col gap-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-2">

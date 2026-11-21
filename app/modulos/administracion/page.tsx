@@ -94,10 +94,10 @@ export default function Administracion() {
       <div className="w-full flex justify-center px-3 pb-6">
         <div className="w-full max-w-4xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {secciones.map((sec, i) => (
-            <button key={sec.href} type="button" onClick={() => router.push(sec.href)} className="glass-card-solid p-0 overflow-hidden text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] cursor-pointer animate-fadein group" style={{ animationDelay: `${i * 80}ms` }}>
+            <button key={sec.href} type="button" onClick={() => router.push(sec.href)} className="glass-card-solid p-0 overflow-hidden text-left hover:shadow-xl cursor-pointer group">
               <div className={`h-1.5 bg-gradient-to-r ${sec.color}`} />
               <div className="p-5 flex items-start gap-4">
-                <div className={`${sec.iconBg} rounded-xl p-3 flex-shrink-0 transition-transform group-hover:scale-110`}>
+                <div className={`${sec.iconBg} rounded-xl p-3 flex-shrink-0`}>
                   <div className={sec.iconText}>{sec.icono}</div>
                 </div>
                 <div className="flex-1 min-w-0">

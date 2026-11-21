@@ -37,6 +37,8 @@ export default function RootLayout({
       <body
         className={`${poppins.variable} antialiased min-h-screen min-h-dvh w-full`}
       >
+        {/* Fixed background div — iOS Safari compatible */}
+        <div className="app-bg" aria-hidden="true" />
         <PageTransition>
           {children}
         </PageTransition>

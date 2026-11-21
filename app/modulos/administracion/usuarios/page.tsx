@@ -2,10 +2,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
-import LoaderPersonalizado from "@/app/components/LoaderPersonalizado";
 import Toast, { useToast } from "@/app/components/Toast";
+import { SkeletonTable } from "@/app/components/Skeleton";
+import EmptyState from "@/app/components/EmptyState";
 import { searchIncludes } from "@/lib/search";
 import ModalConfirmarEliminar from "@/app/components/ModalConfirmarEliminar";
+import { Users } from "lucide-react";
 type Usuario = { id: number; nombre: string; apellidos: string | null; username: string | null; tipo: string; must_change_password: boolean; tiene_password: boolean; cargos: string[]; roles: string[]; };
 export default function UsuariosAdmin() {
   const router = useRouter();
@@ -45,22 +47,46 @@ export default function UsuariosAdmin() {
         <input type="text" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar..." className="input-glass w-full" />
       </div></div></div>
       <div className="w-full flex justify-center px-3 pb-6"><div className="w-full max-w-5xl">
-        {loading ? <LoaderPersonalizado>Cargando...</LoaderPersonalizado> : (
-          <div className="glass-card-solid overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead><tr className="border-b border-slate-200 bg-slate-50/50">
-              {["Nombre","Username","Tipo","Roles","Estado","Acciones"].map((h) => <th key={h} className="text-left px-4 py-3 font-semibold text-slate-600">{h}</th>)}
-            </tr></thead>
-            <tbody>{filtered.map((u) => (
-              <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                <td className="px-4 py-3 font-medium text-slate-800">{u.nombre}{u.apellidos ? ` ${u.apellidos}` : ""}</td>
-                <td className="px-4 py-3"><code className="text-xs text-slate-700 bg-slate-100 px-2 py-1 rounded font-mono">{u.username||"—"}</code></td>
-                <td className="px-4 py-3"><span className={`text-xs px-2 py-1 rounded-full font-semibold ${u.tipo==="MINISTERIO"?"bg-blue-100 text-blue-700":"bg-amber-100 text-amber-700"}`}>{u.tipo==="MINISTERIO"?"Obrero":"Candidato"}</span></td>
-                <td className="px-4 py-3"><div className="flex flex-wrap gap-1">{u.roles.length>0?u.roles.map((r,i)=><span key={i} className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-medium">{r}</span>):<span className="text-xs text-slate-400">Sin rol</span>}</div></td>
-                <td className="px-4 py-3">{u.must_change_password?<span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">Cambiar pass</span>:u.tiene_password?<span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Activo</span>:<span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full">Sin pass</span>}</td>
-                <td className="px-4 py-3 text-center"><button type="button" onClick={()=>setResetModal({open:true,u})} className="text-xs bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg font-medium">Reiniciar pass</button></td>
-              </tr>
-            ))}</tbody>
-          </table>{filtered.length===0&&<div className="text-center py-8 text-slate-400 text-sm">Sin resultados</div>}</div></div>
+        {loading ? <SkeletonTable rows={6} cols={5} /> : filtered.length === 0 ? (
+          <EmptyState icon={Users} title="Sin resultados" description="No hay usuarios que coincidan con la búsqueda" />
+        ) : (
+          <>
+            {/* Mobile: card layout */}
+            <div className="sm:hidden flex flex-col gap-3">
+              {filtered.map((u) => (
+                <div key={u.id} className="glass-card-solid p-4 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-slate-800">{u.nombre}{u.apellidos ? ` ${u.apellidos}` : ""}</span>
+                    <span className={`text-xs px-2 py-1 rounded-full font-semibold ${u.tipo==="MINISTERIO"?"bg-blue-100 text-blue-700":"bg-amber-100 text-amber-700"}`}>{u.tipo==="MINISTERIO"?"Obrero":"Candidato"}</span>
+                  </div>
+                  {u.username && <code className="text-xs text-slate-700 bg-slate-100 px-2 py-1 rounded font-mono w-fit">{u.username}</code>}
+                  <div className="flex flex-wrap gap-1">
+                    {u.roles.length>0?u.roles.map((r,i)=><span key={i} className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-medium">{r}</span>):<span className="text-xs text-slate-400">Sin rol</span>}
+                  </div>
+                  <div className="flex items-center justify-between mt-1">
+                    {u.must_change_password?<span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">Cambiar pass</span>:u.tiene_password?<span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Activo</span>:<span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full">Sin pass</span>}
+                    <button type="button" onClick={()=>setResetModal({open:true,u})} className="text-xs bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg font-medium min-h-[44px]">Reiniciar pass</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop: table layout */}
+            <div className="hidden sm:block glass-card-solid overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-sm">
+              <thead><tr className="border-b border-slate-200 bg-slate-50/50">
+                {["Nombre","Username","Tipo","Roles","Estado","Acciones"].map((h) => <th key={h} className="text-left px-4 py-3 font-semibold text-slate-600">{h}</th>)}
+              </tr></thead>
+              <tbody>{filtered.map((u) => (
+                <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50/50">
+                  <td className="px-4 py-3 font-medium text-slate-800">{u.nombre}{u.apellidos ? ` ${u.apellidos}` : ""}</td>
+                  <td className="px-4 py-3"><code className="text-xs text-slate-700 bg-slate-100 px-2 py-1 rounded font-mono">{u.username||"—"}</code></td>
+                  <td className="px-4 py-3"><span className={`text-xs px-2 py-1 rounded-full font-semibold ${u.tipo==="MINISTERIO"?"bg-blue-100 text-blue-700":"bg-amber-100 text-amber-700"}`}>{u.tipo==="MINISTERIO"?"Obrero":"Candidato"}</span></td>
+                  <td className="px-4 py-3"><div className="flex flex-wrap gap-1">{u.roles.length>0?u.roles.map((r,i)=><span key={i} className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-medium">{r}</span>):<span className="text-xs text-slate-400">Sin rol</span>}</div></td>
+                  <td className="px-4 py-3">{u.must_change_password?<span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">Cambiar pass</span>:u.tiene_password?<span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Activo</span>:<span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full">Sin pass</span>}</td>
+                  <td className="px-4 py-3 text-center"><button type="button" onClick={()=>setResetModal({open:true,u})} className="text-xs bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg font-medium min-h-[44px]">Reiniciar pass</button></td>
+                </tr>
+              ))}</tbody>
+            </table></div></div>
+          </>
         )}
       </div></div>
       <ModalConfirmarEliminar isOpen={resetModal.open} titulo={`Reiniciar contraseña de "${resetModal.u?.nombre}"?`} mensaje="Se reiniciará a la predeterminada." loading={resetLoading} onConfirm={handleReset} onCancel={()=>setResetModal({open:false,u:null})} />

@@ -58,8 +58,8 @@ export default function ModalCambiarPassword({ open, token, onSuccess }: ModalCa
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-      <div className={`w-full max-w-md glass-card-solid p-8 shadow-2xl animate-fadein ${shake ? "animate-shake" : ""}`}>
+    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+      <div className="w-full max-w-md glass-card-solid p-8 shadow-2xl">
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-100 mb-3">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-7 h-7 text-amber-600">

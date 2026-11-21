@@ -2,9 +2,11 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import LoaderPersonalizado from "../components/LoaderPersonalizado";
+import { SkeletonModuleGrid } from "../components/Skeleton";
+import EmptyState from "../components/EmptyState";
 import { searchIncludes } from "@/lib/search";
 import { useAuthStore } from "@/store/authStore";
+import { LayoutDashboard, Search as SearchIcon } from "lucide-react";
 
 type Modulo = {
   id: number;
@@ -186,29 +188,22 @@ export default function Dashboard() {
       <div className="flex-1 w-full flex justify-center px-3 py-4">
         <div className="w-full max-w-4xl">
           {loading ? (
-            <LoaderPersonalizado>Cargando módulos...</LoaderPersonalizado>
+            <SkeletonModuleGrid count={4} />
           ) : error ? (
-            <div className="text-center py-12">
-              <div className="glass-card-solid p-8 inline-block">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 text-red-400 mx-auto mb-3">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                </svg>
-                <p className="text-slate-600 font-medium">{error}</p>
-                <button
-                  type="button"
-                  className="mt-4 btn-primary bg-blue-600 text-white hover:bg-blue-700"
-                  onClick={() => window.location.reload()}
-                >
-                  Reintentar
-                </button>
-              </div>
-            </div>
+            <EmptyState
+              icon={LayoutDashboard}
+              title="Error al cargar módulos"
+              description={error}
+              action={{ label: "Reintentar", onClick: () => window.location.reload() }}
+            />
           ) : modulosFiltrados.length === 0 ? (
-            <div className="text-center text-white/60 py-12 text-sm">
-              {busqueda.trim().length > 0
+            <EmptyState
+              icon={busqueda.trim().length > 0 ? SearchIcon : LayoutDashboard}
+              title={busqueda.trim().length > 0 ? "Sin resultados" : "Sin módulos"}
+              description={busqueda.trim().length > 0
                 ? "No se encontraron módulos con esa búsqueda"
                 : "No hay módulos disponibles"}
-            </div>
+            />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {modulosFiltrados.map((modulo, index) => {
@@ -218,15 +213,14 @@ export default function Dashboard() {
                     key={modulo.id}
                     type="button"
                     onClick={() => router.push(modulo.href)}
-                    className={`glass-card-solid p-0 overflow-hidden text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] cursor-pointer animate-fadein group`}
-                    style={{ animationDelay: `${index * 80}ms` }}
+                    className={`glass-card-solid p-0 overflow-hidden text-left hover:shadow-xl cursor-pointer group`}
                   >
                     {/* Barra de color superior */}
                     <div className={`h-1.5 bg-gradient-to-r ${colors.bg}`} />
                     
                     <div className="p-5 sm:p-6 flex items-start gap-4">
                       {/* Icono */}
-                      <div className={`${colors.iconBg} rounded-xl p-3 flex-shrink-0 transition-transform group-hover:scale-110`}>
+                      <div className={`${colors.iconBg} rounded-xl p-3 flex-shrink-0`}>
                         <ModuloIcon icono={modulo.icono} className={`w-7 h-7 ${colors.iconText}`} />
                       </div>
 
@@ -244,7 +238,7 @@ export default function Dashboard() {
 
                       {/* Flecha */}
                       <div className="flex-shrink-0 mt-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-slate-300 group-hover:text-slate-500 transition-all group-hover:translate-x-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-slate-400">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                         </svg>
                       </div>

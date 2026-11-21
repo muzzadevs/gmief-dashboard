@@ -94,7 +94,7 @@ export default function Home() {
       <div className="relative z-10 min-h-dvh grid place-items-center px-4">
         <div className="w-full max-w-sm">
           {/* Glass card */}
-          <div className="glass-card-solid p-8 animate-fadein shadow-2xl">
+          <div className="glass-card-solid p-8 shadow-2xl">
             {/* Logo / Title */}
             <div className="text-center mb-8">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-black shadow-lg shadow-black/30 mb-4 overflow-hidden p-2.5">
@@ -165,7 +165,7 @@ export default function Home() {
               </div>
 
               {error && (
-                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2 animate-fadein flex items-center gap-2">
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2 flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 flex-shrink-0">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                   </svg>
@@ -207,7 +207,7 @@ export default function Home() {
           href="https://www.kaledorkayiko.org/"
           target="_blank"
           rel="noopener noreferrer"
-          className="pointer-events-auto inline-block align-bottom hover:scale-110 transition-transform"
+          className="pointer-events-auto inline-block align-bottom"
           style={{ width: "23px", height: "16px" }}
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600">

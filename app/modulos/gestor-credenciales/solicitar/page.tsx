@@ -133,7 +133,7 @@ export default function SolicitarCredenciales() {
       <Toast message={toast.message} type={toast.type} show={toast.show} onClose={hideToast} />
 
       {/* Header */}
-      <div className="w-full flex justify-center z-[1000] px-2 sm:px-0">
+      <div className="w-full flex justify-center z-header px-2 sm:px-0">
         <div className="mt-3 sm:mt-4 w-full sm:w-[95%] max-w-4xl glass-card-solid px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex flex-col sm:flex-row items-center gap-3 mb-3">
             <button
@@ -237,7 +237,7 @@ export default function SolicitarCredenciales() {
                     key={m.id}
                     type="button"
                     onClick={() => toggleSeleccion(m.id)}
-                    className={`glass-card-solid px-4 py-3 flex items-center gap-3 animate-fadein transition-all duration-150 cursor-pointer text-left w-full ${
+                    className={`glass-card-solid px-4 py-3 flex items-center gap-3 transition-all duration-150 cursor-pointer text-left w-full ${
                       isSelected
                         ? "ring-2 ring-blue-500 bg-blue-50/80"
                         : "hover:bg-slate-50/80"

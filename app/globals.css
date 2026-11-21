@@ -1,43 +1,25 @@
 @import "tailwindcss";
 
-/* ── Custom animations ── */
-@keyframes fadein {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-
+/* ── Skeleton animation (funcional) ── */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
 
 /* ── Base styles ── */
-html,
-body,
-* {
-  font-family: var(--font-poppins), "Poppins", Arial, Helvetica, sans-serif !important;
-}
-
 body {
+  font-family: var(--font-poppins), "Poppins", Arial, Helvetica, sans-serif;
   min-height: 100vh;
   min-height: 100dvh;
-  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 30%, #2563eb 60%, #3b82f6 80%, #1e40af 100%);
-  background-attachment: fixed;
   color: #f1f5f9;
 }
 
-/* ── Utility classes ── */
-.animate-fadein {
-  animation: fadein 0.4s ease-out both;
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
+/* ── Fixed background (iOS Safari compatible) ── */
+.app-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 30%, #2563eb 60%, #3b82f6 80%, #1e40af 100%);
 }
 
 /* ── Glass card utility ── */
@@ -109,7 +91,7 @@ body {
   font-size: 0.9375rem;
   color: #0f172a;
   outline: none;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
@@ -136,7 +118,7 @@ body {
   font-size: 0.9375rem;
   color: #0f172a;
   outline: none;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   appearance: none;
   -webkit-appearance: none;
@@ -171,11 +153,12 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.5rem 1.25rem;
+  padding: 0.625rem 1.25rem;
+  min-height: 2.75rem;
   border-radius: 0.75rem;
   font-weight: 600;
   font-size: 0.875rem;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
   cursor: pointer;
   border: none;
 }
@@ -183,6 +166,14 @@ body {
 .btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ── Skeleton ── */
+.skeleton-pulse {
+  background: linear-gradient(90deg, rgba(203,213,225,0.3) 25%, rgba(203,213,225,0.5) 50%, rgba(203,213,225,0.3) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 0.5rem;
 }
 
 /* ── Leaflet popup override ── */
@@ -196,5 +187,5 @@ body {
 }
 
 .leaflet-popup-pane {
-  z-index: 1002 !important;
+  z-index: 102 !important;
 }

@@ -140,7 +140,7 @@ export default function MapSearchBar({ iglesias, ministerios, onSelect }: MapSea
       <button
         type="button"
         onClick={() => setAbierto(true)}
-        className="fixed top-3 left-20 z-[1001] inline-flex items-center gap-2 rounded-xl bg-white/90 backdrop-blur-xl border border-slate-200/80 shadow-[0_4px_16px_rgba(0,0,0,0.08)] px-4 py-2.5 text-sm text-slate-500 hover:bg-white hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition-all cursor-pointer"
+        className="fixed top-3 left-20 z-header inline-flex items-center gap-2 rounded-xl bg-white/90 backdrop-blur-xl border border-slate-200/80 shadow-[0_4px_16px_rgba(0,0,0,0.08)] px-4 py-2.5 text-sm text-slate-500 hover:bg-white hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] cursor-pointer"
       >
         <Search className="h-4 w-4 text-slate-400" />
         <span className="hidden sm:inline">Buscar iglesia, obrero o candidato…</span>
@@ -183,7 +183,7 @@ function SearchOverlay({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-[2000] flex items-start justify-center pt-[10vh] sm:pt-[12vh]">
+    <div className="fixed inset-0 z-modal flex items-start justify-center pt-[10vh] sm:pt-[12vh]">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -191,7 +191,7 @@ function SearchOverlay({
       />
 
       {/* Panel */}
-      <div className="relative z-10 w-[95vw] max-w-2xl animate-fadein">
+      <div className="relative z-10 w-[95vw] max-w-2xl">
         {/* Input */}
         <div className="relative">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />

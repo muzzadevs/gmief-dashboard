@@ -216,7 +216,7 @@ export default function BuscadorGlobal() {
       <button
         type="button"
         onClick={() => setAbierto(true)}
-        className="group fixed bottom-5 right-5 z-[1100] flex h-14 w-14 items-center justify-center rounded-full border border-white/80 bg-violet-600 text-white shadow-[0_8px_28px_rgba(79,70,229,0.5)] transition duration-200 hover:-translate-y-1 hover:scale-105 hover:bg-violet-700 hover:shadow-[0_12px_34px_rgba(79,70,229,0.65)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-300 sm:bottom-7 sm:right-7 sm:h-16 sm:w-16"
+        className="group fixed bottom-5 right-5 z-dropdown flex h-14 w-14 items-center justify-center rounded-full border border-white/80 bg-violet-600 text-white shadow-[0_8px_28px_rgba(79,70,229,0.5)] hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-300 sm:bottom-7 sm:right-7 sm:h-16 sm:w-16"
         aria-label="Abrir superbuscador de Gestión de Ministerios"
         title="Buscar en todo Gestión de Ministerios"
       >
@@ -228,7 +228,7 @@ export default function BuscadorGlobal() {
 
       {abierto && (
         <div
-          className="fixed inset-0 z-[1200] flex items-start justify-center overflow-y-auto bg-slate-950/50 p-3 pt-[8vh] sm:p-6 sm:pt-[10vh]"
+          className="fixed inset-0 z-modal flex items-start justify-center overflow-y-auto bg-slate-950/50 p-3 pt-[8vh] sm:p-6 sm:pt-[10vh]"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) setAbierto(false);
           }}

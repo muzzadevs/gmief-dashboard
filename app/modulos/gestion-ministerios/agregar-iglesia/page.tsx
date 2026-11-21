@@ -174,7 +174,7 @@ export default function AgregarIglesia() {
         onClose={hideToast}
       />
       <main className="min-h-screen flex flex-col items-center justify-center px-3 py-8">
-        <div className="w-full max-w-3xl lg:max-w-5xl glass-card-solid p-5 sm:p-8 animate-fadein">
+        <div className="w-full max-w-3xl lg:max-w-5xl glass-card-solid p-5 sm:p-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
             <h2 className="text-2xl font-bold text-slate-800 tracking-tight text-center sm:text-left flex-1">
               Agregar Iglesia
