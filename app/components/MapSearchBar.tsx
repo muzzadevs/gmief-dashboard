@@ -140,7 +140,7 @@ export default function MapSearchBar({ iglesias, ministerios, onSelect }: MapSea
       <button
         type="button"
         onClick={() => setAbierto(true)}
-        className="fixed top-3 left-20 z-header inline-flex items-center gap-2 rounded-xl bg-white/90 backdrop-blur-xl border border-slate-200/80 shadow-[0_4px_16px_rgba(0,0,0,0.08)] px-4 py-2.5 text-sm text-slate-500 hover:bg-white hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] cursor-pointer"
+        className="fixed top-3 left-20 z-[1100] inline-flex items-center gap-2 rounded-xl bg-white/90 backdrop-blur-xl border border-slate-200/80 shadow-[0_4px_16px_rgba(0,0,0,0.08)] px-4 py-2.5 text-sm text-slate-500 hover:bg-white hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] cursor-pointer"
       >
         <Search className="h-4 w-4 text-slate-400" />
         <span className="hidden sm:inline">Buscar iglesia, obrero o candidato…</span>
@@ -183,7 +183,7 @@ function SearchOverlay({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-modal flex items-start justify-center pt-[10vh] sm:pt-[12vh]">
+    <div className="fixed inset-0 z-[1200] flex items-start justify-center pt-[10vh] sm:pt-[12vh]">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
