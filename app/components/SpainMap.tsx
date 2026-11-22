@@ -57,32 +57,43 @@ interface SpainMapProps {
 // Inner component to handle flying to selected church and opening popup
 function FlyToHandler({
   selectedIglesia,
+  flyKey,
   markerRefs,
 }: {
   selectedIglesia: IglesiaMapa | null;
+  flyKey: number;
   markerRefs: React.MutableRefObject<Record<number, L.Marker>>;
 }) {
   const map = useMap();
 
   useEffect(() => {
-    if (selectedIglesia) {
-      map.flyTo(
-        [selectedIglesia.latitud, selectedIglesia.longitud],
-        16,
-        { duration: 1.2 }
-      );
+    if (!selectedIglesia) return;
 
-      // Open popup after fly animation completes
-      const timer = setTimeout(() => {
-        const marker = markerRefs.current[selectedIglesia.id];
-        if (marker) {
-          marker.openPopup();
-        }
-      }, 1300);
+    // Close any existing popup first
+    map.closePopup();
 
-      return () => clearTimeout(timer);
-    }
-  }, [selectedIglesia, map, markerRefs]);
+    map.flyTo(
+      [selectedIglesia.latitud, selectedIglesia.longitud],
+      16,
+      { duration: 1.2 }
+    );
+
+    // Open popup once fly animation finishes (listen to moveend)
+    const iglesiaId = selectedIglesia.id;
+    const onMoveEnd = () => {
+      const marker = markerRefs.current[iglesiaId];
+      if (marker) {
+        marker.openPopup();
+      }
+    };
+
+    map.once("moveend", onMoveEnd);
+
+    return () => {
+      map.off("moveend", onMoveEnd);
+    };
+    // flyKey forces re-run even when selecting the same iglesia twice
+  }, [selectedIglesia, flyKey, map, markerRefs]);
 
   return null;
 }
@@ -93,6 +104,7 @@ export default function SpainMap({ onLoadingChange }: SpainMapProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedIglesia, setSelectedIglesia] = useState<IglesiaMapa | null>(null);
+  const [flyKey, setFlyKey] = useState(0);
   const markerRefs = useRef<Record<number, L.Marker>>({});
 
   const center: LatLngTuple = [40.463667, -3.74922];
@@ -126,6 +138,7 @@ export default function SpainMap({ onLoadingChange }: SpainMapProps) {
 
   const handleSearchSelect = useCallback((iglesia: IglesiaMapa) => {
     setSelectedIglesia(iglesia);
+    setFlyKey((k) => k + 1);
   }, []);
 
   if (error) {
@@ -187,6 +200,7 @@ export default function SpainMap({ onLoadingChange }: SpainMapProps) {
         {/* Fly to handler */}
         <FlyToHandler
           selectedIglesia={selectedIglesia}
+          flyKey={flyKey}
           markerRefs={markerRefs}
         />
 
