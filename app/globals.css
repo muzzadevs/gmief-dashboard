@@ -187,5 +187,5 @@ body {
 }
 
 .leaflet-popup-pane {
-  z-index: 102 !important;
+  z-index: 700 !important;
 }
