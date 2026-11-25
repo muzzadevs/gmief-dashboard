@@ -39,30 +39,14 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath();
 }
 
-function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxW: number, lh: number) {
-  const words = text.split(" ");
-  let line = "";
-  let cy = y;
-  for (const w of words) {
-    const t = line + w + " ";
-    if (ctx.measureText(t).width > maxW && line) {
-      ctx.fillText(line.trim(), x, cy);
-      line = w + " ";
-      cy += lh;
-    } else {
-      line = t;
-    }
-  }
-  ctx.fillText(line.trim(), x, cy);
-}
-
 // ======== FRONT CARD ========
 async function drawFront(
   data: CredentialData,
   W: number,
   H: number,
   spainImg: HTMLImageElement | null,
-  photoImg: HTMLImageElement | null
+  photoImg: HTMLImageElement | null,
+  logoImg: HTMLImageElement | null
 ): Promise<HTMLCanvasElement> {
   const cv = document.createElement("canvas");
   cv.width = W;
@@ -76,19 +60,21 @@ async function drawFront(
   roundRect(c, 0, 0, W, H, R);
   c.clip();
 
-  // Background
+  // Background gradient
   const bg = c.createLinearGradient(0, 0, W, H);
-  bg.addColorStop(0, "#0c1929");
-  bg.addColorStop(1, "#16325a");
+  bg.addColorStop(0, "#0a1628");
+  bg.addColorStop(0.4, "#0f2140");
+  bg.addColorStop(0.7, "#163060");
+  bg.addColorStop(1, "#1a3a7a");
   c.fillStyle = bg;
   c.fillRect(0, 0, W, H);
 
-  // Diagonal lines
+  // Subtle diagonal lines
   c.save();
-  c.globalAlpha = 0.035;
+  c.globalAlpha = 0.025;
   c.strokeStyle = "#fff";
   c.lineWidth = 1;
-  for (let i = -H; i < W + H; i += 20) {
+  for (let i = -H; i < W + H; i += 22) {
     c.beginPath();
     c.moveTo(i, 0);
     c.lineTo(i - H * 0.5, H);
@@ -96,27 +82,87 @@ async function drawFront(
   }
   c.restore();
 
-  // Spain map watermark
+  // Spain map watermark (bottom-right, subtle)
   if (spainImg) {
     c.save();
-    c.globalAlpha = 0.045;
-    const mh = H * 0.75;
+    c.globalAlpha = 0.035;
+    const mh = H * 0.65;
     const mw = mh * (spainImg.width / spainImg.height);
-    c.drawImage(spainImg, (W - mw) / 2, (H - mh) / 2, mw, mh);
+    c.drawImage(spainImg, W - mw + 20, H - mh - 10, mw, mh);
     c.restore();
   }
 
-  // === Photo (right side, 1:1 square) ===
-  const pw = 160, ph = 160;
-  const px = W - pw - 20;
-  const py = 16;
+  // === Top Spanish flag accent bar ===
+  const flagH = 5;
+  c.fillStyle = "#c60b1e";
+  c.fillRect(0, 0, W, flagH);
+  c.fillStyle = "#ffc400";
+  c.fillRect(0, Math.round(flagH * 0.33), W, Math.round(flagH * 0.34));
+
+  // === Header area with logo ===
+  const headerY = flagH + 10;
+  const pad = 24;
+
+  // Logo (white version via canvas compositing)
+  if (logoImg) {
+    const logoH = 50;
+    const logoW = logoH * (logoImg.width / logoImg.height);
+    // Draw logo white by using compositing
+    c.save();
+    c.globalAlpha = 0.9;
+    // Create temp canvas to invert logo to white
+    const tmpCv = document.createElement("canvas");
+    tmpCv.width = logoImg.width;
+    tmpCv.height = logoImg.height;
+    const tmpC = tmpCv.getContext("2d")!;
+    tmpC.drawImage(logoImg, 0, 0);
+    tmpC.globalCompositeOperation = "source-in";
+    tmpC.fillStyle = "#ffffff";
+    tmpC.fillRect(0, 0, tmpCv.width, tmpCv.height);
+    c.drawImage(tmpCv, pad, headerY, logoW, logoH);
+    c.restore();
+  } else {
+    // Fallback text
+    c.fillStyle = "rgba(255,255,255,0.9)";
+    c.font = "bold 24px 'Segoe UI', sans-serif";
+    c.textBaseline = "top";
+    c.fillText("IE FILADELFIA", pad, headerY + 10);
+  }
+
+  // Zone (right side of header)
+  c.fillStyle = "rgba(255,255,255,0.4)";
+  c.font = "13px 'Segoe UI', sans-serif";
+  c.textAlign = "right";
+  c.textBaseline = "top";
+  c.fillText(`Zona de ${data.zona_nombre}`, W - pad, headerY + 20);
+  c.textAlign = "left";
+
+  // === Gold separator line ===
+  const sepY = headerY + 60;
+  const goldGrad = c.createLinearGradient(pad, 0, W - pad, 0);
+  goldGrad.addColorStop(0, "#c8920e");
+  goldGrad.addColorStop(0.5, "#f0c030");
+  goldGrad.addColorStop(1, "#c8920e");
+  c.fillStyle = goldGrad;
+  c.globalAlpha = 0.5;
+  c.fillRect(pad, sepY, W - pad * 2, 1.5);
+  c.globalAlpha = 1;
+
+  // === Body area: Photo left, Info right ===
+  const bodyY = sepY + 12;
+
+  // Photo
+  const pw = 142, ph = 178;
+  const px = pad;
+  const py = bodyY;
 
   c.save();
   roundRect(c, px, py, pw, ph, 10);
-  c.fillStyle = "rgba(255,255,255,0.06)";
+  c.fillStyle = "rgba(255,255,255,0.05)";
   c.fill();
-  c.strokeStyle = "rgba(255,255,255,0.18)";
-  c.lineWidth = 2;
+  // Gold border
+  c.strokeStyle = "rgba(212,180,80,0.35)";
+  c.lineWidth = 2.5;
   c.stroke();
   if (photoImg) {
     c.clip();
@@ -124,7 +170,7 @@ async function drawFront(
   } else {
     const fn = `${data.nombre} ${data.apellidos || ""}`.trim();
     c.fillStyle = "rgba(255,255,255,0.2)";
-    c.font = "bold 60px 'Segoe UI', sans-serif";
+    c.font = "bold 56px 'Segoe UI', sans-serif";
     c.textAlign = "center";
     c.textBaseline = "middle";
     c.fillText(fn[0], px + pw / 2, py + ph / 2);
@@ -133,80 +179,67 @@ async function drawFront(
   }
   c.restore();
 
-  // === Left column: all text info ===
-  const leftW = px - 20; // available width for text
-  const pad = 24;
+  // === Right column: text info ===
+  const infoX = px + pw + 18;
+  const infoW = W - infoX - pad;
 
-  // Header
-  c.fillStyle = "rgba(255,255,255,0.9)";
-  c.font = "bold 24px 'Segoe UI', sans-serif";
-  c.textBaseline = "top";
-  c.fillText("IGLESIA EVANGÉLICA", pad, 18);
-  c.fillText("DE FILADELFIA", pad, 46);
-
-  // Zone
-  c.fillStyle = "rgba(255,255,255,0.5)";
-  c.font = "16px 'Segoe UI', sans-serif";
-  c.fillText(`Zona de ${data.zona_nombre}`, pad, 78);
-
-  // Name (bigger)
+  // Name
   const fn = `${data.nombre} ${data.apellidos || ""}`.trim();
   c.fillStyle = "#fff";
-  c.font = "bold 32px 'Segoe UI', sans-serif";
-  const maxNameW = leftW - pad;
+  c.font = "bold 28px 'Segoe UI', sans-serif";
+  c.textBaseline = "top";
   const nw = fn.split(" ");
   let l1 = "", l2 = "";
   for (const w of nw) {
     const t = l1 + (l1 ? " " : "") + w;
-    if (c.measureText(t).width > maxNameW && l1) l2 += (l2 ? " " : "") + w;
+    if (c.measureText(t).width > infoW && l1) l2 += (l2 ? " " : "") + w;
     else l1 = t;
   }
-  c.fillText(l1, pad, 112);
-  if (l2) c.fillText(l2, pad, 148);
+  c.fillText(l1, infoX, bodyY + 4);
+  if (l2) c.fillText(l2, infoX, bodyY + 36);
 
-  const iy = l2 ? 190 : 158;
+  const iy = bodyY + (l2 ? 76 : 44);
 
-  // DNI
-  c.fillStyle = "rgba(255,255,255,0.55)";
-  c.font = "18px 'Segoe UI', sans-serif";
-  c.fillText(data.dni || data.nie || "—", pad, iy);
+  // DNI/NIE
+  c.fillStyle = "rgba(255,255,255,0.5)";
+  c.font = "16px 'Courier New', monospace";
+  c.fillText(data.dni || data.nie || "—", infoX, iy);
 
   // Code label
-  c.fillStyle = "rgba(255,255,255,0.3)";
-  c.font = "600 12px 'Segoe UI', sans-serif";
-  c.fillText("CÓDIGO", pad, iy + 32);
+  c.fillStyle = "rgba(255,255,255,0.25)";
+  c.font = "600 10px 'Segoe UI', sans-serif";
+  c.fillText("CÓDIGO", infoX, iy + 30);
 
-  // Code value (bigger, sans-serif font)
-  c.fillStyle = "#fff";
-  c.font = "bold 40px 'Segoe UI', sans-serif";
-  c.fillText(data.codigo || "—", pad, iy + 50);
-
-  // === "MINISTRO DE CULTO" above gold bar, bold gold text ===
-  const fh = 34;
-  const labelY = H - fh - 30;
-  c.fillStyle = "#f0c030";
-  c.font = "bold 22px 'Segoe UI', sans-serif";
-  c.textBaseline = "top";
-  c.fillText("MINISTRO DE CULTO", pad, labelY);
+  // Code value (gold gradient)
+  const codeGrad = c.createLinearGradient(infoX, 0, infoX + 200, 0);
+  codeGrad.addColorStop(0, "#f0c030");
+  codeGrad.addColorStop(1, "#e0a820");
+  c.fillStyle = codeGrad;
+  c.font = "bold 32px 'Courier New', monospace";
+  c.fillText(data.codigo || "—", infoX, iy + 46);
 
   // === Footer gold bar ===
-  const fg = c.createLinearGradient(0, H - fh, 0, H);
-  fg.addColorStop(0, "#c8920e");
-  fg.addColorStop(0.5, "#f0c030");
-  fg.addColorStop(1, "#c8920e");
-  c.fillStyle = fg;
+  const fh = 46;
+  const footGrad = c.createLinearGradient(0, H - fh, W, H - fh);
+  footGrad.addColorStop(0, "#b8860b");
+  footGrad.addColorStop(0.3, "#d4a017");
+  footGrad.addColorStop(0.5, "#f0c030");
+  footGrad.addColorStop(0.7, "#d4a017");
+  footGrad.addColorStop(1, "#b8860b");
+  c.fillStyle = footGrad;
   c.fillRect(0, H - fh, W, fh);
 
-  // Validez inside gold bar, bigger and visible
-  c.fillStyle = "#0c1929";
-  c.font = "bold 16px 'Segoe UI', sans-serif";
+  // "MINISTRO DE CULTO" in footer
+  c.fillStyle = "#0a1628";
+  c.font = "bold 18px 'Segoe UI', sans-serif";
   c.textBaseline = "middle";
-  c.fillText(`Validez: ${formatExpiryDate()}`, pad, H - fh / 2);
+  c.fillText("MINISTRO DE CULTO", pad, H - fh / 2);
 
-  c.fillStyle = "rgba(12,25,41,0.5)";
-  c.font = "13px 'Segoe UI', sans-serif";
+  // Validez
+  c.fillStyle = "rgba(10,22,40,0.55)";
+  c.font = "600 13px 'Segoe UI', sans-serif";
   c.textAlign = "right";
-  c.fillText("IGLESIA EVANGÉLICA DE FILADELFIA", W - 24, H - fh / 2);
+  c.fillText(`Validez: ${formatExpiryDate()}`, W - pad, H - fh / 2);
 
   c.restore();
 
@@ -214,7 +247,7 @@ async function drawFront(
 }
 
 // ======== BACK CARD ========
-function drawBack(W: number, H: number): HTMLCanvasElement {
+function drawBack(W: number, H: number, logoImg: HTMLImageElement | null): HTMLCanvasElement {
   const cv = document.createElement("canvas");
   cv.width = W;
   cv.height = H;
@@ -227,25 +260,57 @@ function drawBack(W: number, H: number): HTMLCanvasElement {
   roundRect(c, 0, 0, W, H, R);
   c.clip();
 
-  // Background
+  // Background (same as front)
   const bg = c.createLinearGradient(0, 0, W, H);
-  bg.addColorStop(0, "#0c1929");
-  bg.addColorStop(1, "#16325a");
+  bg.addColorStop(0, "#0a1628");
+  bg.addColorStop(0.4, "#0f2140");
+  bg.addColorStop(0.7, "#163060");
+  bg.addColorStop(1, "#1a3a7a");
   c.fillStyle = bg;
   c.fillRect(0, 0, W, H);
 
-  // Diagonal lines
+  // Subtle diagonal lines
   c.save();
-  c.globalAlpha = 0.035;
+  c.globalAlpha = 0.025;
   c.strokeStyle = "#fff";
   c.lineWidth = 1;
-  for (let i = -H; i < W + H; i += 20) {
+  for (let i = -H; i < W + H; i += 22) {
     c.beginPath();
     c.moveTo(i, 0);
     c.lineTo(i - H * 0.5, H);
     c.stroke();
   }
   c.restore();
+
+  // Top gold accent
+  const accentGrad1 = c.createLinearGradient(0, 0, W, 0);
+  accentGrad1.addColorStop(0, "#b8860b");
+  accentGrad1.addColorStop(0.5, "#f0c030");
+  accentGrad1.addColorStop(1, "#b8860b");
+  c.fillStyle = accentGrad1;
+  c.fillRect(0, 0, W, 3);
+
+  // Bottom gold accent
+  c.fillStyle = accentGrad1;
+  c.fillRect(0, H - 3, W, 3);
+
+  // --- Logo at top ---
+  if (logoImg) {
+    const logoH = 32;
+    const logoW = logoH * (logoImg.width / logoImg.height);
+    c.save();
+    c.globalAlpha = 0.45;
+    const tmpCv = document.createElement("canvas");
+    tmpCv.width = logoImg.width;
+    tmpCv.height = logoImg.height;
+    const tmpC = tmpCv.getContext("2d")!;
+    tmpC.drawImage(logoImg, 0, 0);
+    tmpC.globalCompositeOperation = "source-in";
+    tmpC.fillStyle = "#ffffff";
+    tmpC.fillRect(0, 0, tmpCv.width, tmpCv.height);
+    c.drawImage(tmpCv, (W - logoW) / 2, 14, logoW, logoH);
+    c.restore();
+  }
 
   // --- Measure all text to center vertically ---
   const mx = 36;
@@ -260,18 +325,17 @@ function drawBack(W: number, H: number): HTMLCanvasElement {
   const lines1 = getWrappedLines(c, t1, maxTW);
   const lines2 = getWrappedLines(c, t2, maxTW);
 
-  // Layout: title (18px) + gap(8) + subtitle (11px) + gap(12) + separator(1) + gap(10)
-  //        + paragraph1 + gap(10) + separator(1) + gap(10) + paragraph2
+  const logoSpace = logoImg ? 50 : 10;
   const titleH = 20;
   const subtitleH = 13;
   const sepH = 1;
-  const gapSmall = 8;
-  const gapMed = 10;
+  const gapSmall = 6;
+  const gapMed = 8;
   const p1H = lines1.length * lh;
   const p2H = lines2.length * lh;
 
-  const totalH = titleH + gapSmall + subtitleH + gapMed + sepH + gapMed + p1H + gapMed + sepH + gapMed + p2H;
-  let y = (H - totalH) / 2;
+  const contentH = titleH + gapSmall + subtitleH + gapMed + sepH + gapMed + p1H + gapMed + sepH + gapMed + p2H;
+  let y = logoSpace + (H - logoSpace - contentH) / 2;
 
   // Title
   c.fillStyle = "rgba(255,255,255,0.85)";
@@ -282,13 +346,17 @@ function drawBack(W: number, H: number): HTMLCanvasElement {
   y += titleH + gapSmall;
 
   // Subtitle
-  c.fillStyle = "rgba(255,255,255,0.4)";
+  c.fillStyle = "rgba(255,255,255,0.35)";
   c.font = "10px 'Segoe UI', sans-serif";
   c.fillText("Ley 7/1980 de Libertad Religiosa  •  Ley 24/1992 Acuerdo Iglesia-Estado", W / 2, y);
   y += subtitleH + gapMed;
 
-  // Separator
-  c.strokeStyle = "rgba(255,255,255,0.15)";
+  // Separator (gold gradient)
+  const sepGrad = c.createLinearGradient(W * 0.15, 0, W * 0.85, 0);
+  sepGrad.addColorStop(0, "transparent");
+  sepGrad.addColorStop(0.5, "rgba(240,192,48,0.4)");
+  sepGrad.addColorStop(1, "transparent");
+  c.strokeStyle = sepGrad;
   c.lineWidth = 1;
   c.beginPath();
   c.moveTo(W * 0.15, y);
@@ -297,7 +365,7 @@ function drawBack(W: number, H: number): HTMLCanvasElement {
   y += sepH + gapMed;
 
   // Paragraph 1 (centered)
-  c.fillStyle = "rgba(255,255,255,0.65)";
+  c.fillStyle = "rgba(255,255,255,0.6)";
   c.font = `${fs}px 'Segoe UI', sans-serif`;
   c.textAlign = "center";
   for (const line of lines1) {
@@ -307,7 +375,11 @@ function drawBack(W: number, H: number): HTMLCanvasElement {
   y += gapMed;
 
   // Separator
-  c.strokeStyle = "rgba(255,255,255,0.1)";
+  const sepGrad2 = c.createLinearGradient(W * 0.25, 0, W * 0.75, 0);
+  sepGrad2.addColorStop(0, "transparent");
+  sepGrad2.addColorStop(0.5, "rgba(255,255,255,0.15)");
+  sepGrad2.addColorStop(1, "transparent");
+  c.strokeStyle = sepGrad2;
   c.beginPath();
   c.moveTo(W * 0.25, y);
   c.lineTo(W * 0.75, y);
@@ -315,7 +387,7 @@ function drawBack(W: number, H: number): HTMLCanvasElement {
   y += sepH + gapMed;
 
   // Paragraph 2 (centered)
-  c.fillStyle = "rgba(255,255,255,0.65)";
+  c.fillStyle = "rgba(255,255,255,0.6)";
   for (const line of lines2) {
     c.fillText(line, W / 2, y);
     y += lh;
@@ -394,9 +466,11 @@ export default function CredentialCard3D({ data }: CredentialCard3DProps) {
       if (data.has_imagen) {
         try { pi = await loadImage(`/api/ministerios/${data.ministerio_id}/imagen`); } catch { /* */ }
       }
+      let li: HTMLImageElement | null = null;
+      try { li = await loadImage("/TEMPLOGOIEF.png"); } catch { /* */ }
 
-      const fc = await drawFront(data, TW, TH, si, pi);
-      const bc = drawBack(TW, TH);
+      const fc = await drawFront(data, TW, TH, si, pi, li);
+      const bc = drawBack(TW, TH, li);
 
       const ft = new THREE.CanvasTexture(fc);
       ft.colorSpace = THREE.SRGBColorSpace;
