@@ -8,12 +8,13 @@ interface CredentialCard3DProps {
   data: CredentialData;
 }
 
-const NAVY = "#1a2d50";
-const LBL = "#7a8ca3";
-const SEP = "#d0d8e2";
-const BODY = "#1e293b";
-const CW = 1800;
-const CH = 1131;
+const NAVY = "#0f172a";
+const BLUE = "#1e3a8a";
+const LBL = "#64748b";
+const SEP = "#cbd5e1";
+const VAL = "#1e293b";
+const CW = 2400;
+const CH = 1508;
 
 function formatExpiry(): string {
   const d = new Date();
@@ -52,146 +53,167 @@ function wrap(c: CanvasRenderingContext2D, text: string, maxW: number): string[]
   if (cur.trim()) lines.push(cur.trim());
   return lines;
 }
+
+function gradRect(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
+  const g = c.createLinearGradient(x, y, x + w, y + h);
+  g.addColorStop(0, NAVY); g.addColorStop(1, BLUE);
+  c.fillStyle = g; c.fillRect(x, y, w, h);
+}
 async function drawFront(
   data: CredentialData,
   sp: HTMLImageElement | null, ph: HTMLImageElement | null, lg: HTMLImageElement | null
 ): Promise<HTMLCanvasElement> {
   const cv = document.createElement("canvas"); cv.width = CW; cv.height = CH;
   const c = cv.getContext("2d")!;
-  c.save(); rr(c, 0, 0, CW, CH, 30); c.clip();
+  c.save(); rr(c, 0, 0, CW, CH, 36); c.clip();
   c.fillStyle = "#fff"; c.fillRect(0, 0, CW, CH);
+
+  // Header gradient bar
+  const hdrH = 160;
+  gradRect(c, 0, 0, CW, hdrH);
+  c.textAlign = "center"; c.textBaseline = "middle";
+  c.fillStyle = "#fff"; c.font = "800 90px Poppins, sans-serif";
+  c.fillText("IGLESIA EVANG\u00c9LICA FILADELFIA", CW / 2, 68);
+  c.fillStyle = "rgba(255,255,255,0.45)"; c.font = "500 28px Poppins, sans-serif";
+  c.fillText("CIF R480047J", CW / 2, 128);
 
   // Mapa watermark
   if (sp) {
-    c.save(); c.globalAlpha = 0.08;
-    const mh = CH * 0.6; const mw = mh * (sp.width / sp.height);
-    c.drawImage(sp, CW - mw - 15, 135, mw, mh); c.restore();
+    c.save(); c.globalAlpha = 0.12;
+    const mh = CH * 0.55; const mw = mh * (sp.width / sp.height);
+    c.drawImage(sp, CW - mw + 40, hdrH + 20, mw, mh); c.restore();
   }
 
-  // HEADER
-  c.textAlign = "center"; c.textBaseline = "top";
-  c.fillStyle = NAVY; c.font = "800 81px 'Segoe UI',sans-serif";
-  c.fillText("IGLESIA EVANG\u00c9LICA FILADELFIA", CW / 2, 36);
-  const cif = "CIF R480047J";
-  c.font = "600 27px 'Segoe UI',sans-serif"; c.fillStyle = LBL;
-  const tw = c.measureText(cif).width;
-  c.fillText(cif, CW / 2, 129);
-  c.strokeStyle = NAVY; c.lineWidth = 3;
-  c.beginPath(); c.moveTo(CW / 2 - tw / 2 - 270, 144); c.lineTo(CW / 2 - tw / 2 - 24, 144); c.stroke();
-  c.beginPath(); c.moveTo(CW / 2 + tw / 2 + 24, 144); c.lineTo(CW / 2 + tw / 2 + 270, 144); c.stroke();
+  // Cuerpo
+  const bodyTop = hdrH + 50;
+  const px = 80;
 
   // FOTO
-  const pw = 375, ppH = 450, px = 60, py = 180;
-  c.save(); rr(c, px, py, pw, ppH, 12);
-  c.fillStyle = "#e8ecf0"; c.fill();
-  c.strokeStyle = SEP; c.lineWidth = 3; c.stroke();
-  if (ph) { c.clip(); c.drawImage(ph, px, py, pw, ppH); }
+  const pw = 520, ppH = 650;
+  c.save(); rr(c, px, bodyTop, pw, ppH, 16);
+  c.fillStyle = "#e2e8f0"; c.fill();
+  c.strokeStyle = "#e2e8f0"; c.lineWidth = 3; c.stroke();
+  if (ph) { c.clip(); c.drawImage(ph, px, bodyTop, pw, ppH); }
   else {
-    c.fillStyle = "#b0bec5"; c.font = "bold 144px 'Segoe UI',sans-serif";
+    c.fillStyle = "#94a3b8"; c.font = "800 200px Poppins, sans-serif";
     c.textAlign = "center"; c.textBaseline = "middle";
-    c.fillText(data.nombre[0], px + pw / 2, py + ppH / 2);
+    c.fillText(data.nombre[0], px + pw / 2, bodyTop + ppH / 2);
   }
   c.restore();
 
-  // NOMBRE
-  const fx = px + pw + 54;
-  const fw = CW - fx - 75;
+  // Datos
+  const fx = px + pw + 70;
+  const fw = CW - fx - 80;
   c.textAlign = "left"; c.textBaseline = "top";
-  c.fillStyle = NAVY;
-  c.font = "800 75px 'Segoe UI',sans-serif";
+
+  // Nombre
+  c.fillStyle = NAVY; c.font = "800 110px Poppins, sans-serif";
   let nm = data.nombre.toUpperCase();
   while (c.measureText(nm).width > fw && nm.length > 3) nm = nm.slice(0, -1);
-  c.fillText(nm, fx, 189);
-  c.font = "700 48px 'Segoe UI',sans-serif";
+  c.fillText(nm, fx, bodyTop);
+
+  // Apellidos
+  c.fillStyle = BLUE; c.font = "700 70px Poppins, sans-serif";
   let ap = (data.apellidos || "").toUpperCase();
   while (c.measureText(ap).width > fw && ap.length > 3) ap = ap.slice(0, -1);
-  c.fillText(ap, fx, 273);
+  c.fillText(ap, fx, bodyTop + 120);
 
-  // CAMPOS
-  let fy = 348;
-  const field = (label: string, val: string, mono?: boolean) => {
-    c.fillStyle = LBL; c.font = "700 22px 'Segoe UI',sans-serif";
-    c.fillText(label, fx, fy);
-    c.fillStyle = BODY; c.font = mono ? "700 42px 'Courier New',monospace" : "700 42px 'Segoe UI',sans-serif";
-    c.fillText(val, fx, fy + 28);
+  // Campos
+  let fy = bodyTop + 230;
+  const field = (label: string, val: string) => {
+    c.fillStyle = BLUE; c.font = "700 30px Poppins, sans-serif";
+    c.fillText(label.toUpperCase(), fx, fy);
+    c.fillStyle = VAL; c.font = "700 56px Poppins, sans-serif";
+    c.fillText(val, fx, fy + 38);
     c.strokeStyle = SEP; c.lineWidth = 2;
-    c.beginPath(); c.moveTo(fx, fy + 78); c.lineTo(fx + fw * 0.75, fy + 78); c.stroke();
-    fy += 100;
+    c.beginPath(); c.moveTo(fx, fy + 105); c.lineTo(fx + fw * 0.85, fy + 105); c.stroke();
+    fy += 140;
   };
   const expiry = formatExpiry();
-  field("DOCUMENTO", data.dni || data.nie || "\u2014");
-  field("N.\u00ba DE CREDENCIAL", data.codigo || "\u2014", true);
-  field("V\u00c1LIDA HASTA", expiry);
-  // BARRA AZUL
-  const barH = 120; const barY = CH - 66 - barH;
-  c.fillStyle = NAVY; c.fillRect(0, barY, CW, barH);
+  field("Documento", data.dni || data.nie || "\u2014");
+  field("N.\u00ba de Credencial", data.codigo || "\u2014");
+  field("V\u00e1lida hasta", expiry);
+  // Barra ministerio
+  const barH = 150; const barY = CH - 90 - barH;
+  gradRect(c, 0, barY, CW, barH);
   if (lg) {
-    const lh2 = 78; const lw2 = lh2 * (lg.width / lg.height);
+    const lh2 = 100; const lw2 = lh2 * (lg.width / lg.height);
     c.save(); c.globalCompositeOperation = "screen";
-    c.drawImage(lg, 60, barY + (barH - lh2) / 2, lw2, lh2); c.restore();
-    c.strokeStyle = "rgba(255,255,255,0.25)"; c.lineWidth = 1.5;
-    c.beginPath(); c.moveTo(60 + lw2 + 21, barY + 18); c.lineTo(60 + lw2 + 21, barY + barH - 18); c.stroke();
-    const tx = 60 + lw2 + 42;
-    c.fillStyle = "#fff"; c.font = "800 42px 'Segoe UI',sans-serif";
+    c.drawImage(lg, 80, barY + (barH - lh2) / 2, lw2, lh2); c.restore();
+    c.strokeStyle = "rgba(255,255,255,0.2)"; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(80 + lw2 + 28, barY + 24); c.lineTo(80 + lw2 + 28, barY + barH - 24); c.stroke();
+    const tx = 80 + lw2 + 56;
+    c.fillStyle = "#fff"; c.font = "800 56px Poppins, sans-serif";
     c.textBaseline = "top"; c.textAlign = "left";
-    c.fillText("MINISTRO DE CULTO", tx, barY + 18);
-    c.fillStyle = "rgba(255,255,255,0.55)"; c.font = "italic 21px 'Segoe UI',sans-serif";
-    c.fillText("\u201cId por todo el mundo y predicad el evangelio a toda criatura.\u201d", tx, barY + 69);
-    const qw = c.measureText("\u201cId por todo el mundo y predicad el evangelio a toda criatura.\u201d  ").width;
-    c.fillStyle = "rgba(255,255,255,0.8)"; c.font = "700 21px 'Segoe UI',sans-serif";
-    c.fillText("Marcos 16:15", tx + qw, barY + 69);
+    c.fillText("MINISTRO DE CULTO", tx, barY + 24);
+    c.fillStyle = "rgba(255,255,255,0.5)"; c.font = "italic 28px Poppins, sans-serif";
+    c.fillText("\u201cId por todo el mundo y predicad el evangelio a toda criatura\u201d", tx, barY + 90);
+    const qw = c.measureText("\u201cId por todo el mundo y predicad el evangelio a toda criatura\u201d  ").width;
+    c.fillStyle = "rgba(255,255,255,0.75)"; c.font = "700 28px Poppins, sans-serif";
+    c.fillText("Marcos 16:15", tx + qw, barY + 90);
   }
 
-  // PIE
+  // Pie
   const ftY = barY + barH;
-  c.fillStyle = "#f4f6f8"; c.fillRect(0, ftY, CW, 66);
+  c.fillStyle = "#f1f5f9"; c.fillRect(0, ftY, CW, 90);
   c.strokeStyle = SEP; c.lineWidth = 1.5;
   c.beginPath(); c.moveTo(0, ftY); c.lineTo(CW, ftY); c.stroke();
-  c.fillStyle = LBL; c.font = "600 21px 'Segoe UI',sans-serif";
+  c.fillStyle = LBL; c.font = "600 28px Poppins, sans-serif";
   c.textBaseline = "middle"; c.textAlign = "left";
-  c.fillText(`${data.iglesia_nombre} \u00b7 [${data.zona_codigo}] ${data.zona_nombre}`, 60, ftY + 33);
+  c.fillText(`${data.iglesia_nombre} \u00b7 [${data.zona_codigo}] ${data.zona_nombre}`, 80, ftY + 45);
   c.textAlign = "right";
-  c.fillText("Caduca: " + expiry, CW - 60, ftY + 33);
+  c.fillText("Caduca: " + expiry, CW - 80, ftY + 45);
 
   c.restore(); return cv;
 }
 function drawBack(lg: HTMLImageElement | null): HTMLCanvasElement {
   const cv = document.createElement("canvas"); cv.width = CW; cv.height = CH;
   const c = cv.getContext("2d")!;
-  c.save(); rr(c, 0, 0, CW, CH, 30); c.clip();
-  c.fillStyle = "#f4f6f8"; c.fillRect(0, 0, CW, CH);
+  c.save(); rr(c, 0, 0, CW, CH, 36); c.clip();
+  c.fillStyle = "#fff"; c.fillRect(0, 0, CW, CH);
 
+  // Header gradient
+  const hdrH = 200;
+  gradRect(c, 0, 0, CW, hdrH);
   if (lg) {
-    const lh2 = 90; const lw2 = lh2 * (lg.width / lg.height);
-    c.drawImage(lg, (CW - lw2) / 2, 36, lw2, lh2);
+    const lh2 = 60; const lw2 = lh2 * (lg.width / lg.height);
+    c.save(); c.globalCompositeOperation = "screen";
+    c.drawImage(lg, (CW - lw2) / 2, 24, lw2, lh2); c.restore();
   }
+  c.textAlign = "center"; c.textBaseline = "middle";
+  c.fillStyle = "#fff"; c.font = "800 72px Poppins, sans-serif";
+  c.fillText("EXTRACTOS DE LEY", CW / 2, 120);
+  c.fillStyle = "rgba(255,255,255,0.45)"; c.font = "500 26px Poppins, sans-serif";
+  c.fillText("Ley 7/1980 de Libertad Religiosa  \u2022  Ley 24/1992 Acuerdo Iglesia-Estado", CW / 2, 170);
 
-  c.textAlign = "center"; c.textBaseline = "top";
-  c.fillStyle = NAVY; c.font = "800 51px 'Segoe UI',sans-serif";
-  c.fillText("EXTRACTOS DE LEY", CW / 2, 144);
-  c.fillStyle = LBL; c.font = "600 22px 'Segoe UI',sans-serif";
-  c.fillText("Ley 7/1980 de Libertad Religiosa  \u2022  Ley 24/1992 Acuerdo Iglesia-Estado", CW / 2, 207);
-
-  c.strokeStyle = SEP; c.lineWidth = 2;
-  c.beginPath(); c.moveTo(CW * 0.15, 246); c.lineTo(CW * 0.85, 246); c.stroke();
-
-  const mx = 75; const maxTW = CW - mx * 2; const fs = 26; const lh2 = 36;
+  // Textos legales
+  const mx = 100; const maxTW = CW - mx * 2; const fs = 40; const lh2 = 58;
   const t1 = "El acceso de los Ministros de Culto de la Iglesia Evang\u00e9lica Filadelfia a centros o establecimientos penitenciarios, hospitalarios, asistenciales u otros an\u00e1logos del sector p\u00fablico, es libre y sin limitaciones de horarios para su asistencia religiosa. (Ley 7/1980, Art. 2)";
   const t2 = "Los Ministros de Culto de las Iglesias pertenecientes a la Iglesia Evang\u00e9lica Filadelfia no est\u00e1n obligados a declarar sobre los hechos que les hayan sido revelados en el ejercicio de sus funciones de culto y asistencia religiosa. (Ley 24/1992, Art. 3.2)";
 
-  c.font = `${fs}px 'Segoe UI',sans-serif`;
+  c.font = `${fs}px Poppins, sans-serif`;
+  c.textAlign = "center"; c.textBaseline = "top";
   const l1 = wrap(c, t1, maxTW); const l2 = wrap(c, t2, maxTW);
-  let y = 270; c.fillStyle = "#3a4a5e";
+
+  // Centrar verticalmente entre header y footer
+  const totalTextH = (l1.length + l2.length) * lh2 + 60;
+  const availH = CH - hdrH - 100; // 100 for footer
+  let y = hdrH + (availH - totalTextH) / 2;
+
+  c.fillStyle = "#334155";
   for (const ln of l1) { c.fillText(ln, CW / 2, y); y += lh2; }
-  y += 21;
-  c.strokeStyle = SEP; c.beginPath(); c.moveTo(CW * 0.25, y); c.lineTo(CW * 0.75, y); c.stroke();
-  y += 27; c.fillStyle = "#3a4a5e";
+  y += 30;
+  c.strokeStyle = SEP; c.lineWidth = 2;
+  c.beginPath(); c.moveTo(CW * 0.2, y); c.lineTo(CW * 0.8, y); c.stroke();
+  y += 30;
   for (const ln of l2) { c.fillText(ln, CW / 2, y); y += lh2; }
 
-  const bH = 69; c.fillStyle = NAVY; c.fillRect(0, CH - bH, CW, bH);
-  c.fillStyle = "rgba(255,255,255,0.5)"; c.font = "700 22px 'Segoe UI',sans-serif";
-  c.textBaseline = "middle";
-  c.fillText("IGLESIA EVANG\u00c9LICA FILADELFIA", CW / 2, CH - bH / 2);
+  // Footer
+  const fH = 90;
+  gradRect(c, 0, CH - fH, CW, fH);
+  c.fillStyle = "rgba(255,255,255,0.4)"; c.font = "700 28px Poppins, sans-serif";
+  c.textBaseline = "middle"; c.textAlign = "center";
+  c.fillText("IGLESIA EVANG\u00c9LICA FILADELFIA", CW / 2, CH - fH / 2);
 
   c.restore(); return cv;
 }
@@ -210,7 +232,7 @@ export default function CredentialCard3D({ data }: CredentialCard3DProps) {
   const init = useCallback(async () => {
     const el = mountRef.current;
     if (!el) return;
-    const w = el.clientWidth; const h = Math.min(w * 0.6, 480);
+    const w = el.clientWidth; const h = Math.min(w * 0.65, 520);
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0f172a);
     const cam = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
@@ -236,7 +258,7 @@ export default function CredentialCard3D({ data }: CredentialCard3DProps) {
       const bt = new THREE.CanvasTexture(bCv); bt.colorSpace = THREE.SRGBColorSpace;
       const aspect = CW / CH; const cardH = 2.4; const cardW = cardH * aspect;
       const geo = new THREE.BoxGeometry(cardW, cardH, 0.04);
-      const edge = new THREE.MeshStandardMaterial({ color: 0xd0d8e2, roughness: 0.3, metalness: 0.1 });
+      const edge = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.3, metalness: 0.1 });
       const mesh = new THREE.Mesh(geo, [
         edge, edge, edge, edge,
         new THREE.MeshStandardMaterial({ map: ft, roughness: 0.12, metalness: 0.05 }),
@@ -276,7 +298,7 @@ export default function CredentialCard3D({ data }: CredentialCard3DProps) {
     const fn = () => {
       if (!mountRef.current || !renRef.current || !camRef.current) return;
       const w = mountRef.current.clientWidth;
-      const h = Math.min(w * 0.6, 480);
+      const h = Math.min(w * 0.65, 520);
       camRef.current.aspect = w / h;
       camRef.current.updateProjectionMatrix();
       renRef.current.setSize(w, h);
