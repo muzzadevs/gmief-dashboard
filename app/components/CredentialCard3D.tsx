@@ -12,8 +12,8 @@ const NAVY = "#1a2d50";
 const LBL = "#7a8ca3";
 const SEP = "#d0d8e2";
 const BODY = "#1e293b";
-const CW = 1200;
-const CH = 754;
+const CW = 1800;
+const CH = 1131;
 
 function formatExpiry(): string {
   const d = new Date();
@@ -52,190 +52,177 @@ function wrap(c: CanvasRenderingContext2D, text: string, maxW: number): string[]
   if (cur.trim()) lines.push(cur.trim());
   return lines;
 }
-
 async function drawFront(
   data: CredentialData,
   sp: HTMLImageElement | null, ph: HTMLImageElement | null, lg: HTMLImageElement | null
 ): Promise<HTMLCanvasElement> {
   const cv = document.createElement("canvas"); cv.width = CW; cv.height = CH;
   const c = cv.getContext("2d")!;
-  c.save(); rr(c, 0, 0, CW, CH, 20); c.clip();
+  c.save(); rr(c, 0, 0, CW, CH, 30); c.clip();
   c.fillStyle = "#fff"; c.fillRect(0, 0, CW, CH);
 
   // Mapa watermark
   if (sp) {
-    c.save(); c.globalAlpha = 0.07;
+    c.save(); c.globalAlpha = 0.08;
     const mh = CH * 0.6; const mw = mh * (sp.width / sp.height);
-    c.drawImage(sp, CW - mw - 10, 90, mw, mh); c.restore();
+    c.drawImage(sp, CW - mw - 15, 135, mw, mh); c.restore();
   }
 
   // HEADER
   c.textAlign = "center"; c.textBaseline = "top";
-  c.fillStyle = NAVY; c.font = "800 54px 'Segoe UI',sans-serif";
-  c.fillText("IGLESIA EVANG\u00c9LICA FILADELFIA", CW / 2, 24);
-  // CIF
+  c.fillStyle = NAVY; c.font = "800 81px 'Segoe UI',sans-serif";
+  c.fillText("IGLESIA EVANG\u00c9LICA FILADELFIA", CW / 2, 36);
   const cif = "CIF R480047J";
-  c.font = "600 18px 'Segoe UI',sans-serif"; c.fillStyle = LBL;
+  c.font = "600 27px 'Segoe UI',sans-serif"; c.fillStyle = LBL;
   const tw = c.measureText(cif).width;
-  c.fillText(cif, CW / 2, 86);
-  c.strokeStyle = NAVY; c.lineWidth = 2;
-  c.beginPath(); c.moveTo(CW / 2 - tw / 2 - 180, 96); c.lineTo(CW / 2 - tw / 2 - 16, 96); c.stroke();
-  c.beginPath(); c.moveTo(CW / 2 + tw / 2 + 16, 96); c.lineTo(CW / 2 + tw / 2 + 180, 96); c.stroke();
+  c.fillText(cif, CW / 2, 129);
+  c.strokeStyle = NAVY; c.lineWidth = 3;
+  c.beginPath(); c.moveTo(CW / 2 - tw / 2 - 270, 144); c.lineTo(CW / 2 - tw / 2 - 24, 144); c.stroke();
+  c.beginPath(); c.moveTo(CW / 2 + tw / 2 + 24, 144); c.lineTo(CW / 2 + tw / 2 + 270, 144); c.stroke();
 
   // FOTO
-  const pw = 250, ppH = 300, px = 40, py = 120;
-  c.save(); rr(c, px, py, pw, ppH, 8);
+  const pw = 375, ppH = 450, px = 60, py = 180;
+  c.save(); rr(c, px, py, pw, ppH, 12);
   c.fillStyle = "#e8ecf0"; c.fill();
-  c.strokeStyle = SEP; c.lineWidth = 2; c.stroke();
+  c.strokeStyle = SEP; c.lineWidth = 3; c.stroke();
   if (ph) { c.clip(); c.drawImage(ph, px, py, pw, ppH); }
   else {
-    c.fillStyle = "#b0bec5"; c.font = "bold 96px 'Segoe UI',sans-serif";
+    c.fillStyle = "#b0bec5"; c.font = "bold 144px 'Segoe UI',sans-serif";
     c.textAlign = "center"; c.textBaseline = "middle";
     c.fillText(data.nombre[0], px + pw / 2, py + ppH / 2);
   }
   c.restore();
 
   // NOMBRE
-  const fx = px + pw + 36;
-  const fw = CW - fx - 50;
+  const fx = px + pw + 54;
+  const fw = CW - fx - 75;
   c.textAlign = "left"; c.textBaseline = "top";
   c.fillStyle = NAVY;
-  c.font = "800 50px 'Segoe UI',sans-serif";
+  c.font = "800 75px 'Segoe UI',sans-serif";
   let nm = data.nombre.toUpperCase();
   while (c.measureText(nm).width > fw && nm.length > 3) nm = nm.slice(0, -1);
-  c.fillText(nm, fx, 126);
-  c.font = "700 32px 'Segoe UI',sans-serif";
+  c.fillText(nm, fx, 189);
+  c.font = "700 48px 'Segoe UI',sans-serif";
   let ap = (data.apellidos || "").toUpperCase();
   while (c.measureText(ap).width > fw && ap.length > 3) ap = ap.slice(0, -1);
-  c.fillText(ap, fx, 182);
+  c.fillText(ap, fx, 273);
 
   // CAMPOS
-  let fy = 232;
+  let fy = 348;
   const field = (label: string, val: string, mono?: boolean) => {
-    c.fillStyle = LBL; c.font = "700 15px 'Segoe UI',sans-serif";
+    c.fillStyle = LBL; c.font = "700 22px 'Segoe UI',sans-serif";
     c.fillText(label, fx, fy);
-    c.fillStyle = BODY;
-    c.font = mono ? "800 28px 'Courier New',monospace" : "700 28px 'Segoe UI',sans-serif";
-    c.fillText(val, fx, fy + 20);
-    c.strokeStyle = SEP; c.lineWidth = 1.5;
-    c.beginPath(); c.moveTo(fx, fy + 54); c.lineTo(fx + fw * 0.75, fy + 54); c.stroke();
-    fy += 66;
+    c.fillStyle = BODY; c.font = mono ? "700 42px 'Courier New',monospace" : "700 42px 'Segoe UI',sans-serif";
+    c.fillText(val, fx, fy + 28);
+    c.strokeStyle = SEP; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(fx, fy + 78); c.lineTo(fx + fw * 0.75, fy + 78); c.stroke();
+    fy += 100;
   };
   const expiry = formatExpiry();
   field("DOCUMENTO", data.dni || data.nie || "\u2014");
   field("N.\u00ba DE CREDENCIAL", data.codigo || "\u2014", true);
   field("V\u00c1LIDA HASTA", expiry);
-
-
   // BARRA AZUL
-  const barH = 80; const barY = CH - 44 - barH;
+  const barH = 120; const barY = CH - 66 - barH;
   c.fillStyle = NAVY; c.fillRect(0, barY, CW, barH);
   if (lg) {
-    const lh2 = 52; const lw2 = lh2 * (lg.width / lg.height);
+    const lh2 = 78; const lw2 = lh2 * (lg.width / lg.height);
     c.save(); c.globalCompositeOperation = "screen";
-    c.drawImage(lg, 40, barY + (barH - lh2) / 2, lw2, lh2); c.restore();
-    c.strokeStyle = "rgba(255,255,255,0.25)"; c.lineWidth = 1;
-    c.beginPath(); c.moveTo(40 + lw2 + 14, barY + 12); c.lineTo(40 + lw2 + 14, barY + barH - 12); c.stroke();
-    const tx = 40 + lw2 + 28;
-    c.fillStyle = "#fff"; c.font = "800 28px 'Segoe UI',sans-serif";
+    c.drawImage(lg, 60, barY + (barH - lh2) / 2, lw2, lh2); c.restore();
+    c.strokeStyle = "rgba(255,255,255,0.25)"; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(60 + lw2 + 21, barY + 18); c.lineTo(60 + lw2 + 21, barY + barH - 18); c.stroke();
+    const tx = 60 + lw2 + 42;
+    c.fillStyle = "#fff"; c.font = "800 42px 'Segoe UI',sans-serif";
     c.textBaseline = "top"; c.textAlign = "left";
-    c.fillText("MINISTRO DE CULTO", tx, barY + 12);
-    c.fillStyle = "rgba(255,255,255,0.55)"; c.font = "italic 14px 'Segoe UI',sans-serif";
-    c.fillText("\u201cId por todo el mundo y predicad el evangelio a toda criatura.\u201d", tx, barY + 46);
+    c.fillText("MINISTRO DE CULTO", tx, barY + 18);
+    c.fillStyle = "rgba(255,255,255,0.55)"; c.font = "italic 21px 'Segoe UI',sans-serif";
+    c.fillText("\u201cId por todo el mundo y predicad el evangelio a toda criatura.\u201d", tx, barY + 69);
     const qw = c.measureText("\u201cId por todo el mundo y predicad el evangelio a toda criatura.\u201d  ").width;
-    c.fillStyle = "rgba(255,255,255,0.8)"; c.font = "700 14px 'Segoe UI',sans-serif";
-    c.fillText("Marcos 16:15", tx + qw, barY + 46);
+    c.fillStyle = "rgba(255,255,255,0.8)"; c.font = "700 21px 'Segoe UI',sans-serif";
+    c.fillText("Marcos 16:15", tx + qw, barY + 69);
   }
 
   // PIE
   const ftY = barY + barH;
-  c.fillStyle = "#f4f6f8"; c.fillRect(0, ftY, CW, 44);
-  c.strokeStyle = SEP; c.lineWidth = 1;
+  c.fillStyle = "#f4f6f8"; c.fillRect(0, ftY, CW, 66);
+  c.strokeStyle = SEP; c.lineWidth = 1.5;
   c.beginPath(); c.moveTo(0, ftY); c.lineTo(CW, ftY); c.stroke();
-  c.fillStyle = LBL; c.font = "600 14px 'Segoe UI',sans-serif";
+  c.fillStyle = LBL; c.font = "600 21px 'Segoe UI',sans-serif";
   c.textBaseline = "middle"; c.textAlign = "left";
-  c.fillText(`${data.iglesia_nombre} \u00b7 [${data.zona_codigo}] ${data.zona_nombre}`, 40, ftY + 22);
+  c.fillText(`${data.iglesia_nombre} \u00b7 [${data.zona_codigo}] ${data.zona_nombre}`, 60, ftY + 33);
   c.textAlign = "right";
-  c.fillText("Caduca: " + expiry, CW - 40, ftY + 22);
+  c.fillText("Caduca: " + expiry, CW - 60, ftY + 33);
 
   c.restore(); return cv;
 }
-
-
 function drawBack(lg: HTMLImageElement | null): HTMLCanvasElement {
   const cv = document.createElement("canvas"); cv.width = CW; cv.height = CH;
   const c = cv.getContext("2d")!;
-  c.save(); rr(c, 0, 0, CW, CH, 20); c.clip();
-  c.fillStyle = "#fff"; c.fillRect(0, 0, CW, CH);
+  c.save(); rr(c, 0, 0, CW, CH, 30); c.clip();
+  c.fillStyle = "#f4f6f8"; c.fillRect(0, 0, CW, CH);
 
   if (lg) {
-    const lh2 = 60; const lw2 = lh2 * (lg.width / lg.height);
-    c.drawImage(lg, (CW - lw2) / 2, 24, lw2, lh2);
+    const lh2 = 90; const lw2 = lh2 * (lg.width / lg.height);
+    c.drawImage(lg, (CW - lw2) / 2, 36, lw2, lh2);
   }
 
   c.textAlign = "center"; c.textBaseline = "top";
-  c.fillStyle = NAVY; c.font = "800 34px 'Segoe UI',sans-serif";
-  c.fillText("EXTRACTOS DE LEY", CW / 2, 96);
-  c.fillStyle = LBL; c.font = "600 15px 'Segoe UI',sans-serif";
-  c.fillText("Ley 7/1980 de Libertad Religiosa  \u2022  Ley 24/1992 Acuerdo Iglesia-Estado", CW / 2, 138);
+  c.fillStyle = NAVY; c.font = "800 51px 'Segoe UI',sans-serif";
+  c.fillText("EXTRACTOS DE LEY", CW / 2, 144);
+  c.fillStyle = LBL; c.font = "600 22px 'Segoe UI',sans-serif";
+  c.fillText("Ley 7/1980 de Libertad Religiosa  \u2022  Ley 24/1992 Acuerdo Iglesia-Estado", CW / 2, 207);
 
-  c.strokeStyle = SEP; c.lineWidth = 1.5;
-  c.beginPath(); c.moveTo(CW * 0.15, 164); c.lineTo(CW * 0.85, 164); c.stroke();
+  c.strokeStyle = SEP; c.lineWidth = 2;
+  c.beginPath(); c.moveTo(CW * 0.15, 246); c.lineTo(CW * 0.85, 246); c.stroke();
 
-  const mx = 50; const maxTW = CW - mx * 2; const fs = 17; const lh2 = 24;
+  const mx = 75; const maxTW = CW - mx * 2; const fs = 26; const lh2 = 36;
   const t1 = "El acceso de los Ministros de Culto de la Iglesia Evang\u00e9lica Filadelfia a centros o establecimientos penitenciarios, hospitalarios, asistenciales u otros an\u00e1logos del sector p\u00fablico, es libre y sin limitaciones de horarios para su asistencia religiosa. (Ley 7/1980, Art. 2)";
   const t2 = "Los Ministros de Culto de las Iglesias pertenecientes a la Iglesia Evang\u00e9lica Filadelfia no est\u00e1n obligados a declarar sobre los hechos que les hayan sido revelados en el ejercicio de sus funciones de culto y asistencia religiosa. (Ley 24/1992, Art. 3.2)";
 
   c.font = `${fs}px 'Segoe UI',sans-serif`;
   const l1 = wrap(c, t1, maxTW); const l2 = wrap(c, t2, maxTW);
-  let y = 180; c.fillStyle = "#3a4a5e";
+  let y = 270; c.fillStyle = "#3a4a5e";
   for (const ln of l1) { c.fillText(ln, CW / 2, y); y += lh2; }
-  y += 14;
+  y += 21;
   c.strokeStyle = SEP; c.beginPath(); c.moveTo(CW * 0.25, y); c.lineTo(CW * 0.75, y); c.stroke();
-  y += 18; c.fillStyle = "#3a4a5e";
+  y += 27; c.fillStyle = "#3a4a5e";
   for (const ln of l2) { c.fillText(ln, CW / 2, y); y += lh2; }
 
-  const bH = 46; c.fillStyle = NAVY; c.fillRect(0, CH - bH, CW, bH);
-  c.fillStyle = "rgba(255,255,255,0.5)"; c.font = "700 15px 'Segoe UI',sans-serif";
+  const bH = 69; c.fillStyle = NAVY; c.fillRect(0, CH - bH, CW, bH);
+  c.fillStyle = "rgba(255,255,255,0.5)"; c.font = "700 22px 'Segoe UI',sans-serif";
   c.textBaseline = "middle";
   c.fillText("IGLESIA EVANG\u00c9LICA FILADELFIA", CW / 2, CH - bH / 2);
 
   c.restore(); return cv;
 }
-
-
 export default function CredentialCard3D({ data }: CredentialCard3DProps) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const meshRef = useRef<THREE.Mesh | null>(null);
   const renRef = useRef<THREE.WebGLRenderer | null>(null);
   const camRef = useRef<THREE.PerspectiveCamera | null>(null);
-  const meshRef = useRef<THREE.Mesh | null>(null);
   const frameRef = useRef<number>(0);
   const [loading, setLoading] = useState(true);
-  const tgt = useRef({ x: 0.05, y: -0.1 });
-  const cur = useRef({ x: 0, y: 0 });
+  const tgt = useRef({ x: 0, y: 0.15 });
+  const cur = useRef({ x: 0, y: 0.15 });
   const drag = useRef(false);
   const prev = useRef({ x: 0, y: 0 });
 
   const init = useCallback(async () => {
-    if (!mountRef.current) return;
     const el = mountRef.current;
+    if (!el) return;
     const w = el.clientWidth; const h = Math.min(w * 0.6, 480);
-
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x111111);
-    const cam = new THREE.PerspectiveCamera(35, w / h, 0.1, 100);
-    cam.position.set(0, 0, 5.5); camRef.current = cam;
-
-    const ren = new THREE.WebGLRenderer({ antialias: true });
-    ren.setSize(w, h); ren.setPixelRatio(Math.min(devicePixelRatio, 2));
-    ren.toneMapping = THREE.ACESFilmicToneMapping; ren.toneMappingExposure = 1.1;
+    scene.background = new THREE.Color(0x0f172a);
+    const cam = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
+    cam.position.set(0, 0, 5.2); camRef.current = cam;
+    const ren = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    ren.setSize(w, h); ren.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    ren.outputColorSpace = THREE.SRGBColorSpace;
     el.appendChild(ren.domElement); renRef.current = ren;
-
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-    const dl = new THREE.DirectionalLight(0xffffff, 1.2);
-    dl.position.set(2, 3, 4); scene.add(dl);
-    const dl2 = new THREE.DirectionalLight(0xc8b8ff, 0.3);
-    dl2.position.set(-3, -1, 2); scene.add(dl2);
+    const amb = new THREE.AmbientLight(0xffffff, 0.6);
+    const dir = new THREE.DirectionalLight(0xffffff, 1.2); dir.position.set(3, 4, 5);
+    const pt = new THREE.PointLight(0xffffff, 0.4); pt.position.set(-3, -2, 4);
+    scene.add(amb, dir, pt);
 
     try {
       const [sp, ph, lg] = await Promise.all([
@@ -271,7 +258,6 @@ export default function CredentialCard3D({ data }: CredentialCard3DProps) {
     };
     anim();
   }, [data]);
-
 
   useEffect(() => {
     const t = setTimeout(init, 80);
@@ -327,5 +313,3 @@ export default function CredentialCard3D({ data }: CredentialCard3DProps) {
     </div>
   );
 }
-
-
