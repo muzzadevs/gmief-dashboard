@@ -16,7 +16,7 @@ function formatExpiryDate(): string {
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
-    const img = new Image();
+    const img = new window.Image();
     img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error("Failed to load: " + src));
@@ -26,16 +26,11 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.arcTo(x + w, y, x + w, y + r, r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-  ctx.lineTo(x + r, y + h);
-  ctx.arcTo(x, y + h, x, y + h - r, r);
-  ctx.lineTo(x, y + r);
-  ctx.arcTo(x, y, x + r, y, r);
-  ctx.closePath();
+  ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r); ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r); ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r); ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r); ctx.closePath();
 }
 
 function getWrappedLines(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
@@ -51,233 +46,261 @@ function getWrappedLines(ctx: CanvasRenderingContext2D, text: string, maxW: numb
   return lines;
 }
 
-function drawWavyLines(c: CanvasRenderingContext2D, W: number, H: number) {
-  c.save();
-  c.globalAlpha = 0.07;
-  c.strokeStyle = "#8a9bb5";
-  c.lineWidth = 1.2;
-  for (const f of [0.18, 0.35, 0.52, 0.68, 0.84]) {
+
+/* ── Patrón de líneas diagonales decorativas ── */
+function drawDiagonalPattern(c: CanvasRenderingContext2D, W: number, H: number) {
+  c.save(); c.globalAlpha = 0.04; c.strokeStyle = "#ffffff"; c.lineWidth = 1;
+  for (let i = 0; i < 12; i++) {
     c.beginPath();
-    c.moveTo(0, H * f);
-    c.quadraticCurveTo(W * 0.25, H * (f - 0.06), W * 0.5, H * f);
-    c.quadraticCurveTo(W * 0.75, H * (f + 0.06), W, H * (f + 0.04));
+    c.moveTo(-W * 0.2 + i * (W / 6), 0);
+    c.lineTo(i * (W / 6), H);
     c.stroke();
   }
   c.restore();
 }
 
-function drawFooterCurve(c: CanvasRenderingContext2D, W: number, H: number, fh: number) {
-  c.save();
-  c.fillStyle = "#0c1929";
-  c.beginPath();
-  c.moveTo(0, H - fh + fh * 0.35);
-  c.quadraticCurveTo(W * 0.35, H - fh, W * 0.55, H - fh + fh * 0.25);
-  c.quadraticCurveTo(W * 0.75, H - fh + fh * 0.5, W, H - fh + fh * 0.1);
-  c.lineTo(W, H);
-  c.lineTo(0, H);
-  c.closePath();
-  c.fill();
-  c.restore();
+/* ── Gradiente de fondo azul oscuro ── */
+function drawBackground(c: CanvasRenderingContext2D, W: number, H: number) {
+  const bg = c.createLinearGradient(0, 0, W * 0.6, H);
+  bg.addColorStop(0, "#0d1b2a"); bg.addColorStop(0.5, "#1b2d4f"); bg.addColorStop(1, "#0d1b2a");
+  c.fillStyle = bg; c.fillRect(0, 0, W, H);
+  drawDiagonalPattern(c, W, H);
 }
 
+/* ── Línea dorada horizontal ── */
+function drawGoldLine(c: CanvasRenderingContext2D, x: number, y: number, w: number) {
+  const g = c.createLinearGradient(x, 0, x + w, 0);
+  g.addColorStop(0, "#c8920e"); g.addColorStop(0.4, "#d4a017");
+  g.addColorStop(0.6, "#e8c547"); g.addColorStop(0.8, "#d4a017"); g.addColorStop(1, "#c8920e");
+  c.save(); c.globalAlpha = 0.8; c.fillStyle = g;
+  c.fillRect(x, y, w, 3); c.restore();
+}
+
+/* ── Footer gradient ── */
+function drawFooterGradient(c: CanvasRenderingContext2D, W: number, H: number, fh: number) {
+  const g = c.createLinearGradient(0, H - fh, 0, H);
+  g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(0.4, "rgba(0,0,0,0.6)"); g.addColorStop(1, "rgba(0,0,0,0.85)");
+  c.fillStyle = g; c.fillRect(0, H - fh, W, fh);
+}
+
+/* ═══════════════════════════════════════════
+   DRAW FRONT (Canvas)
+   ═══════════════════════════════════════════ */
 async function drawFront(
   data: CredentialData, W: number, H: number,
   spainImg: HTMLImageElement | null, photoImg: HTMLImageElement | null, logoImg: HTMLImageElement | null
 ): Promise<HTMLCanvasElement> {
   const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
-  const c = cv.getContext("2d")!; const R = 20;
+  const c = cv.getContext("2d")!; const R = 16; const pad = 20;
   c.clearRect(0, 0, W, H);
   c.save(); roundRect(c, 0, 0, W, H, R); c.clip();
 
-  // Background
-  c.fillStyle = "#f0ede6"; c.fillRect(0, 0, W, H);
-  drawWavyLines(c, W, H);
+  drawBackground(c, W, H);
 
-  // Spain map watermark
+  // Mapa de España marca de agua
   if (spainImg) {
-    c.save(); c.globalAlpha = 0.08;
-    const mh = H * 0.6; const mw = mh * (spainImg.width / spainImg.height);
-    c.drawImage(spainImg, W - mw - 10, H * 0.25, mw, mh);
+    c.save(); c.globalAlpha = 0.04;
+    const mh = H * 0.65; const mw = mh * (spainImg.width / spainImg.height);
+    c.drawImage(spainImg, W - mw + 10, H * 0.12, mw, mh);
     c.restore();
   }
 
-  const pad = 24;
-  // Logo
+  // ── HEADER: Logo + nombre org ──
   if (logoImg) {
-    const lh = 56; const lw = lh * (logoImg.width / logoImg.height);
-    c.drawImage(logoImg, pad, 14, lw, lh);
+    const lh = 44; const lw = lh * (logoImg.width / logoImg.height);
+    c.drawImage(logoImg, pad, 12, lw, lh);
   }
-  // CIF
-  c.fillStyle = "rgba(26,45,80,0.5)"; c.font = "600 10px 'Segoe UI', sans-serif";
-  c.textBaseline = "top"; c.fillText("CIF R480047J", pad, 74);
-
-  // Right column: values
-  c.textAlign = "right"; c.fillStyle = "rgba(26,45,80,0.35)";
-  c.font = "600 8px 'Segoe UI', sans-serif";
-  const vals = ["FE", "SERVICIO", "COMUNIDAD", "ESPERANZA"];
-  vals.forEach((v, i) => { c.fillText(v, W - pad, 18 + i * 14); });
-  // Gold vertical line
-  c.save(); c.globalAlpha = 0.5;
-  c.strokeStyle = "#c8920e"; c.lineWidth = 1.5;
-  c.beginPath(); c.moveTo(W - pad - 60, 16); c.lineTo(W - pad - 60, 16 + 52); c.stroke();
-  c.restore();
+  c.fillStyle = "rgba(255,255,255,0.7)"; c.font = "bold 10px 'Segoe UI', sans-serif";
+  c.textAlign = "right"; c.textBaseline = "top";
+  c.fillText("IGLESIA EVANG\u00c9LICA FILADELFIA", W - pad, 18);
   c.textAlign = "left";
 
-  // MINISTRO DE CULTO
-  const titleX = pad + 170;
-  c.fillStyle = "#0c1929"; c.font = "bold 22px 'Segoe UI', sans-serif";
-  c.fillText("MINISTRO DE CULTO", titleX, 92);
+  // ── Línea dorada ──
+  drawGoldLine(c, pad, 60, W - pad * 2);
 
-  // Photo
-  const pw = 136, ph = 156, px = pad, py = 110;
-  c.save(); roundRect(c, px, py, pw, ph, 8);
-  c.fillStyle = "#ddd"; c.fill();
-  c.strokeStyle = "#bbb"; c.lineWidth = 1; c.stroke();
-  if (photoImg) { c.clip(); c.drawImage(photoImg, px, py, pw, ph); }
-  else {
+  // ── Título MINISTRO DE CULTO ──
+  c.fillStyle = "#d4a017"; c.font = "800 20px 'Segoe UI', sans-serif";
+  c.textAlign = "center"; c.textBaseline = "top";
+  c.fillText("MINISTRO DE CULTO", W / 2, 70);
+  c.textAlign = "left";
+
+  // ── Foto ──
+  const pw = 120, ph = 144, px = pad, py = 100;
+  c.save();
+  roundRect(c, px, py, pw, ph, 8);
+  c.fillStyle = "#2a3a5a"; c.fill();
+  // Borde dorado
+  c.strokeStyle = "rgba(212,160,23,0.5)"; c.lineWidth = 2; c.stroke();
+  if (photoImg) {
+    c.clip(); c.drawImage(photoImg, px, py, pw, ph);
+  } else {
     const fn = `${data.nombre} ${data.apellidos || ""}`.trim();
-    c.fillStyle = "#999"; c.font = "bold 52px 'Segoe UI', sans-serif";
+    c.fillStyle = "rgba(255,255,255,0.4)"; c.font = "bold 48px 'Segoe UI', sans-serif";
     c.textAlign = "center"; c.textBaseline = "middle";
-    c.fillText(fn[0], px + pw/2, py + ph/2);
+    c.fillText(fn[0], px + pw / 2, py + ph / 2);
     c.textAlign = "left"; c.textBaseline = "top";
   }
   c.restore();
 
-  // Fields
-  const fx = px + pw + 16; const fw = W - fx - pad - 60;
-  const fields: [string, string, number][] = [
-    ["NOMBRE Y APELLIDOS", `${data.nombre} ${data.apellidos || ""}`.trim(), 14],
-    ["DNI", data.dni || data.nie || "\u2014", 12],
-    ["N\u00daMERO DE CREDENCIAL", data.codigo || "\u2014", 15],
-    ["FECHA DE CADUCIDAD", formatExpiryDate(), 12],
-  ];
-  let fy = 118;
-  for (const [label, value, fs] of fields) {
-    c.fillStyle = "#1a2d50"; c.font = `bold 8px 'Segoe UI', sans-serif`;
-    c.fillText(label, fx, fy);
-    // Field bg
-    c.fillStyle = "rgba(200,200,210,0.35)";
-    roundRect(c, fx, fy + 10, fw, 18, 4); c.fill();
-    c.fillStyle = "#0c1929";
-    c.font = label === "N\u00daMERO DE CREDENCIAL" ? `bold ${fs}px 'Courier New', monospace` : `600 ${fs}px 'Segoe UI', sans-serif`;
-    c.fillText(value, fx + 8, fy + 24);
-    fy += 36;
-  }
 
-  // AL SERVICIO DEL EVANGELIO
-  c.fillStyle = "rgba(26,45,80,0.3)"; c.font = "600 9px 'Segoe UI', sans-serif";
-  c.textAlign = "right";
-  c.fillText("AL SERVICIO", W - pad, H - 80);
-  c.fillText("DEL EVANGELIO", W - pad, H - 68);
-  c.textAlign = "left";
+  // ── Campos de datos ──
+  const fx = px + pw + 16; const fw = W - fx - pad;
+  const expiry = formatExpiryDate();
+  const docId = data.dni || data.nie || "\u2014";
+  const fullName = `${data.nombre} ${data.apellidos || ""}`.trim();
+  let fy = 106;
 
-  // Footer
-  const fh = 48;
-  drawFooterCurve(c, W, H, fh);
-  // Bible verse
-  c.fillStyle = "#c8920e"; c.font = "italic 8px 'Segoe UI', sans-serif";
-  c.fillText('\u201cId por todo el mundo y predicad el evangelio', pad, H - 22);
-  c.fillText('a toda criatura\u201d  Marcos 16:15', pad, H - 11);
-  // Separator
-  c.strokeStyle = "rgba(255,255,255,0.25)"; c.lineWidth = 0.5;
-  c.beginPath(); c.moveTo(W * 0.55, H - 32); c.lineTo(W * 0.55, H - 8); c.stroke();
-  // Church name
-  c.fillStyle = "rgba(255,255,255,0.7)"; c.font = "600 9px 'Segoe UI', sans-serif";
+  // Label helper
+  const drawLabel = (label: string, y: number) => {
+    c.fillStyle = "rgba(212,160,23,0.7)"; c.font = "600 7px 'Segoe UI', sans-serif";
+    c.fillText(label, fx, y);
+  };
+
+  // Nombre y Apellidos
+  drawLabel("NOMBRE Y APELLIDOS", fy);
+  c.fillStyle = "#ffffff"; c.font = "bold 16px 'Segoe UI', sans-serif";
+  // Truncar si es muy largo
+  let nameText = fullName;
+  while (c.measureText(nameText).width > fw && nameText.length > 3) nameText = nameText.slice(0, -1);
+  if (nameText !== fullName) nameText += "\u2026";
+  c.fillText(nameText, fx, fy + 10);
+  fy += 36;
+
+  // DNI + Código en fila
+  const colW = (fw - 16) / 2;
+  drawLabel("DNI / NIE", fy);
+  c.fillStyle = "rgba(255,255,255,0.9)"; c.font = "600 13px 'Segoe UI', sans-serif";
+  c.fillText(docId, fx, fy + 10);
+
+  c.fillStyle = "rgba(212,160,23,0.7)"; c.font = "600 7px 'Segoe UI', sans-serif";
+  c.fillText("N\u00ba CREDENCIAL", fx + colW + 16, fy);
+  c.fillStyle = "#ffffff"; c.font = "bold 13px 'Courier New', monospace";
+  c.fillText(data.codigo || "\u2014", fx + colW + 16, fy + 10);
+  fy += 34;
+
+  // Iglesia + Zona
+  drawLabel("IGLESIA", fy);
+  c.fillStyle = "rgba(255,255,255,0.85)"; c.font = "500 11px 'Segoe UI', sans-serif";
+  let igText = data.iglesia_nombre;
+  const zonaStr = ` \u00b7 [${data.zona_codigo}] ${data.zona_nombre}`;
+  while (c.measureText(igText + zonaStr).width > fw && igText.length > 3) igText = igText.slice(0, -1);
+  if (igText !== data.iglesia_nombre) igText += "\u2026";
+  c.fillText(igText, fx, fy + 10);
+  c.fillStyle = "rgba(212,160,23,0.6)"; c.font = "600 10px 'Segoe UI', sans-serif";
+  c.fillText(zonaStr, fx + c.measureText(igText).width + 2, fy + 10);
+
+  // ── FOOTER ──
+  const fh = 44;
+  drawFooterGradient(c, W, H, fh);
+
+  // Cita bíblica
+  c.fillStyle = "rgba(212,160,23,0.7)"; c.font = "italic 8px 'Segoe UI', sans-serif";
+  c.textBaseline = "bottom";
+  c.fillText("\u201cId por todo el mundo y predicad el evangelio", pad, H - 16);
+  c.fillText('a toda criatura\u201d', pad, H - 6);
+  c.fillStyle = "rgba(255,255,255,0.5)"; c.font = "600 8px 'Segoe UI', sans-serif";
+  c.fillText("Marcos 16:15", pad + c.measureText('a toda criatura\u201d  ').width, H - 6);
+
+  // Caducidad + CIF
   c.textAlign = "right";
-  c.fillText("IGLESIA EVANG\u00c9LICA", W - pad, H - 20);
-  c.fillText("FILADELFIA", W - pad, H - 9);
+  c.fillStyle = "rgba(255,255,255,0.5)"; c.font = "600 9px 'Segoe UI', sans-serif";
+  c.fillText("Caduca: " + expiry, W - pad, H - 16);
+  c.fillStyle = "rgba(255,255,255,0.3)"; c.font = "500 7px 'Segoe UI', sans-serif";
+  c.fillText("CIF R480047J", W - pad, H - 6);
 
   c.restore();
   return cv;
 }
 
+
+/* ═══════════════════════════════════════════
+   DRAW BACK (Canvas)
+   ═══════════════════════════════════════════ */
 function drawBack(W: number, H: number, logoImg: HTMLImageElement | null): HTMLCanvasElement {
   const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
-  const c = cv.getContext("2d")!; const R = 20;
+  const c = cv.getContext("2d")!; const R = 16;
   c.clearRect(0, 0, W, H);
   c.save(); roundRect(c, 0, 0, W, H, R); c.clip();
 
-  // Background
-  c.fillStyle = "#f0ede6"; c.fillRect(0, 0, W, H);
-  drawWavyLines(c, W, H);
+  drawBackground(c, W, H);
 
-  // Logo at top
+  // Logo superior tenue
   if (logoImg) {
-    const lh = 32; const lw = lh * (logoImg.width / logoImg.height);
-    c.save(); c.globalAlpha = 0.35;
-    c.drawImage(logoImg, (W - lw) / 2, 14, lw, lh);
+    const lh = 28; const lw = lh * (logoImg.width / logoImg.height);
+    c.save(); c.globalAlpha = 0.25;
+    c.drawImage(logoImg, (W - lw) / 2, 12, lw, lh);
     c.restore();
   }
 
-  // Text content
-  const mx = 36; const maxTW = W - mx * 2;
-  const fs = 11; const lh = 15;
+  // Título
+  c.textAlign = "center"; c.textBaseline = "top";
+  c.fillStyle = "#d4a017"; c.font = "800 16px 'Segoe UI', sans-serif";
+  c.fillText("EXTRACTOS DE LEY", W / 2, 48);
+
+  c.fillStyle = "rgba(255,255,255,0.45)"; c.font = "600 8px 'Segoe UI', sans-serif";
+  c.fillText("Ley 7/1980 de Libertad Religiosa  \u2022  Ley 24/1992 Acuerdo Iglesia-Estado", W / 2, 70);
+
+  // Separador dorado
+  const sg = c.createLinearGradient(W * 0.2, 0, W * 0.8, 0);
+  sg.addColorStop(0, "transparent"); sg.addColorStop(0.5, "rgba(200,146,14,0.5)"); sg.addColorStop(1, "transparent");
+  c.strokeStyle = sg; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(W * 0.2, 84); c.lineTo(W * 0.8, 84); c.stroke();
+
+  // Textos legales
+  const mx = 30; const maxTW = W - mx * 2;
+  const fs = 10; const lh = 14;
   const t1 = "El acceso de los Ministros de Culto de la Iglesia Evang\u00e9lica Filadelfia a centros o establecimientos penitenciarios, hospitalarios, asistenciales u otros an\u00e1logos del sector p\u00fablico, es libre y sin limitaciones de horarios para su asistencia religiosa (Ley 7/1980, Art. 2)";
   const t2 = "Los Ministros de Culto de las Iglesias pertenecientes a la Iglesia Evang\u00e9lica Filadelfia no est\u00e1n obligados a declarar sobre los hechos que les hayan sido revelados en el ejercicio de sus funciones de culto y asistencia religiosa. (Ley 24/1992, Art. 3.2)";
+
   c.font = `${fs}px 'Segoe UI', sans-serif`;
   const lines1 = getWrappedLines(c, t1, maxTW);
   const lines2 = getWrappedLines(c, t2, maxTW);
 
-  const logoSpace = logoImg ? 50 : 10;
-  const titleH = 20; const subtitleH = 13; const sepH = 1;
-  const gapSmall = 6; const gapMed = 8;
-  const p1H = lines1.length * lh; const p2H = lines2.length * lh;
-  const contentH = titleH + gapSmall + subtitleH + gapMed + sepH + gapMed + p1H + gapMed + sepH + gapMed + p2H;
-  let y = logoSpace + (H - logoSpace - contentH - 30) / 2;
-
-  c.fillStyle = "#0c1929"; c.font = "bold 17px 'Segoe UI', sans-serif";
-  c.textAlign = "center"; c.textBaseline = "top";
-  c.fillText("EXTRACTOS DE LEY", W / 2, y);
-  y += titleH + gapSmall;
-
-  c.fillStyle = "#5a6a7a"; c.font = "10px 'Segoe UI', sans-serif";
-  c.fillText("Ley 7/1980 de Libertad Religiosa  \u2022  Ley 24/1992 Acuerdo Iglesia-Estado", W / 2, y);
-  y += subtitleH + gapMed;
-
-  // Gold separator
-  const sg = c.createLinearGradient(W * 0.15, 0, W * 0.85, 0);
-  sg.addColorStop(0, "transparent"); sg.addColorStop(0.5, "rgba(200,146,14,0.5)"); sg.addColorStop(1, "transparent");
-  c.strokeStyle = sg; c.lineWidth = 1;
-  c.beginPath(); c.moveTo(W * 0.15, y); c.lineTo(W * 0.85, y); c.stroke();
-  y += sepH + gapMed;
-
-  c.fillStyle = "#2a3a50"; c.font = `${fs}px 'Segoe UI', sans-serif`;
-  c.textAlign = "center";
+  let y = 94;
+  c.fillStyle = "rgba(255,255,255,0.75)";
   for (const line of lines1) { c.fillText(line, W / 2, y); y += lh; }
-  y += gapMed;
+  y += 6;
 
-  const sg2 = c.createLinearGradient(W * 0.25, 0, W * 0.75, 0);
-  sg2.addColorStop(0, "transparent"); sg2.addColorStop(0.5, "rgba(26,45,80,0.2)"); sg2.addColorStop(1, "transparent");
+  // Separador tenue
+  const sg2 = c.createLinearGradient(W * 0.3, 0, W * 0.7, 0);
+  sg2.addColorStop(0, "transparent"); sg2.addColorStop(0.5, "rgba(255,255,255,0.15)"); sg2.addColorStop(1, "transparent");
   c.strokeStyle = sg2;
-  c.beginPath(); c.moveTo(W * 0.25, y); c.lineTo(W * 0.75, y); c.stroke();
-  y += sepH + gapMed;
+  c.beginPath(); c.moveTo(W * 0.3, y); c.lineTo(W * 0.7, y); c.stroke();
+  y += 8;
 
-  c.fillStyle = "#2a3a50";
+  c.fillStyle = "rgba(255,255,255,0.75)";
   for (const line of lines2) { c.fillText(line, W / 2, y); y += lh; }
 
   // Footer
-  const fh = 30;
-  drawFooterCurve(c, W, H, fh);
-  c.fillStyle = "rgba(255,255,255,0.6)"; c.font = "600 9px 'Segoe UI', sans-serif";
-  c.textAlign = "center";
-  c.fillText("IGLESIA EVANG\u00c9LICA FILADELFIA", W / 2, H - 12);
+  const fh = 28;
+  const fg = c.createLinearGradient(0, H - fh, 0, H);
+  fg.addColorStop(0, "rgba(0,0,0,0)"); fg.addColorStop(1, "rgba(0,0,0,0.7)");
+  c.fillStyle = fg; c.fillRect(0, H - fh, W, fh);
+
+  c.fillStyle = "rgba(255,255,255,0.35)"; c.font = "600 8px 'Segoe UI', sans-serif";
+  c.textBaseline = "bottom";
+  c.fillText("IGLESIA EVANG\u00c9LICA FILADELFIA", W / 2, H - 6);
 
   c.restore();
   return cv;
 }
 
-// ======== THREE.JS COMPONENT ========
+
+/* ═══════════════════════════════════════════
+   COMPONENTE REACT 3D
+   ═══════════════════════════════════════════ */
 export default function CredentialCard3D({ data }: CredentialCard3DProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const meshRef = useRef<THREE.Mesh | null>(null);
-  const frameRef = useRef(0);
+  const frameRef = useRef<number>(0);
+  const [loading, setLoading] = useState(true);
+
+  const tgt = useRef({ x: 0.05, y: -0.1 });
+  const cur = useRef({ x: 0, y: 0 });
   const dragging = useRef(false);
   const prev = useRef({ x: 0, y: 0 });
-  const tgt = useRef({ x: 0, y: 0 });
-  const cur = useRef({ x: 0, y: 0 });
-  const [loading, setLoading] = useState(true);
 
   const init = useCallback(async () => {
     if (!mountRef.current) return;
@@ -285,57 +308,55 @@ export default function CredentialCard3D({ data }: CredentialCard3DProps) {
     const w = container.clientWidth;
     const h = Math.min(w * 0.6, 440);
 
-    const ren = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    ren.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x111111);
+
+    const cam = new THREE.PerspectiveCamera(35, w / h, 0.1, 100);
+    cam.position.set(0, 0, 5.5);
+    cameraRef.current = cam;
+
+    const ren = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     ren.setSize(w, h);
-    ren.setClearColor(0x000000, 0);
-    ren.outputColorSpace = THREE.SRGBColorSpace;
+    ren.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    ren.toneMapping = THREE.ACESFilmicToneMapping;
+    ren.toneMappingExposure = 1.1;
     container.appendChild(ren.domElement);
     rendererRef.current = ren;
 
-    const scene = new THREE.Scene();
-    const cam = new THREE.PerspectiveCamera(35, w / h, 0.1, 50);
-    cam.position.set(0, 0, 6);
-    cameraRef.current = cam;
-
-    const a = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(a);
-    const d1 = new THREE.DirectionalLight(0xfff8e1, 0.9);
-    d1.position.set(3, 4, 5);
-    scene.add(d1);
-    const d2 = new THREE.DirectionalLight(0x93c5fd, 0.25);
-    d2.position.set(-3, 2, 5);
-    scene.add(d2);
-
-    const TW = 680, TH = 428;
+    // Lighting
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const dl = new THREE.DirectionalLight(0xffffff, 1.2);
+    dl.position.set(2, 3, 4); scene.add(dl);
+    const dl2 = new THREE.DirectionalLight(0xc8b8ff, 0.3);
+    dl2.position.set(-3, -1, 2); scene.add(dl2);
 
     try {
-      let si: HTMLImageElement | null = null;
-      try { si = await loadImage("/spainMap.png"); } catch { /* */ }
-      let pi: HTMLImageElement | null = null;
-      if (data.has_imagen) {
-        try { pi = await loadImage(`/api/ministerios/${data.ministerio_id}/imagen`); } catch { /* */ }
-      }
-      let li: HTMLImageElement | null = null;
-      try { li = await loadImage("/TEMPLOGOIEF.png"); } catch { /* */ }
+      const CW = 680; const CH = 428;
 
-      const fc = await drawFront(data, TW, TH, si, pi, li);
-      const bc = drawBack(TW, TH, li);
+      const [spainImg, photoImg, logoImg] = await Promise.all([
+        loadImage("/spainMap.png").catch(() => null),
+        data.has_imagen ? loadImage(`/api/ministerios/${data.ministerio_id}/imagen`).catch(() => null) : Promise.resolve(null),
+        loadImage("/TEMPLOGOIEF.png").catch(() => null),
+      ]);
 
-      const ft = new THREE.CanvasTexture(fc);
+      const frontCv = await drawFront(data, CW, CH, spainImg, photoImg, logoImg);
+      const backCv = drawBack(CW, CH, logoImg);
+
+      const ft = new THREE.CanvasTexture(frontCv);
       ft.colorSpace = THREE.SRGBColorSpace;
-      const bt = new THREE.CanvasTexture(bc);
+      const bt = new THREE.CanvasTexture(backCv);
       bt.colorSpace = THREE.SRGBColorSpace;
 
-      const cardW = 3.6;
-      const cardH = cardW / (85.6 / 53.98);
-      const geo = new THREE.BoxGeometry(cardW, cardH, 0.025);
+      const aspect = CW / CH;
+      const cardH = 2.2;
+      const cardW = cardH * aspect;
+      const geo = new THREE.BoxGeometry(cardW, cardH, 0.04, 1, 1, 1);
 
-      const edge = new THREE.MeshStandardMaterial({ color: 0xd4cfc5, roughness: 0.4, metalness: 0.1 });
+      const edge = new THREE.MeshStandardMaterial({ color: 0x1a2d4f, roughness: 0.3, metalness: 0.15 });
       const mats = [
         edge, edge, edge, edge,
-        new THREE.MeshStandardMaterial({ map: ft, roughness: 0.15, metalness: 0.05, transparent: true }),
-        new THREE.MeshStandardMaterial({ map: bt, roughness: 0.15, metalness: 0.05, transparent: true }),
+        new THREE.MeshStandardMaterial({ map: ft, roughness: 0.12, metalness: 0.05, transparent: true }),
+        new THREE.MeshStandardMaterial({ map: bt, roughness: 0.12, metalness: 0.05, transparent: true }),
       ];
 
       const mesh = new THREE.Mesh(geo, mats);
@@ -374,6 +395,7 @@ export default function CredentialCard3D({ data }: CredentialCard3DProps) {
       }
     };
   }, [init]);
+
 
   useEffect(() => {
     const h = () => {
@@ -424,3 +446,4 @@ export default function CredentialCard3D({ data }: CredentialCard3DProps) {
     </div>
   );
 }
+

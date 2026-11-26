@@ -93,6 +93,7 @@ export default function SolicitudDetalle() {
         zona_codigo: item.ministerio.zona_codigo,
         has_imagen: item.ministerio.has_imagen,
         ministerio_id: item.ministerio.id,
+        iglesia_nombre: item.ministerio.iglesia_nombre,
       };
       await generateCredentialPdf(pdfData);
 
